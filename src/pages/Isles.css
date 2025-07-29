@@ -1,0 +1,93 @@
+.isles-wrapper {
+  padding: 40px;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom, #001F3F, #003366);
+  color: #ffffff;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.isles-wrapper h1 {
+  font-size: 2.5rem;
+  color: #FFDC00;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #ddd;
+  margin-bottom: 32px;
+  font-size: 1.1rem;
+}
+
+.isle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding-top: 20px;
+}
+
+.isle-card {
+  background: #002244;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  transition: transform 0.3s ease, background 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.isle-card.unlocked {
+  background: #003366;
+  border-color: #FFDC00;
+  transform: scale(1.02);
+}
+
+.isle-card.locked {
+  opacity: 0.4;
+  filter: grayscale(100%);
+}
+
+.isle-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #ccc;
+  margin-bottom: 6px;
+}
+
+.isle-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #FFDC00;
+  margin-bottom: 10px;
+}
+
+.isle-lore {
+  font-size: 0.95rem;
+  color: #cceeff;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.isle-locked-note {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .isles-wrapper {
+    padding: 24px;
+  }
+
+  .isle-card {
+    padding: 16px;
+  }
+
+  .isle-name {
+    font-size: 1.1rem;
+  }
+
+  .isle-lore {
+    font-size: 0.9rem;
+  }
+}

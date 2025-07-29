@@ -1,0 +1,172 @@
+.subscription-wrapper {
+  background: radial-gradient(circle at center, #001f3f, #000814);
+  color: #ffe066;
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.subscription-title {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #00d4ff;
+}
+
+.wallet-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.connect-btn {
+  background-color: #00d4ff;
+  color: #001f3f;
+  font-weight: bold;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 0 10px #00d4ff88;
+}
+
+.wallet-status {
+  font-size: 1rem;
+  color: #00ffcc;
+  background: #002244;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.subscription-card {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 51, 102, 0.7);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 20px #00d4ff77;
+}
+
+.subscription-badge {
+  width: 100px;
+  margin-right: 2rem;
+  border-radius: 0.5rem;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    filter: drop-shadow(0 0 6px #00ffff);
+  }
+  to {
+    filter: drop-shadow(0 0 15px #ffdc00);
+  }
+}
+
+.subscription-details p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.subscription-info {
+  background: rgba(0, 51, 102, 0.5);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 0 15px #008cba66;
+  margin-bottom: 3rem;
+}
+
+.subscription-info h2 {
+  font-size: 1.5rem;
+  color: #00d4ff;
+  margin-bottom: 1rem;
+}
+
+.subscription-info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.subscription-info li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #005f7f;
+}
+
+.tier-title {
+  font-size: 1.8rem;
+  margin-top: 3rem;
+  color: #00d4ff;
+  text-align: center;
+}
+
+.tier-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.tier-card {
+  background-color: rgba(0, 36, 72, 0.7);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  width: 220px;
+  box-shadow: 0 0 12px #00cfff88;
+  color: #ffe066;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tier-card h3 {
+  color: #00cfff;
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.tier-price {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+  color: #ffd700;
+}
+
+.tier-boost {
+  font-size: 0.95rem;
+  color: #87faff;
+  margin-bottom: 0.5rem;
+}
+
+.tier-card ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.tier-card li {
+  font-size: 0.9rem;
+  margin: 0.2rem 0;
+  color: #fff;
+}
+
+.subscribe-btn {
+  background-color: #ffe066;
+  color: #002244;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.subscribe-btn:hover {
+  background-color: #fff689;
+}
+
+.subscribe-btn.active {
+  background-color: #ccc;
+  color: #333;
+  cursor: not-allowed;
+}

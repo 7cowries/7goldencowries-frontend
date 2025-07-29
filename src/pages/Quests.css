@@ -1,0 +1,90 @@
+.quests-container {
+  padding: 1rem 2rem;
+  font-family: Poppins, sans-serif;
+  color: #fff;
+  background: linear-gradient(to bottom, #001F3F, #FFDC00 75%, #001F3F);
+  min-height: 100vh;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.user-info p {
+  margin: 0.25rem 0;
+}
+.xp-bar {
+  display: inline-block;
+  width: 150px;
+  height: 8px;
+  background: rgba(255, 220, 0, 0.3);
+  margin: 0 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+  vertical-align: middle;
+}
+.xp-fill {
+  height: 100%;
+  background: #FFDC00;
+  transition: width 0.8s ease-out;
+}
+.btn-twitter {
+  background: #FFDC00;
+  color: #001F3F;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+.quest-card {
+  border: 1px solid #FFDC00;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
+}
+.quest-actions {
+  margin-top: 0.5rem;
+}
+.btn-go,
+.btn-complete {
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+.btn-go {
+  background: #FFDC00;
+  color: #001F3F;
+  border: none;
+  margin-right: 0.5rem;
+}
+.btn-complete {
+  background: #001F3F;
+  color: #FFDC00;
+  border: 1px solid #FFDC00;
+}
+.completed-badge {
+  color: #00FF99;
+  font-weight: bold;
+}
+
+/* modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: #001F3F;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #FFDC00;
+}
+.modal button {
+  margin-top: 1rem;
+  background: #FFDC00;
+  color: #001F3F;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}

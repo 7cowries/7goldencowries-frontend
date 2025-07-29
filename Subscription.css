@@ -1,0 +1,59 @@
+.subscription-wrapper {
+  background: radial-gradient(circle at center, #001f3f, #000814);
+  color: #ffe066;
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.subscription-title {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #00d4ff;
+}
+
+.subscription-card {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 51, 102, 0.7);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 20px #00d4ff77;
+}
+
+.subscription-badge {
+  width: 100px;
+  margin-right: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 15px #ffe066;
+}
+
+.subscription-details p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.subscription-info {
+  background: rgba(0, 51, 102, 0.5);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 0 15px #008cba66;
+}
+
+.subscription-info h2 {
+  font-size: 1.5rem;
+  color: #00d4ff;
+  margin-bottom: 1rem;
+}
+
+.subscription-info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.subscription-info li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #005f7f;
+}

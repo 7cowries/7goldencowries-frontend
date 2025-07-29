@@ -1,0 +1,6 @@
+{
+  "manifest_version": "1",
+  "name": "7goldencowries",
+  "url": "http://localhost:3000",
+  "icon_url": "https://ton.org/favicon.ico"
+}

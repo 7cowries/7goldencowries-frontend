@@ -1,0 +1,139 @@
+.referral-wrapper {
+  padding: 40px;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom, #001F3F, #003366);
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+.referral-title {
+  font-size: 2rem;
+  color: #FFDC00;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.referral-sub {
+  text-align: center;
+  color: #bbb;
+  margin-bottom: 32px;
+}
+
+.referral-box {
+  background: #002244;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+.referral-input-group {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.referral-input-group input {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px 0 0 6px;
+  background: #001F3F;
+  color: #fff;
+}
+
+.referral-input-group button {
+  padding: 8px 12px;
+  background: #FFDC00;
+  color: #001F3F;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.referral-rewards {
+  background: #003366;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.referral-rewards h2 {
+  color: #FFDC00;
+  margin-bottom: 12px;
+}
+
+.referral-rewards ul {
+  padding-left: 18px;
+}
+
+.referral-list {
+  background: #001a33;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.referral-list h2 {
+  color: #FFDC00;
+  margin-bottom: 10px;
+}
+
+.referral-list ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.referral-list li {
+  background: #002d4d;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.ref-status-complete {
+  color: #00ff99;
+}
+
+.ref-status-pending {
+  color: #ffaa00;
+}
+
+.referral-share {
+  background: #002b45;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.referral-share h2 {
+  color: #FFDC00;
+  margin-bottom: 14px;
+}
+
+.share-btn {
+  background: #007acc;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.share-btn:hover {
+  background: #005f99;
+}
+
+.referral-info {
+  text-align: center;
+  font-size: 1rem;
+  margin-top: 24px;
+  color: #aaa;
+}
+
