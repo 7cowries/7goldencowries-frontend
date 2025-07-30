@@ -9,7 +9,7 @@ const Profile = () => {
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState({ name: '', symbol: '', progress: 0, nextXP: 100 });
   const [tier, setTier] = useState('Free');
-  const [twitter, setTwitter] = useState('🔗 Not linked');
+  const [twitter, setTwitter] = useState('');
   const [history, setHistory] = useState([]);
   const [perk, setPerk] = useState('');
 
@@ -18,7 +18,7 @@ const Profile = () => {
     'Wave Seeker': 'Retweet quests unlocked',
     'Tide Whisperer': 'Quote tasks and bonus XP',
     'Current Binder': 'Leaderboard rank & Telegram quests',
-    'Pearl Bearer': 'Earn referral bonuses + new badge',
+    'Pearl Bearer': 'Earn referral bonuses + badge',
     'Isle Champion': 'Access secret quests and lore',
     'Cowrie Ascendant': 'Unlock hidden realm + max power 🐚✨'
   };
@@ -47,6 +47,12 @@ const Profile = () => {
       .catch(console.error);
   }, [wallet]);
 
+  const connectTwitter = () => {
+    if (!wallet?.account?.address) return alert("Connect wallet first");
+    const encoded = btoa(wallet.account.address);
+    window.location.href = `${API}/auth/twitter?state=${encoded}`;
+  };
+
   return (
     <div className="profile-wrapper">
       <h1 className="section-title">🌟 Explorer Profile</h1>
@@ -74,13 +80,16 @@ const Profile = () => {
               <div className="xp-bar">
                 <div
                   className="xp-fill"
-                  style={{
-                    width: `${(level.progress * 100).toFixed(1)}%`,
-                    transition: 'width 0.8s ease-in-out'
-                  }}
+                  style={{ width: `${(level.progress * 100).toFixed(1)}%`, transition: 'width 0.8s ease-in-out' }}
                 ></div>
               </div>
               <p className="progress-label">{(level.progress * 100).toFixed(1)}% to next virtue</p>
+
+              <div className="connect-buttons">
+                <button className="connect-btn" onClick={connectTwitter}>🐦 Connect X (Twitter)</button>
+                <button className="connect-btn" onClick={() => window.open('https://t.me/yourtelegram', '_blank')}>📣 Connect Telegram</button>
+                <button className="connect-btn" onClick={() => window.open('https://discord.gg/yourdiscord', '_blank')}>🎮 Connect Discord</button>
+              </div>
             </div>
           </div>
 
@@ -108,3 +117,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

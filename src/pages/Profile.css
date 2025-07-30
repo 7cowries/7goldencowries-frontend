@@ -1,7 +1,7 @@
 .profile-wrapper {
   padding: 40px;
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(to bottom, #001F3F, #003366);
+  background: linear-gradient(to bottom, #001F3F, #002855);
   color: #ffffff;
   min-height: 100vh;
 }
@@ -20,7 +20,7 @@
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 40px;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.6);
 }
 
 .profile-left {
@@ -38,7 +38,7 @@
   margin-bottom: 16px;
   border-radius: 8px;
   background: #001933;
-  border: 2px solid #FFDC00;
+  padding: 8px;
 }
 
 .perk {
@@ -70,9 +70,9 @@
 
 .xp-fill {
   height: 100%;
-  background: linear-gradient(to right, #FFDC00, #ffd700);
+  background: #FFDC00;
   width: 0%;
-  transition: width 0.8s ease-in-out;
+  transition: width 1s ease-in-out;
 }
 
 .progress-label {
@@ -81,11 +81,32 @@
   margin-top: 4px;
 }
 
+.connect-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.connect-btn {
+  padding: 8px 16px;
+  background-color: #FFDC00;
+  color: #001F3F;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.connect-btn:hover {
+  background-color: #ffe94a;
+}
+
 .history {
   background: #001a33;
   border-radius: 10px;
   padding: 24px;
-  margin-top: 40px;
 }
 
 .history h2 {
@@ -105,7 +126,6 @@
   padding: 12px 16px;
   line-height: 1.4;
   color: #fff;
-  border-left: 4px solid #FFDC00;
 }
 
 .timestamp {
@@ -122,6 +142,10 @@
 
   .profile-info {
     padding-left: 0;
-    margin-top: 20px;
+  }
+
+  .connect-buttons {
+    flex-direction: column;
+    gap: 8px;
   }
 }
