@@ -7,7 +7,9 @@ const manifestUrl = 'https://7cowries.github.io/7goldencowries-connect/tonconnec
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <TonConnectUIProvider manifestUrl={manifestUrl}>
-    <App />
-  </TonConnectUIProvider>
+  <React.StrictMode>
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
+      <App />
+    </TonConnectUIProvider>
+  </React.StrictMode>
 );
