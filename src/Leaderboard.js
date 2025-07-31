@@ -1,51 +1,68 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import './Leaderboard.css';
 
 const API = process.env.REACT_APP_API_URL;
 
+const lore = {
+  "Shellborn": "Born from tide and shell — a humble beginning.",
+  "Wave Seeker": "Chaser of Naiā’s whisper across waves.",
+  "Tide Whisperer": "Speaks the sea’s secrets — calm yet deep.",
+  "Current Binder": "Bends the ocean’s will — silent but strong.",
+  "Pearl Bearer": "Carries hidden virtue within.",
+  "Isle Champion": "Defender of the Isles — storm-tested.",
+  "Cowrie Ascendant": "Myth reborn. Tidewalker. Legend."
+};
+
 const Leaderboard = () => {
-  const [data, setData] = useState([]);
+  const [leaders, setLeaders] = useState([]);
 
   useEffect(() => {
-    const getLeaderboard = async () => {
-      try {
-        const res = await axios.get(`${API}/leaderboard`);
-        setData(res.data.top);
-      } catch (err) {
-        console.error('Failed to load leaderboard:', err);
-      }
-    };
-    getLeaderboard();
+    fetch(`${API}/leaderboard`)
+      .then(res => res.json())
+      .then(data => setLeaders(data.top || []))
+      .catch(console.error);
   }, []);
 
   return (
-    <div>
-      <h2>🏆 Cowrie Leaderboard</h2>
-      <p>Total Users: {data.length}</p>
-      <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Wallet</th>
-            <th>XP</th>
-            <th>Level</th>
-            <th>Tier</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((u) => (
-            <tr key={u.wallet}>
-              <td>{u.rank}</td>
-              <td>{u.wallet.slice(0, 6)}...{u.wallet.slice(-4)}</td>
-              <td>{u.xp}</td>
-              <td>{u.symbol} {u.name}</td>
-              <td>{u.tier}</td>
-            </tr>
+    <div className="leaderboard-wrapper">
+      <h1>🏆 Cowrie Leaderboard</h1>
+      <p className="subtitle">Top explorers across the Seven Isles</p>
+
+      {leaders.length === 0 ? (
+        <p className="loading">Loading leaderboard...</p>
+      ) : (
+        <div className="leaderboard-list">
+          {leaders.map((user, i) => (
+            <div key={user.wallet} className={`leader-card ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}`}>
+              <div className="rank-badge">#{user.rank}</div>
+              <div className="user-info">
+                <img
+                  src={`/images/badges/level-${user.name.toLowerCase().replace(/\s+/g, '-')}.png`}
+                  alt={user.name}
+                  onError={(e) => e.target.src = '/images/badges/unranked.png'}
+                  className="user-badge"
+                />
+                <div className="user-meta">
+                  <p><strong>{shorten(user.wallet)}</strong> {user.twitter && <span> | 🐦 @{user.twitter}</span>}</p>
+                  <p>{user.tier} • {user.name}</p>
+                  <div className="progress-container">
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${user.progress.toFixed(1)}%` }}></div>
+                    </div>
+                    <small>{user.xp} XP — {lore[user.name]}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      )}
     </div>
   );
 };
+
+function shorten(addr) {
+  return addr.slice(0, 6) + '...' + addr.slice(-4);
+}
 
 export default Leaderboard;
