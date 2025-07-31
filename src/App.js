@@ -1,96 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import { useTonWallet } from '@tonconnect/ui-react';
-import './Quests.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
+import { TonConnectUIProvider } from "@tonconnect/ui-react";
+import { FaRegCompass, FaUserCircle, FaGem, FaCrown, FaChartBar, FaMap } from "react-icons/fa";
 
-const API = process.env.REACT_APP_API_URL;
+import Profile from "./pages/Profile";
+import Subscription from "./pages/Subscription";
+import Quests from "./pages/Quests";
+import Leaderboard from "./pages/Leaderboard";
+import Referral from "./pages/Referral";
+import Isles from "./pages/Isles";
 
-const Quests = () => {
-  const wallet = useTonWallet();
-  const [quests, setQuests] = useState([]);
-  const [completed, setCompleted] = useState([]);
-  const [xp, setXp] = useState(0);
-  const [tier, setTier] = useState('');
-  const [progress, setProgress] = useState(0);
-  const [nextXP, setNextXP] = useState(100);
-  const [levelName, setLevelName] = useState('Shellborn');
+import "./App.css"; // 📦 include custom theme styles
 
-  useEffect(() => {
-    if (!wallet?.account?.address) return;
-
-    fetch(`${API}/users/${wallet.account.address}`)
-      .then(res => res.json())
-      .then(data => {
-        setXp(data.xp);
-        setTier(data.tier);
-        setProgress(data.levelProgress);
-        setNextXP(data.nextXP);
-        setLevelName(data.levelName);
-      });
-
-    fetch(`${API}/quests`)
-      .then(res => res.json())
-      .then(setQuests);
-
-    fetch(`${API}/completed/${wallet.account.address}`)
-      .then(res => res.json())
-      .then(data => setCompleted(data.completed || []));
-  }, [wallet]);
-
-  const completeQuest = async (id) => {
-    const res = await fetch(`${API}/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wallet: wallet.account.address, questId: id })
-    });
-
-    const result = await res.json();
-    if (res.ok) {
-      alert(result.message || '+XP!');
-      setCompleted(prev => [...prev, id]);
-    } else {
-      alert(result.error || 'Failed to complete quest');
-    }
-  };
-
+const App = () => {
   return (
-    <div className="quests-wrapper">
-      <h1 className="section-title">🧾 Quests</h1>
+    <TonConnectUIProvider manifestUrl="https://7cowries.github.io/7goldencowries-connect/tonconnect-manifest.json">
+      <Router>
+        <div className="app-container">
+          <header className="app-header">
+            <h1 className="app-title">🐚 7GoldenCowries</h1>
+            <nav className="nav-menu">
+              <NavItem to="/quests" icon={<FaRegCompass />} label="Quests" />
+              <NavItem to="/leaderboard" icon={<FaChartBar />} label="Leaderboard" />
+              <NavItem to="/referral" icon={<FaGem />} label="Referral" />
+              <NavItem to="/subscription" icon={<FaCrown />} label="Subscription" />
+              <NavItem to="/profile" icon={<FaUserCircle />} label="Profile" />
+              <NavItem to="/isles" icon={<FaMap />} label="Isles" />
+            </nav>
+          </header>
 
-      {wallet?.account?.address ? (
-        <>
-          <div className="profile-bar">
-            <p><strong>Wallet:</strong> {wallet.account.address}</p>
-            <p><strong>XP:</strong> {xp} | <strong>{tier}</strong></p>
-            <div className="xp-bar">
-              <div className="xp-fill" style={{ width: `${(progress * 100).toFixed(1)}%` }}></div>
-            </div>
-            <p className="progress-label">{xp} / {nextXP} XP to next virtue</p>
-          </div>
-
-          <ul className="quest-list">
-            {quests.map(q => (
-              <li key={q.id} className={completed.includes(q.id) ? 'quest done' : 'quest'}>
-                <h3>{q.title}</h3>
-                <p>🪙 {q.xp} XP</p>
-                <a href={q.url} target="_blank" rel="noreferrer">
-                  <button className="go-btn">🌐 Go</button>
-                </a>
-                <button
-                  className="complete-btn"
-                  disabled={completed.includes(q.id)}
-                  onClick={() => completeQuest(q.id)}
-                >
-                  ✅ Complete
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p className="connect-message">🔌 Connect your wallet to begin questing</p>
-      )}
-    </div>
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<Profile />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/subscription" element={<Subscription />} />
+              <Route path="/quests" element={<Quests />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/referral" element={<Referral />} />
+              <Route path="/isles" element={<Isles />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </TonConnectUIProvider>
   );
 };
 
-export default Quests;
+const NavItem = ({ to, icon, label }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) =>
+      `nav-item ${isActive ? "active" : ""}`
+    }
+  >
+    {icon}
+    <span>{label}</span>
+  </NavLink>
+);
+
+export default App;
