@@ -1,64 +1,98 @@
-import React, { useEffect, useState } from 'react';
-import { useTonWallet } from '@tonconnect/ui-react';
-import './Isles.css';
+// src/pages/Isles.js
+import React, { useEffect, useMemo, useState } from "react";
+import "../App.css";
+import "./Isles.css";
 
-const API = process.env.REACT_APP_API_URL;
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-const isles = [
-  { id: 1, name: 'Shellborn Shores', level: 'Shellborn', symbol: '🐚', lore: 'Where the journey begins — a tideborn spirit awakens.' },
-  { id: 2, name: 'Waverider Bay', level: 'Wave Seeker', symbol: '🌊', lore: 'Braving the currents, you learn to follow Naiā’s whispers.' },
-  { id: 3, name: 'Whispering Tides', level: 'Tide Whisperer', symbol: '💨', lore: 'The sea speaks in secrets only the attuned may hear.' },
-  { id: 4, name: 'Binding Currents', level: 'Current Binder', symbol: '⚓', lore: 'Harness the flow, command the depths, bend the tide.' },
-  { id: 5, name: 'Pearl Haven', level: 'Pearl Bearer', symbol: '🦪', lore: 'You cradle the sea’s virtue in a shell of unshakable will.' },
-  { id: 6, name: 'Isle of Champions', level: 'Isle Champion', symbol: '🏆', lore: 'You’ve conquered trials, earning the sea’s highest honor.' },
-  { id: 7, name: 'Ascendant Cowrie', level: 'Cowrie Ascendant', symbol: '👁️', lore: 'You are myth — guardian of the final tide.' }
+// Which level unlocks which isle (index aligned with UI order)
+const isleUnlocks = [
+  "Shellborn",        // Isle 1
+  "Wave Seeker",      // Isle 2
+  "Tide Whisperer",   // Isle 3
+  "Current Binder",   // Isle 4
+  "Pearl Bearer",     // Isle 5
+  "Isle Champion",    // Isle 6
+  "Cowrie Ascendant", // Isle 7
 ];
 
-const Isles = () => {
-  const wallet = useTonWallet();
-  const [level, setLevel] = useState('');
-  const [unlocked, setUnlocked] = useState([]);
+const isles = [
+  { name: "Shellborn Shores",    icon: "🐚" },
+  { name: "Waverider Bay",       icon: "🌊" },
+  { name: "Whispering Tides",    icon: "📣" },
+  { name: "Binding Currents",    icon: "⚓" },
+  { name: "Pearl Haven",         icon: "🪨" },
+  { name: "Isle of Champions",   icon: "🏆" },
+  { name: "Ascendant Cowrie",    icon: "👁️" },
+];
+
+export default function Isles() {
+  // locate wallet like Profile does
+  const address = useMemo(() => {
+    const items = [
+      localStorage.getItem("wallet"),
+      localStorage.getItem("ton_wallet"),
+      localStorage.getItem("walletAddress"),
+    ].filter(Boolean);
+    const chosen = items[0] || "";
+    if (chosen) {
+      localStorage.setItem("wallet", chosen);
+      localStorage.setItem("ton_wallet", chosen);
+      localStorage.setItem("walletAddress", chosen);
+    }
+    return chosen;
+  }, []);
+
+  const [levelName, setLevelName] = useState("Shellborn");
 
   useEffect(() => {
-    if (!wallet?.account?.address) return;
+    if (!address) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/profile?wallet=${encodeURIComponent(address)}`, { credentials: "include" });
+        const data = await res.json();
+        const u = data?.profile || {};
+        setLevelName(u.levelName || u.level || "Shellborn");
+      } catch (e) {
+        console.error("Isles profile fetch failed:", e);
+      }
+    })();
+  }, [address]);
 
-    fetch(`${API}/users/${wallet.account.address}`)
-      .then(res => res.json())
-      .then(data => {
-        setLevel(data.levelName || '');
-        const index = isles.findIndex(i => i.level === data.levelName);
-        setUnlocked(isles.slice(0, index + 1));
-      })
-      .catch(console.error);
-  }, [wallet]);
+  // Determine unlocked isles
+  const unlockedIndex = useMemo(() => {
+    const idx = isleUnlocks.findIndex((lvl) => lvl === levelName);
+    return idx >= 0 ? idx : 0;
+  }, [levelName]);
 
   return (
-    <div className="isles-wrapper">
-      <h1>🗺️ The Seven Isles of Tides</h1>
-      <p className="subtitle">Each isle represents a virtue earned through XP. Explore your path.</p>
+    <div className="page">
+      <div className="section">
+        <h1 className="section-title">📖 The Seven Isles of Tides</h1>
+        <p className="subtitle">
+          Each isle represents a virtue earned through XP. Explore your path.
+        </p>
 
-      <div className="isle-grid">
-        {isles.map((isle) => {
-          const isUnlocked = unlocked.find(u => u.id === isle.id);
-          return (
-            <div key={isle.id} className={`isle-card ${isUnlocked ? 'unlocked' : 'locked'}`}>
-              <div className="isle-header">
-                <span className="isle-number">Isle {isle.id}</span>
-                <span className="isle-status">{isUnlocked ? '🔓' : '🔒'}</span>
+        <div className="isles-grid">
+          {isles.map((isle, i) => {
+            const isUnlocked = i <= unlockedIndex;
+            return (
+              <div key={isle.name} className={`isle-card ${isUnlocked ? "unlocked" : "locked"}`}>
+                <div className="isle-top">
+                  <span className="muted mono">Isle {i + 1}</span>
+                  {!isUnlocked && <span className="lock">🔒</span>}
+                </div>
+                <div className="isle-name">
+                  <span className="emoji">{isle.icon}</span> {isle.name}
+                </div>
+                <p className="muted">
+                  {isUnlocked ? "Unlocked" : "Level up to reveal this isle."}
+                </p>
               </div>
-              <div className="isle-name">{isle.symbol} {isle.name}</div>
-              {isUnlocked ? (
-                <p className="isle-lore">{isle.lore}</p>
-              ) : (
-                <p className="isle-locked-note">Level up to reveal this isle.</p>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
-};
-
-export default Isles;
-
+}

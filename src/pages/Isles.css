@@ -1,93 +1,22 @@
-.isles-wrapper {
-  padding: 40px;
-  font-family: 'Poppins', sans-serif;
-  background: linear-gradient(to bottom, #001F3F, #003366);
-  color: #ffffff;
-  min-height: 100vh;
-  text-align: center;
-}
-
-.isles-wrapper h1 {
-  font-size: 2.5rem;
-  color: #FFDC00;
-  margin-bottom: 8px;
-}
-
-.subtitle {
-  color: #ddd;
-  margin-bottom: 32px;
-  font-size: 1.1rem;
-}
-
-.isle-grid {
+.isles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  padding-top: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 14px;
 }
-
 .isle-card {
-  background: #002244;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.4);
-  transition: transform 0.3s ease, background 0.3s ease;
-  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(6px);
 }
-
 .isle-card.unlocked {
-  background: #003366;
-  border-color: #FFDC00;
-  transform: scale(1.02);
+  outline: 1px solid rgba(0,255,170,0.18);
+  box-shadow: 0 0 0 1px rgba(0,255,170,0.08) inset;
 }
-
-.isle-card.locked {
-  opacity: 0.4;
-  filter: grayscale(100%);
-}
-
-.isle-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.95rem;
-  color: #ccc;
-  margin-bottom: 6px;
-}
-
-.isle-name {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #FFDC00;
-  margin-bottom: 10px;
-}
-
-.isle-lore {
-  font-size: 0.95rem;
-  color: #cceeff;
-  margin-top: 6px;
-  font-style: italic;
-}
-
-.isle-locked-note {
-  font-size: 0.85rem;
-  color: #888;
-  margin-top: 10px;
-}
-
-@media (max-width: 768px) {
-  .isles-wrapper {
-    padding: 24px;
-  }
-
-  .isle-card {
-    padding: 16px;
-  }
-
-  .isle-name {
-    font-size: 1.1rem;
-  }
-
-  .isle-lore {
-    font-size: 0.9rem;
-  }
-}
+.isle-card.locked { opacity: 0.6; }
+.isle-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.isle-name { font-weight: 700; font-size: 18px; margin-bottom: 6px; }
+.isle-name .emoji { margin-right: 6px; }
+.lock { font-size: 18px; opacity: 0.8; }

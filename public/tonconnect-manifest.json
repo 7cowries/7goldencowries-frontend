@@ -1,6 +1,7 @@
 {
-  "manifest_version": "1",
+  "url": "https://app.7goldencowries.com",
   "name": "7goldencowries",
-  "url": "http://localhost:3000",
-  "icon_url": "https://ton.org/favicon.ico"
+  "iconUrl": "https://7cowries.github.io/7goldencowries-connect/icon.png",
+  "termsOfUseUrl": "https://7cowries.github.io/7goldencowries-connect/terms.html",
+  "privacyPolicyUrl": "https://7cowries.github.io/7goldencowries-connect/privacy.html"
 }

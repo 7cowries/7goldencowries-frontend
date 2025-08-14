@@ -13,7 +13,6 @@ html {
 body {
   min-height: 100vh;
   background: linear-gradient(to bottom, #0A1F44 0%, #0A1F44 30%, #FFD700 100%);
-  /* Dark navy blue (top) to golden yellow (bottom) background */
   background-attachment: fixed;
   background-repeat: no-repeat;
   font-family: 'Poppins', sans-serif;
@@ -25,7 +24,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
-  color: #FFD700; /* headings in golden hue */
+  color: #FFD700;
   margin-bottom: 0.5em;
 }
 p, li, span, label {
@@ -95,7 +94,7 @@ header h1 img, .navbar .brand img {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Card Elements (generic containers for content) */
+/* Card Elements */
 .card, .quests-section .quest-item, .profile-section .profile-card,
 .subscription-section .plan-card, .isles-section .isle-card {
   background: rgba(255, 255, 255, 0.05);
@@ -217,7 +216,7 @@ input:focus, select:focus, textarea:focus {
   top: 0;
   left: 0;
   height: 100%;
-  width: 50%; /* set this width to current XP percentage */
+  width: 50%;
   background: linear-gradient(90deg, #1DDCFF, #1597B3);
   box-shadow: 0 0 10px #1DDCFF88;
   border-radius: inherit;
@@ -232,7 +231,7 @@ input:focus, select:focus, textarea:focus {
   text-align: center;
   color: #ffffff;
   font-weight: 600;
-  line-height: 20px; /* vertically center in bar */
+  line-height: 20px;
   text-shadow: 0 0 5px rgba(0,0,0,0.7);
 }
 
@@ -335,7 +334,6 @@ input:focus, select:focus, textarea:focus {
   text-align: center;
   position: relative;
   overflow: hidden;
-  /* background image or gradient for isle can be added here if available */
 }
 .isles-section .isle-card h3 {
   position: absolute;
@@ -344,4 +342,50 @@ input:focus, select:focus, textarea:focus {
   font-size: 1.1rem;
   color: #FFD700;
   text-shadow: 0 0 5px #000;
+}
+
+.main-view {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+/* Layout Fix for Sidebar */
+.page {
+  max-width: 1200px;
+  margin-left: 240px; /* Sidebar offset */
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+.section {
+  margin-bottom: 40px;
+}
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .page {
+    margin-left: 0;
+    padding: 20px 10px;
+  }
 }

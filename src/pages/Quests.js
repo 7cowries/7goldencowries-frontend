@@ -1,241 +1,292 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { TonConnectButton, useTonWallet } from '@tonconnect/ui-react';
-import axios from 'axios';
-import confetti from 'canvas-confetti';
-import XPModal from '../components/XPModal';
+// src/pages/Quests.js
+import React, { useEffect, useState, useRef } from "react";
+import axios from "axios";
+import confetti from "canvas-confetti";
+import XPModal from "../components/XPModal";
+import XPBar from "../components/XPBar";
+import "../components/XPBar.css";
+import "./Quests.css";
+import "../App.css";
 
-const API = process.env.REACT_APP_API_URL;
+// 🔗 TonConnect (reads current wallet + opens connect modal)
+import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const Quests = () => {
-  const wallet = useTonWallet();
   const [quests, setQuests] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [xp, setXp] = useState(0);
-  const [tier, setTier] = useState('Free');
-  const [twitter, setTwitter] = useState(null);
-  const [level, setLevel] = useState({ name: '', symbol: '', progress: 0, nextXP: 100 });
-  const [balance, setBalance] = useState(0);
+  const [tier, setTier] = useState("Free");
+  const [level, setLevel] = useState({
+    name: "Shellborn",
+    symbol: "🐚",
+    progress: 0,
+    nextXP: 10000,
+  });
+  const [wallet, setWallet] = useState(null);
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [unlocked, setUnlocked] = useState(null);
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
-  const prevLevel = useRef('');
+  const [activeTab, setActiveTab] = useState("all");
+  const prevLevel = useRef("");
 
-  const storyByLevel = {
-    "Shellborn": "You are born of the tide — a humble shell cast into the unknown.",
-    "Wave Seeker": "You chase Naiā’s whispers across moonlit currents.",
-    "Tide Whisperer": "You speak the language of the sea — calm, yet unrelenting.",
-    "Current Binder": "You bend the water's will and tether the storms within.",
-    "Pearl Bearer": "You hold the ancient treasures of virtue within your grasp.",
-    "Isle Champion": "You command the isles and carry the sea's legacy.",
-    "Cowrie Ascendant": "You have become myth — the legend of the seventh tide."
+  // 👉 TonConnect hooks
+  const tonAddress = useTonAddress(); // normalized address or ""
+  const [tonUI] = useTonConnectUI();  // to open the connect modal
+
+  // 0) Pick up any previously saved wallet (before TonConnect)
+  useEffect(() => {
+    const saved =
+      localStorage.getItem("wallet") ||
+      localStorage.getItem("ton_wallet") ||
+      localStorage.getItem("walletAddress");
+    if (saved) setWallet(saved);
+  }, []);
+
+  // 1) Whenever TonConnect provides an address, save + use it
+  useEffect(() => {
+    if (tonAddress && tonAddress.length > 0) {
+      setWallet(tonAddress);
+      localStorage.setItem("wallet", tonAddress);
+      localStorage.setItem("ton_wallet", tonAddress);
+      localStorage.setItem("walletAddress", tonAddress);
+    }
+  }, [tonAddress]);
+
+  // 2) Load quests (no wallet required)
+  useEffect(() => {
+    const loadQuests = async () => {
+      try {
+        const res = await axios.get(`${API}/quests`, { withCredentials: true });
+        const fixed = (res.data || []).map((q) => ({
+          id: q.id,
+          title: q.title,
+          type: q.type || "daily",
+          url: q.url || "#",
+          xp: q.xp ?? 0,
+        }));
+        setQuests(fixed);
+      } catch (err) {
+        console.error("Failed to load quests", err);
+        setQuests([]);
+      }
+    };
+    loadQuests();
+  }, []);
+
+  // Helpers: load completed + profile (uses unified /api/profile)
+  const loadCompleted = async (addr) => {
+    try {
+      const res = await axios.get(`${API}/completed/${addr}`, {
+        withCredentials: true,
+      });
+      setCompleted(res.data.completed || []);
+    } catch (err) {
+      console.error("Failed to load completed quests", err);
+    }
   };
 
-  const fetchProfile = async () => {
+  const loadProfile = async (addr) => {
     try {
-      const res = await axios.get(`${API}/users/${wallet.account.address}`);
-      const data = res.data;
-      setXp(data.xp);
-      setTier(data.tier);
-      setTwitter(data.twitterHandle || null);
-      setLevel({
-        name: data.levelName || 'Unranked',
-        symbol: data.levelSymbol || '🐚',
-        progress: data.levelProgress || 0,
-        nextXP: data.nextXP || 100
+      const res = await axios.get(`${API}/api/profile?wallet=${encodeURIComponent(addr)}`, {
+        withCredentials: true,
       });
-      prevLevel.current = data.levelName;
+      const data = res.data || {};
+      const p = data.profile || {};
+      setXp(p.xp ?? 0);
+      setTier(p.subscriptionTier || p.tier || "Free");
+      setLevel({
+        name: p.levelName || p.level || "Shellborn",
+        symbol: p.levelSymbol || "🐚",
+        progress: p.levelProgress ?? 0,
+        nextXP: p.nextXP ?? 10000,
+      });
+      prevLevel.current = p.levelName || p.level || "Shellborn";
     } catch (err) {
       console.error("Profile fetch failed", err);
     }
   };
 
+  // 3) With a wallet present, load profile + completed
   useEffect(() => {
-    if (!wallet?.account?.address) return;
-
-    fetchProfile();
-
-    axios.get(`${API}/completed/${wallet.account.address}`)
-      .then(res => setCompleted(res.data.completed))
-      .catch(console.error);
-
-    axios.get(`${API}/quests`)
-      .then(res => setQuests(res.data || []))
-      .catch(console.error);
-
-    fetch(`https://tonapi.io/v2/accounts/${wallet.account.address}`)
-      .then(res => res.json())
-      .then(data => setBalance((data.balance / 1e9).toFixed(2)))
-      .catch(console.error);
+    if (!wallet) return;
+    loadCompleted(wallet);
+    loadProfile(wallet);
   }, [wallet]);
 
-  const completeQuest = async (questId, xpGain) => {
+  // 4) Complete quest handler that opens wallet if needed
+  const handleCompleteClick = async (quest) => {
+    if (!wallet) {
+      try {
+        await tonUI.openModal(); // open TonConnect modal
+      } catch {}
+      alert("Connect / save a wallet to complete quests.");
+      return;
+    }
+    await completeQuest(quest);
+  };
+
+  // ▶️ Complete quest + refresh local state + notify Profile
+  const completeQuest = async (quest) => {
+    const { id: questId, xp: xpGain, title } = quest;
     try {
-      await axios.post(`${API}/complete`, {
-        wallet: wallet.account.address,
-        questId
-      });
+      // Send full payload so backend can log history properly
+      await axios.post(
+        `${API}/complete`,
+        { wallet, questId, title, xp: xpGain },
+        { withCredentials: true }
+      );
 
-      const res = await axios.get(`${API}/users/${wallet.account.address}`);
-      const { xp: newXP, levelName, levelSymbol, levelProgress, nextXP } = res.data;
+      // Refresh profile strip from unified endpoint
+      await loadProfile(wallet);
 
-      setXp(newXP);
+      // Update recent XP modal
       setRecentXP(xpGain);
       setXPModalOpen(true);
 
-      if (levelName !== prevLevel.current) {
-        prevLevel.current = levelName;
-        setUnlocked({ name: levelName, symbol: levelSymbol });
+      // Detect new level (loadProfile already updated level + prevLevel.current)
+      if (level.name && level.name !== prevLevel.current) {
+        prevLevel.current = level.name;
+        setUnlocked({ name: level.name, symbol: level.symbol || "🐚" });
         setShowLevelModal(true);
       }
 
-      setLevel({ name: levelName, symbol: levelSymbol, progress: levelProgress, nextXP });
-      setCompleted(prev => [...prev, questId]);
+      // Mark in local completed list
+      setCompleted((prev) => (prev.includes(questId) ? prev : [...prev, questId]));
 
+      // Celebrate 🎉
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+      // 🔔 Tell other pages (Profile) to reload
+      window.dispatchEvent(new Event("quests:updated"));
     } catch (err) {
-      console.error('Quest complete error', err);
+      console.error("Quest complete error", err);
     }
   };
 
+  const filterQuests = (type) => {
+    if (type === "all") return quests;
+    return quests.filter((q) => (q.type || "").toLowerCase() === type);
+  };
+
+  const questTypes = ["all", "daily", "social", "partner", "insider", "onchain"];
+
   return (
-    <div style={{
-      padding: 24,
-      fontFamily: 'Poppins, sans-serif',
-      background: 'linear-gradient(to bottom, #001F3F, #FFDC00)',
-      color: '#fff',
-      minHeight: '100vh'
-    }}>
-      <TonConnectButton />
+    <div className="page">
+      {/* Background video */}
+      <video autoPlay loop muted playsInline className="bg-video">
+        <source src="/videos/sea-goddess.mp4" type="video/mp4" />
+      </video>
+      <div className="veil" />
 
-      {wallet?.account?.address && (
-        <>
-          <div style={{ marginTop: 16 }}>
-            <p><strong>Wallet:</strong> {wallet.account.address}</p>
-            <p><strong>Balance:</strong> {balance} TON</p>
-            <p><strong>XP:</strong> {xp} | {level.symbol} {level.name} | {tier}</p>
-
-            <img
-              src={`/images/badges/level-${level.name.toLowerCase().replace(/\s+/g, '-')}.png`}
-              alt={`${level.name} badge`}
-              style={{ height: 80, marginTop: 10 }}
-              onError={(e) => { e.target.src = '/images/badges/unranked.png'; }}
-            />
-
-            <p style={{ fontStyle: 'italic', marginTop: 10 }}>
-              {storyByLevel[level.name] || ''}
-            </p>
-
-            <div style={{ background: '#333', borderRadius: 8, overflow: 'hidden', height: 10 }}>
-              <div style={{
-                width: `${(level.progress * 100).toFixed(1)}%`,
-                background: '#FFDC00',
-                height: '100%',
-                transition: 'width 0.8s ease-in-out'
-              }}></div>
-            </div>
-
-            <p style={{ fontSize: '0.8rem', color: '#ccc', marginTop: 6 }}>
-              {xp} / {level.nextXP || '∞'} XP to next virtue
-            </p>
+      <div className="q-container">
+        {/* Profile strip */}
+        <div className="glass profile-strip">
+          <div>
+            <p className="muted mono">Wallet</p>
+            <p className="mono">{wallet || "—"}</p>
           </div>
+          <div>
+            <p className="muted mono">XP • Tier • Level</p>
+            <p className="mono">
+              {xp} • {tier} • {level.symbol} {level.name}
+            </p>
+            <XPBar xp={xp} nextXP={level.nextXP || 10000} />
+          </div>
+          <div className="pill">{tier}</div>
+        </div>
 
-          <hr style={{ borderColor: '#FFDC00', margin: '30px 0' }} />
-          <h2 style={{ color: '#FFDC00' }}>📜 Quests</h2>
-          <p>Click “Go” to complete the task and “Complete” to claim XP:</p>
+        {/* Header + tabs */}
+        <div className="glass-strong q-header">
+          <div className="q-title">
+            <span className="emoji">📜</span>
+            <h1>Quests</h1>
+          </div>
+          <p className="subtitle">Complete tasks. Earn XP. Level up.</p>
 
-          {quests.map(q => (
-            <div key={q.id} style={{
-              backgroundColor: '#003366',
-              padding: 16,
-              borderRadius: 8,
-              marginTop: 16,
-              opacity: completed.includes(q.id) ? 0.5 : 1
-            }}>
-              <p><strong>{q.title}</strong></p>
-              <div style={{ marginTop: 10 }}>
-                <button
-                  onClick={() => window.open(q.url, '_blank')}
-                  style={btnStyle}
-                >
-                  🌐 Go to Quest
-                </button>
-                <button
-                  onClick={() => completeQuest(q.id, q.xp)}
-                  disabled={completed.includes(q.id)}
-                  style={{ ...btnStyle, marginLeft: 10, backgroundColor: '#00aa00' }}
-                >
-                  ✅ Complete
-                </button>
-              </div>
-            </div>
-          ))}
-        </>
-      )}
-
-      {showLevelModal && unlocked && (
-        <div style={modalOverlay}>
-          <div style={modalBox}>
-            <h2>🎉 Level Up!</h2>
-            <img
-              src={`/images/badges/level-${unlocked.name.toLowerCase().replace(/\s+/g, '-')}.png`}
-              alt={unlocked.name}
-              style={{ width: 100, marginBottom: 16 }}
-              onError={(e) => {
-                e.target.src = '/images/badges/unranked.png';
-              }}
-            />
-            <p>{unlocked.symbol} You’ve unlocked the virtue of <strong>{unlocked.name}</strong>!</p>
-            <button onClick={() => setShowLevelModal(false)} style={modalBtn}>Close</button>
+          <div className="tabs">
+            {questTypes.map((type) => (
+              <button
+                key={type}
+                className={`tab ${activeTab === type ? "active" : ""}`}
+                onClick={() => setActiveTab(type)}
+              >
+                {type === "all" && "All Quests"}
+                {type === "daily" && "📅 Daily"}
+                {type === "social" && "🌐 Social"}
+                {type === "partner" && "🤝 Partner"}
+                {type === "insider" && "🧠 Insider"}
+                {type === "onchain" && "🧾 Onchain"}
+              </button>
+            ))}
           </div>
         </div>
-      )}
 
-      {xpModalOpen && (
-        <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />
-      )}
+        {/* Quest list */}
+        <div className="q-list">
+          {filterQuests(activeTab).length === 0 ? (
+            <div className="glass quest-card">
+              <p className="quest-title">No quests yet for this category.</p>
+            </div>
+          ) : (
+            filterQuests(activeTab).map((q) => (
+              <div key={q.id} className="glass quest-card">
+                <div className="q-row">
+                  <span className={`chip ${q.type}`}>
+                    {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
+                  </span>
+                  <span className="xp-badge">+{q.xp} XP</span>
+                </div>
+
+                <p className="quest-title">{q.title}</p>
+
+                <div className="actions">
+                  <button className="btn primary" onClick={() => window.open(q.url, "_blank")}>
+                    Go to Quest
+                  </button>
+
+                  <button
+                    className={`btn ${completed.includes(q.id) ? "success" : "ghost"}`}
+                    onClick={() => handleCompleteClick(q)}
+                    disabled={completed.includes(q.id)}
+                    title={!wallet ? "Connect a wallet to complete quests" : ""}
+                  >
+                    {completed.includes(q.id) ? "Completed" : "Complete"}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Modals */}
+        {showLevelModal && unlocked && (
+          <div className="modal">
+            <div className="glass-strong modal-box">
+              <h2>🎉 Level Up!</h2>
+              <img
+                src={`/images/badges/level-${unlocked.name.toLowerCase().replace(/\s+/g, "-")}.png`}
+                alt={unlocked.name}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+              <p>
+                {unlocked.symbol} You unlocked <strong>{unlocked.name}</strong>!
+              </p>
+              <button className="btn primary" onClick={() => setShowLevelModal(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {xpModalOpen && <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />}
+      </div>
     </div>
   );
 };
 
-const btnStyle = {
-  padding: '10px 16px',
-  backgroundColor: '#007acc',
-  color: '#fff',
-  border: 'none',
-  borderRadius: 6,
-  fontWeight: 'bold',
-  cursor: 'pointer'
-};
-
-const modalOverlay = {
-  position: 'fixed',
-  top: 0, left: 0,
-  width: '100vw',
-  height: '100vh',
-  background: 'rgba(0,0,0,0.7)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-};
-
-const modalBox = {
-  background: '#001F3F',
-  padding: 32,
-  borderRadius: 12,
-  color: '#FFDC00',
-  textAlign: 'center',
-  maxWidth: 400
-};
-
-const modalBtn = {
-  marginTop: 20,
-  backgroundColor: '#FFDC00',
-  color: '#001F3F',
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 6
-};
-
 export default Quests;
-

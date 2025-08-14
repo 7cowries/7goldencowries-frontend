@@ -1,0 +1,28 @@
+.xp-bar {
+  position: relative;
+  margin-top: 12px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 16px;
+  background: #0a2a3a;
+  box-shadow: inset 0 0 4px #00ffff88;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #00ffff, #00bcd4);
+  transition: width 0.4s ease;
+}
+
+.xp-bar-label {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 0;
+  font-size: 0.8rem;
+  color: #00ffff;
+  font-weight: bold;
+  line-height: 16px;
+}

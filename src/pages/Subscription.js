@@ -6,6 +6,7 @@ import {
   useTonWallet
 } from "@tonconnect/ui-react";
 import XPModal from "../components/XPModal";
+import '../App.css'; // Ensure layout fixes (.page, .section) are included
 
 const tiersUSD = [
   {
@@ -122,73 +123,73 @@ const Subscription = () => {
   };
 
   return (
-    <div className="subscription-wrapper">
-      <h1 className="subscription-title">🌊 Your Subscription</h1>
+    <div className="page">
+      <div className="section subscription-wrapper">
+        <h1 className="subscription-title">🌊 Your Subscription</h1>
 
-      <div className="wallet-section">
-        <TonConnectButton />
-      </div>
-
-      <div className="subscription-card">
-        <img
-          src={`/images/badges/level-${level.toLowerCase().replace(/\s+/g, '-')}.png`}
-          alt={`Badge for ${level}`}
-          className="subscription-badge"
-        />
-        <div className="subscription-details">
-          <p><strong>Level:</strong> {level}</p>
-          <p><strong>Subscription Tier:</strong> {currentTier}</p>
+        <div className="wallet-section">
+          <TonConnectButton />
         </div>
+
+        <div className="subscription-card">
+          <img
+            src={`/images/badges/level-${level.toLowerCase().replace(/\s+/g, '-')}.png`}
+            alt={`Badge for ${level}`}
+            className="subscription-badge"
+          />
+          <div className="subscription-details">
+            <p><strong>Level:</strong> {level}</p>
+            <p><strong>Subscription Tier:</strong> {currentTier}</p>
+          </div>
+        </div>
+
+        <div className="subscription-info">
+          <h2>📜 Subscription Details</h2>
+          <ul>
+            <li><strong>Duration:</strong> 1 Month</li>
+            <li><strong>Next Billing Date:</strong> {billingDate}</li>
+            <li><strong>Status:</strong> Active</li>
+          </ul>
+        </div>
+
+        <h2 className="tier-title">💎 Choose Your Tier</h2>
+        <div className="tier-container">
+          {tiersUSD.map((tier) => {
+            const tonEquivalent = tonPrice
+              ? (tier.usd / tonPrice).toFixed(2)
+              : "…";
+
+            return (
+              <div key={tier.tierKey} className="tier-card">
+                <h3>{tier.name}</h3>
+                <p className="tier-price">
+                  ${tier.usd} {tonPrice ? `(~${tonEquivalent} TON)` : ""}
+                </p>
+                <p className="tier-boost">{tier.boost}</p>
+                <ul>
+                  {tier.benefits.map((b, i) => (
+                    <li key={i}>{b}</li>
+                  ))}
+                </ul>
+                <button
+                  className={`subscribe-btn ${tier.name === currentTier ? "active" : ""}`}
+                  disabled={tier.name === currentTier || !tonPrice}
+                  onClick={() => subscribeToTier(tier, parseFloat(tonEquivalent))}
+                >
+                  {tier.name === currentTier ? "Active" : "Subscribe"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {xpModalOpen && (
+          <XPModal
+            xpGained={recentXP}
+            onClose={() => setXPModalOpen(false)}
+          />
+        )}
       </div>
-
-      <div className="subscription-info">
-        <h2>📜 Subscription Details</h2>
-        <ul>
-          <li><strong>Duration:</strong> 1 Month</li>
-          <li><strong>Next Billing Date:</strong> {billingDate}</li>
-          <li><strong>Status:</strong> Active</li>
-        </ul>
-      </div>
-
-      <h2 className="tier-title">💎 Choose Your Tier</h2>
-      <div className="tier-container">
-        {tiersUSD.map((tier) => {
-          const tonEquivalent = tonPrice
-            ? (tier.usd / tonPrice).toFixed(2)
-            : "…";
-
-          return (
-            <div key={tier.tierKey} className="tier-card">
-              <h3>{tier.name}</h3>
-              <p className="tier-price">
-                ${tier.usd} {tonPrice ? `(~${tonEquivalent} TON)` : ""}
-              </p>
-              <p className="tier-boost">{tier.boost}</p>
-              <ul>
-                {tier.benefits.map((b, i) => (
-                  <li key={i}>{b}</li>
-                ))}
-              </ul>
-              <button
-                className={`subscribe-btn ${
-                  tier.name === currentTier ? "active" : ""
-                }`}
-                disabled={tier.name === currentTier || !tonPrice}
-                onClick={() => subscribeToTier(tier, parseFloat(tonEquivalent))}
-              >
-                {tier.name === currentTier ? "Active" : "Subscribe"}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {xpModalOpen && (
-        <XPModal
-          xpGained={recentXP}
-          onClose={() => setXPModalOpen(false)}
-        />
-      )}
     </div>
   );
 };

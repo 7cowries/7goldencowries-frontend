@@ -1,0 +1,212 @@
+/* TokenSale.css — glossy glass/nautical vibes */
+
+:root {
+  --bg-deep: #071a2a;
+  --panel: rgba(8, 22, 39, 0.65);
+  --panel-strong: rgba(8, 22, 39, 0.8);
+  --accent: #ffd54a;        /* golden cowrie */
+  --accent-soft: #ffe27a;
+  --stroke: rgba(255, 255, 255, 0.08);
+  --text: #e6f1ff;
+  --text-dim: #a9c0d6;
+  --cyan: #3fd2ff;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.35),
+            0 0 80px rgba(63, 210, 255, 0.08) inset;
+  --radius-xl: 22px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+}
+
+.page {
+  background: radial-gradient(1200px 700px at 10% -10%, rgba(63,210,255,.08), transparent),
+              radial-gradient(1000px 500px at 90% -20%, rgba(255,213,74,.08), transparent),
+              var(--bg-deep);
+  min-height: 100vh;
+}
+
+.section.sale-section {
+  max-width: 1100px;
+  margin: 28px auto 80px;
+  padding: 28px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(10,27,45,.65), rgba(6,18,32,.65));
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.sale-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.sale-header h1 {
+  font-size: 32px;
+  letter-spacing: .3px;
+  color: var(--accent);
+  text-shadow: 0 1px 0 #000;
+}
+
+/* layout */
+.sale-grid {
+  display: grid;
+  grid-template-columns: 1.2fr .9fr;
+  gap: 24px;
+}
+
+.sale-form,
+.sale-summary {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+/* form bits */
+label {
+  display: block;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 14px 0 6px;
+}
+
+input {
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  outline: none;
+  transition: border .15s ease, box-shadow .15s ease;
+}
+
+input::placeholder { color: #7ea0bb; }
+
+input:focus {
+  border-color: rgba(63,210,255,.4);
+  box-shadow: 0 0 0 3px rgba(63,210,255,.12);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.mt { margin-top: 14px; }
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.btn:hover { transform: translateY(-1px); }
+
+.btn.primary {
+  background: linear-gradient(180deg, var(--accent), var(--accent-soft));
+  color: #1b1b1b;
+  border-color: rgba(255, 213, 74, .5);
+  box-shadow: 0 6px 18px rgba(255, 213, 74, .25);
+}
+
+.btn.primary:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+  filter: grayscale(.1);
+}
+
+.btn.outline {
+  border-color: rgba(63,210,255,.35);
+  color: var(--cyan);
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* summary card */
+.qr-card {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: var(--panel-strong);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+}
+
+.summary-lines {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.summary-lines .line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px dashed var(--stroke);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+}
+
+.summary-lines .line span {
+  color: var(--text-dim);
+}
+
+.deeplink {
+  display: inline-block;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.deeplink:hover { text-decoration: underline; }
+
+.tiny {
+  display: block;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* about */
+.sale-about {
+  margin-top: 28px;
+  padding: 18px 22px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-lg);
+}
+
+.sale-about h3 {
+  color: var(--accent);
+  margin: 0 0 6px;
+}
+
+/* responsive */
+@media (max-width: 1024px) {
+  .sale-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .sale-header h1 { font-size: 26px; }
+  .btn { padding: 11px 14px; }
+}
