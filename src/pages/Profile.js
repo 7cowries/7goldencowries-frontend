@@ -1,8 +1,11 @@
+// src/pages/Profile.js
 import React, { useEffect, useMemo, useState } from "react";
 import "./Profile.css";
 import "../App.css";
+import { api } from "../utils/api"; // <- shared fetch wrapper
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+// Only used to build redirect URLs (auth links)
+const API_BASE = process.env.REACT_APP_API_URL || "";
 
 const perksMap = {
   Shellborn: "Welcome badge + access to basic quests",
@@ -15,6 +18,7 @@ const perksMap = {
 };
 
 export default function Profile() {
+  // try a few places we might’ve saved the wallet
   const candidates = useMemo(() => {
     const items = [
       localStorage.getItem("wallet"),
@@ -41,7 +45,7 @@ export default function Profile() {
   const [perk, setPerk] = useState("");
   const [history, setHistory] = useState([]);
 
-  const [toast, setToast] = useState(""); // ✅ mini banner
+  const [toast, setToast] = useState("");
 
   const badgeSrc = useMemo(() => {
     const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
@@ -49,22 +53,22 @@ export default function Profile() {
   }, [level.name]);
 
   async function tryLoadFor(addr) {
-    const res = await fetch(
-      `${API}/api/profile?wallet=${encodeURIComponent(addr)}`,
-      { credentials: "include" }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const p = data?.profile || {};
-    const links = p?.links || {};
-    const hasAny =
-      p?.wallet ||
-      typeof p?.xp === "number" ||
-      !!links?.twitter ||
-      !!links?.telegram ||
-      !!links?.discord ||
-      (Array.isArray(data?.history) && data.history.length > 0);
-    return hasAny ? data : null;
+    const path = `/api/profile?wallet=${encodeURIComponent(addr)}`;
+    try {
+      const data = await api(path);
+      const p = data?.profile || {};
+      const links = p?.links || {};
+      const hasAny =
+        p?.wallet ||
+        typeof p?.xp === "number" ||
+        !!links?.twitter ||
+        !!links?.telegram ||
+        !!links?.discord ||
+        (Array.isArray(data?.history) && data.history.length > 0);
+      return hasAny ? data : null;
+    } catch {
+      return null;
+    }
   }
 
   async function loadProfile() {
@@ -73,6 +77,7 @@ export default function Profile() {
     try {
       let data = address ? await tryLoadFor(address) : null;
 
+      // fall back to any other saved address
       if (!data) {
         for (const alt of candidates) {
           if (alt === address) continue;
@@ -116,8 +121,6 @@ export default function Profile() {
       setTelegram(links.telegram || "");
       setDiscord(links.discord || "");
       setHistory(Array.isArray(data.history) ? data.history : []);
-    } catch (e) {
-      console.error("Profile load failed:", e);
     } finally {
       setLoading(false);
     }
@@ -125,56 +128,55 @@ export default function Profile() {
 
   useEffect(() => {
     loadProfile();
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
-  // refresh when coming back from OAuth
+  // Reload after returning from OAuth (tab became visible again)
   useEffect(() => {
     const onVis = () => document.visibilityState === "visible" && loadProfile();
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
-  // ✅ show toast if ?linked=... present
+  // Small toast when ?linked=twitter|telegram|discord is present
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const linked = params.get("linked"); // twitter | telegram | discord
+    const linked = params.get("linked");
     if (linked) {
       const pretty =
         linked === "twitter"
           ? "X (Twitter)"
           : linked.charAt(0).toUpperCase() + linked.slice(1);
       setToast(`Connected ${pretty} ✅`);
-      // clean URL
       params.delete("linked");
       const newUrl =
         window.location.pathname +
         (params.toString() ? `?${params.toString()}` : "");
       window.history.replaceState({}, "", newUrl);
-      // hide after 3s
       const t = setTimeout(() => setToast(""), 3000);
       return () => clearTimeout(t);
     }
   }, []);
 
-  // Connect buttons: send base64 state
+  // OAuth connect buttons
   const state = btoa(address || "");
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API}/auth/twitter?state=${state}`;
+    window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
   };
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API}/auth/telegram/start?state=${state}`;
+    window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
   };
   const connectDiscord = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API}/auth/discord?state=${state}`;
+    window.location.href = `${API_BASE}/auth/discord?state=${state}`;
   };
 
   return (
     <div className="page">
-      {/* small toast */}
+      {/* toast */}
       {toast && (
         <div
           style={{
