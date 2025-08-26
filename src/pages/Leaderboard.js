@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./Leaderboard.css";
 import "../App.css";
-import { apiGet } from "../api"; // use the shared API helper
+import { apiGet } from "../utils/api"; // ✅ corrected import path
 
 const lore = {
   Shellborn: "Born from tide and shell — a humble beginning.",
@@ -21,11 +21,15 @@ export default function Leaderboard() {
   useEffect(() => {
     (async () => {
       try {
-        // ✅ correct endpoint (no /api prefix)
-        const data = await apiGet("/leaderboard");
+        // ✅ FIX: use /api/leaderboard
+        const data = await apiGet("/api/leaderboard");
 
-        // backend may return { top: [...] } or [...]
-        const rows = Array.isArray(data) ? data : Array.isArray(data?.top) ? data.top : [];
+        // backend may return { top: [...] } or just [...]
+        const rows = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.top)
+          ? data.top
+          : [];
 
         // normalize the fields we render
         const normalized = rows.map((u, i) => ({

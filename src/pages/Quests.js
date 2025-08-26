@@ -1,6 +1,5 @@
 // src/pages/Quests.js
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import confetti from "canvas-confetti";
 import XPModal from "../components/XPModal";
 import XPBar from "../components/XPBar";
@@ -8,13 +7,14 @@ import "../components/XPBar.css";
 import "./Quests.css";
 import "../App.css";
 
-// 🔊 Sound helpers (use playXP, not playChime)
+// 🔊 Sound
 import { playClick, playXP } from "../utils/sounds";
 
-// 🔗 TonConnect (reads current wallet + opens connect modal)
+// 🔗 TonConnect
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+// ✅ Unified API helpers (talks to Render)
+import { getQuests, getProfile, postJSON, API_BASE } from "../utils/api";
 
 const Quests = () => {
   const [quests, setQuests] = useState([]);
@@ -34,11 +34,11 @@ const Quests = () => {
   const [recentXP, setRecentXP] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
 
-  // 👉 TonConnect hooks
+  // TonConnect
   const tonAddress = useTonAddress();
   const [tonUI] = useTonConnectUI();
 
-  // 0) Pick up any previously saved wallet (before TonConnect)
+  // 0) Previously saved wallet (before TonConnect)
   useEffect(() => {
     const saved =
       localStorage.getItem("wallet") ||
@@ -61,15 +61,18 @@ const Quests = () => {
   useEffect(() => {
     const loadQuests = async () => {
       try {
-        const res = await axios.get(`${API}/quests`, { withCredentials: true });
-        const fixed = (res.data || []).map((q) => ({
+        const data = await getQuests();
+        // Support both {quests: [...]} and plain array
+        const list = Array.isArray(data) ? data : Array.isArray(data?.quests) ? data.quests : [];
+        const normalized = list.map((q) => ({
           id: q.id,
           title: q.title,
-          type: q.type || "daily",
+          type: (q.type || "daily").toLowerCase(),
           url: q.url || "#",
           xp: q.xp ?? 0,
+          completed: !!q.completed,
         }));
-        setQuests(fixed);
+        setQuests(normalized);
       } catch (err) {
         console.error("Failed to load quests", err);
         setQuests([]);
@@ -78,49 +81,53 @@ const Quests = () => {
     loadQuests();
   }, []);
 
-  // Helpers: load completed + profile (uses unified /api/profile)
-  const loadCompleted = async (addr) => {
+  // Helpers: completed + profile
+  async function loadCompleted(addr) {
     try {
-      const res = await axios.get(`${API}/completed/${addr}`, {
-        withCredentials: true,
+      // ✅ canonical route is /api/quest/completed/:wallet
+      const res = await fetch(`${API_BASE}/api/quest/completed/${encodeURIComponent(addr)}`, {
+        credentials: "include",
       });
-      setCompleted(res.data.completed || []);
-    } catch (err) {
-      console.error("Failed to load completed quests", err);
+      if (res.ok) {
+        const j = await res.json();
+        if (Array.isArray(j?.completed)) {
+          setCompleted(j.completed.map((x) => Number(x)));
+          return;
+        }
+      }
+      setCompleted([]);
+    } catch (e) {
+      console.error("Completed fetch failed", e);
+      setCompleted([]);
     }
-  };
+  }
 
-  const loadProfile = async (addr) => {
+  async function loadProfile(addr) {
     try {
-      const res = await axios.get(
-        `${API}/api/profile?wallet=${encodeURIComponent(addr)}`,
-        { withCredentials: true }
-      );
-      const data = res.data || {};
-      const p = data.profile || {};
-
+      const data = await getProfile(addr);
+      const p = data?.profile || {};
       setXp(p.xp ?? 0);
-      setTier(p.subscriptionTier || p.tier || "Free");
+      const nextTier = p.subscriptionTier || p.tier || "Free";
+      setTier(nextTier);
       setLevel({
         name: p.levelName || p.level || "Shellborn",
         symbol: p.levelSymbol || "🐚",
         progress: p.levelProgress ?? 0,
         nextXP: p.nextXP ?? 10000,
       });
-
       return {
         xp: p.xp ?? 0,
-        tier: p.subscriptionTier || p.tier || "Free",
+        tier: nextTier,
         levelName: p.levelName || p.level || "Shellborn",
         levelSymbol: p.levelSymbol || "🐚",
         nextXP: p.nextXP ?? 10000,
         progress: p.levelProgress ?? 0,
       };
-    } catch (err) {
-      console.error("Profile fetch failed", err);
+    } catch (e) {
+      console.error("Profile fetch failed", e);
       return null;
     }
-  };
+  }
 
   // 3) With a wallet present, load profile + completed
   useEffect(() => {
@@ -129,13 +136,13 @@ const Quests = () => {
     loadProfile(wallet);
   }, [wallet]);
 
-  // 4) Complete quest handler that opens wallet if needed
+  // 4) Complete quest handler
   const handleCompleteClick = async (quest) => {
     playClick();
 
     if (!wallet) {
       try {
-        await tonUI.openModal(); // open TonConnect modal
+        await tonUI.openModal();
       } catch {}
       alert("Connect / save a wallet to complete quests.");
       return;
@@ -143,51 +150,42 @@ const Quests = () => {
     await completeQuest(quest);
   };
 
-  // ▶️ Complete quest + refresh local state + notify Profile
   const completeQuest = async (quest) => {
     const { id: questId, xp: xpGain, title } = quest;
     const prevLevelName = level?.name || "Shellborn";
 
     try {
-      const res = await axios.post(
-        `${API}/complete`,
-        { wallet, questId, title, xp: xpGain },
-        { withCredentials: true }
-      );
+      // ✅ canonical complete endpoint
+      await postJSON("/api/quest/complete", { wallet, questId, title, xp: xpGain });
 
-      if (res?.data?.success === false) {
-        alert(res?.data?.message || "Could not complete this quest yet.");
-        return;
-      }
-
-      // Refresh profile and get the newly computed level
+      // Refresh profile
       const newProfile = await loadProfile(wallet);
 
-      // Show XP toast (centered) + sound
+      // Show XP modal
       setRecentXP(xpGain);
       setXPModalOpen(true);
       playXP();
 
-      // Detect level up (optional UI modal — left in place)
+      // Detect level up
       const newLevelName = newProfile?.levelName || level.name;
       const newLevelSymbol = newProfile?.levelSymbol || level.symbol;
-
       if (newLevelName && newLevelName !== prevLevelName) {
         setUnlocked({ name: newLevelName, symbol: newLevelSymbol || "🐚" });
         setShowLevelModal(true);
       }
 
-      // Mark in local completed list
+      // Mark as completed locally
       setCompleted((prev) => (prev.includes(questId) ? prev : [...prev, questId]));
+      setQuests((prev) => prev.map((q) => (q.id === questId ? { ...q, completed: true } : q)));
 
       // Confetti 🎉
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
 
-      // 🔔 Tell other pages (Profile) to reload
+      // 🔔 Notify other pages
       window.dispatchEvent(new Event("quests:updated"));
     } catch (err) {
       console.error("Quest complete error", err);
-      alert("Could not complete this quest. Please try again.");
+      alert(`Could not complete this quest. ${err?.message || "Please try again."}`);
     }
   };
 
@@ -259,43 +257,46 @@ const Quests = () => {
               <p className="quest-title">No quests yet for this category.</p>
             </div>
           ) : (
-            filterQuests(activeTab).map((q) => (
-              <div key={q.id} className="glass quest-card">
-                <div className="q-row">
-                  <span className={`chip ${q.type}`}>
-                    {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
-                  </span>
-                  <span className="xp-badge">+{q.xp} XP</span>
+            filterQuests(activeTab).map((q) => {
+              const isDone = completed.includes(q.id) || q.completed;
+              return (
+                <div key={q.id} className="glass quest-card">
+                  <div className="q-row">
+                    <span className={`chip ${q.type}`}>
+                      {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
+                    </span>
+                    <span className="xp-badge">+{q.xp} XP</span>
+                  </div>
+
+                  <p className="quest-title">{q.title}</p>
+
+                  <div className="actions">
+                    <button
+                      className="btn primary"
+                      onClick={() => {
+                        playClick();
+                        if (q.url) window.open(q.url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      Go to Quest
+                    </button>
+
+                    <button
+                      className={`btn ${isDone ? "success" : "ghost"}`}
+                      onClick={() => handleCompleteClick(q)}
+                      disabled={isDone}
+                      title={!wallet ? "Connect a wallet to complete quests" : ""}
+                    >
+                      {isDone ? "Completed" : "Complete"}
+                    </button>
+                  </div>
                 </div>
-
-                <p className="quest-title">{q.title}</p>
-
-                <div className="actions">
-                  <button
-                    className="btn primary"
-                    onClick={() => {
-                      playClick();
-                      if (q.url) window.open(q.url, "_blank", "noopener,noreferrer");
-                    }}
-                  >
-                    Go to Quest
-                  </button>
-
-                  <button
-                    className={`btn ${completed.includes(q.id) ? "success" : "ghost"}`}
-                    onClick={() => handleCompleteClick(q)}
-                    disabled={completed.includes(q.id)}
-                    title={!wallet ? "Connect a wallet to complete quests" : ""}
-                  >
-                    {completed.includes(q.id) ? "Completed" : "Complete"}
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
-        {/* Level-up modal (optional) */}
+        {/* Level-up modal */}
         {showLevelModal && unlocked && (
           <div className="modal">
             <div className="glass-strong modal-box">
@@ -317,7 +318,7 @@ const Quests = () => {
           </div>
         )}
 
-        {/* XP modal (centered) */}
+        {/* XP modal */}
         {xpModalOpen && (
           <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />
         )}

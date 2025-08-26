@@ -1,0 +1,27 @@
+import { useEffect, useMemo, useState } from "react";
+
+/** Live countdown to the next Oct 4, 00:00:00 local time */
+export function useTokenSaleCountdown() {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return useMemo(() => {
+    const today = new Date(now);
+    const year = today.getFullYear();
+    const target = new Date(`${year}-10-04T00:00:00`);
+    if (today > target) target.setFullYear(year + 1);
+    const diff = target - today;
+
+    if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0 };
+
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const m = Math.floor((diff / (1000 * 60)) % 60);
+    const s = Math.floor((diff / 1000) % 60);
+    return { d, h, m, s };
+  }, [now]);
+}
