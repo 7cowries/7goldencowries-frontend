@@ -26,6 +26,9 @@ const Profile      = lazy(() => import("./pages/Profile"));
 const Isles        = lazy(() => import("./pages/Isles"));
 const NotFound     = lazy(() => import("./pages/NotFound")); // make sure this file exists
 
+// 🔧 Test page to confirm frontend ↔ backend connectivity
+const TestAPI      = lazy(() => import("./pages/TestAPI"));
+
 /** Ambient background layers (veil + orbs) */
 function AmbientLayers() {
   return (
@@ -84,6 +87,10 @@ const App = () => {
                   <Route path="/token-sale" element={<TokenSale />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/isles" element={<Isles />} />
+
+                  {/* 🔧 Connectivity check route */}
+                  <Route path="/test-api" element={<TestAPI />} />
+
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
