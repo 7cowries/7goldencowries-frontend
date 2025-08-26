@@ -3,7 +3,6 @@
 
 const API_BASE = (
   process.env.REACT_APP_API_URL ||
-  // optional global override (handy in previews)
   (typeof window !== "undefined" ? window.__API_URL__ : undefined) ||
   "http://localhost:5000"
 )?.replace(/\/+$/, "") || "http://localhost:5000";
@@ -21,11 +20,8 @@ async function safeJson(res) {
 async function request(path, { method = "GET", body, headers } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    credentials: "include", // send/receive cookies for OAuth sessions
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...headers },
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -37,7 +33,6 @@ async function request(path, { method = "GET", body, headers } = {}) {
   return safeJson(res);
 }
 
-// Try several possible endpoints until one responds OK
 async function tryPaths(paths, opts) {
   let lastErr;
   for (const p of paths) {
@@ -52,34 +47,40 @@ async function tryPaths(paths, opts) {
 
 // ---- public API -------------------------------------------------------------
 
-/** GET /health */
 export const getHealth = () => request("/health");
 
-/** GET /api/profile?wallet=... */
 export function getProfile(wallet) {
   if (!wallet) throw new Error("wallet is required");
   const qs = encodeURIComponent(wallet);
   return request(`/api/profile?wallet=${qs}`);
 }
 
-/** GET quests list (supports several mounts) */
 export function getQuests() {
   return tryPaths(["/api/quests", "/api/quest", "/quests"]);
 }
 
-/** GET leaderboard (supports several mounts) */
 export function getLeaderboard() {
   return tryPaths(["/api/leaderboard", "/leaderboard"]);
 }
 
-/** Generic POST helper */
 export function postJSON(path, payload) {
   return request(path, { method: "POST", body: payload });
 }
 
-// ---- compatibility (older imports still used in some files) -----------------
+// ---- compatibility exports for existing imports -----------------------------
 export const apiGet  = (path) => request(path);
 export const apiPost = (path, payload) => request(path, { method: "POST", body: payload });
 
-// Export the resolved base for debugging / TestAPI page
+// Some files import `{ api }` — provide a shim object:
+export const api = {
+  get: apiGet,
+  post: apiPost,
+  getHealth,
+  getProfile,
+  getQuests,
+  getLeaderboard,
+  base: API_BASE,
+};
+
+// Export the resolved base
 export { API_BASE };
