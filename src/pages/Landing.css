@@ -1,0 +1,275 @@
+/* src/pages/Landing.css */
+/* Uses tokens from index.css + App.css */
+
+.landing { position: relative; overflow: hidden; }
+
+/* Animated gradient waves (base ocean) */
+.bg-waves{
+  position: fixed; inset: -40vh -20vw 0 -20vw; z-index: 0;
+  background:
+    radial-gradient(50% 40% at 20% 0%, rgba(102,224,255,0.12), transparent 60%),
+    radial-gradient(60% 40% at 80% 0%, rgba(122,125,255,0.12), transparent 60%),
+    linear-gradient(180deg, rgba(6,19,37,.90), rgba(6,19,37,.65) 45%, rgba(6,19,37,.88));
+  animation: swell 16s ease-in-out infinite;
+  filter: saturate(110%);
+}
+@keyframes swell {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(18px); }
+}
+
+/* Aurora light sheen */
+.aurora{
+  position: fixed; inset: -10vh -10vw; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(60% 60% at 20% 10%, rgba(122,125,255,.20), transparent 60%),
+    radial-gradient(60% 60% at 80% 20%, rgba(102,224,255,.18), transparent 60%),
+    radial-gradient(40% 40% at 50% 80%, rgba(255,212,102,.12), transparent 60%);
+  mix-blend-mode: screen;
+  animation: auroraShift 24s ease-in-out infinite alternate;
+}
+@keyframes auroraShift {
+  0% { transform: translateY(-6px) scale(1); opacity:.75; }
+  100% { transform: translateY(10px) scale(1.02); opacity:.95; }
+}
+
+/* Floating particles */
+.bg-particles { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+.bg-particles span{
+  --size: calc(6px + (var(--i) * 0.5px));
+  position: absolute;
+  top: calc((var(--i) * 5%) + 5%);
+  left: calc((var(--i) * 6%) - 3%);
+  width: var(--size); height: var(--size);
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(102,224,255,.0));
+  border-radius: 50%;
+  filter: blur(0.6px);
+  animation: drift calc(12s + var(--i)*.45s) linear infinite;
+  opacity: .55;
+}
+@keyframes drift {
+  0% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-20px) translateX(10px); }
+  100% { transform: translateY(0) translateX(0); }
+}
+
+/* Hero */
+.hero { position: relative; z-index: 3; }
+.title{
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: .5px;
+  font-size: clamp(28px, 3.2vw + 8px, 56px);
+  margin: 0 0 6px;
+  background: linear-gradient(180deg, #ffecb3, #ffd466 55%, #e9b84d);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 8px 50px rgba(255,212,102,0.18);
+}
+.hero-subtitle{ color: var(--ink-dim); margin: 6px 0 16px; max-width: 900px; }
+
+.cta-row .btn.cta-pulse{ position: relative; isolation: isolate; }
+.cta-pulse::after{
+  content:""; position:absolute; inset: -2px; border-radius: 14px; z-index:-1;
+  background: radial-gradient(60% 120% at 50% 20%, rgba(255,212,102,.45), rgba(102,224,255,.2), transparent 70%);
+  filter: blur(8px); opacity: .6; animation: pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.5; transform: scale(.98)} 50%{opacity:.9; transform:scale(1.02)} }
+
+.hero-stats{
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px; margin-top: 18px;
+}
+.stat{
+  text-align:center;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  padding: 12px;
+}
+.stat-num{ font-size: 22px; font-weight: 800; color: #ffecb3; }
+.stat-label{ color: var(--ink-dim); }
+
+/* Section spacing */
+.landing .landing-block { position: relative; z-index: 3; margin-top: 18px; }
+.features-grid,
+.coming,
+.roadmap,
+.partners { position: relative; z-index: 3; margin-top: 18px; }
+
+/* Token sale banner */
+.token-sale-banner{
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+  align-items: center;
+  background: linear-gradient(90deg, #FFD95B, #FFA726);
+  color: #061325;
+  padding: 14px 20px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 18px 38px rgba(0,0,0,.25);
+  animation: glowPulse 2s infinite;
+}
+.tsb-left{ display:flex; align-items:center; gap:10px; }
+.tsb-emoji{ filter: drop-shadow(0 2px 10px rgba(255,255,255,.4)); }
+@keyframes glowPulse {
+  0%,100% { box-shadow: 0 0 8px #FFD95B; }
+  50% { box-shadow: 0 0 18px #FFA726; }
+}
+
+/* Countdown */
+.countdown { display:flex; align-items:center; gap:12px; }
+.countdown-label { color: #10243a; font-weight:600; }
+.countdown-digits { display:flex; align-items:baseline; gap:8px; }
+.countdown-digits span {
+  font-weight:800; font-size:18px; padding:4px 8px; border-radius:10px;
+  background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22);
+}
+.countdown-digits small { color: #10243a; margin-left:-6px; }
+
+/* Feature cards grid */
+.features-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1100px){ .features-grid{ grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 680px){ .features-grid{ grid-template-columns: 1fr; } }
+
+.feature-emoji{ font-size: 24px; margin-bottom: 8px; }
+.coming .soon-badge{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size: 12px; font-weight: 800; letter-spacing:.3px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.14);
+  padding: 6px 10px; border-radius: 999px; margin-bottom: 10px;
+}
+
+/* Partners */
+.partners .partner-slot{
+  min-height: 92px; display:flex; align-items:center; justify-content:center;
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 14px;
+}
+
+/* Lore */
+.lore-block{ position: relative; }
+.lore-timeline{
+  counter-reset: isle;
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 10px;
+  display: grid;
+  gap: 14px;
+  position: relative;
+}
+.lore-node{
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+  position: relative;
+}
+.lore-pin{ position: relative; width: 28px; height: 28px; display: grid; place-items: center; }
+.pin-orb{ width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffecb3, #ffd466);
+  box-shadow: 0 0 18px rgba(255, 212, 102, .55), 0 0 6px rgba(102,224,255,.55);
+  position: relative; z-index: 1;
+}
+.pin-glow{
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(closest-side, rgba(255,212,102,.25), rgba(102,224,255,.12), transparent 70%);
+  filter: blur(8px);
+}
+
+/* Vertical thread through timeline */
+.lore-timeline::before{
+  content:"";
+  position: absolute; top: 0; bottom: 0; left: 14px; width: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
+  pointer-events: none;
+}
+.lore-card{
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  padding: 14px;
+}
+.lore-head{ display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.lore-emoji{ font-size: 20px; }
+.lore-title{ margin: 0; font-size: 1.05rem; }
+.lore-text{ color: var(--ink-dim); margin: 4px 0 0; }
+
+.fade-in { animation: floatFadeIn .45s ease both; }
+@keyframes floatFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Sparkling cowrie next to each pin */
+.cowrie-sparkle{
+  position: absolute;
+  width: 18px; height: 18px;
+  top: -6px; left: -2px; opacity: .95;
+  filter: drop-shadow(0 0 6px rgba(255, 212, 102, .55)) drop-shadow(0 0 10px rgba(102,224,255,.35));
+  animation: cowrieShimmer 2.4s ease-in-out infinite, cowrieFloat 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes cowrieShimmer { 0%, 100% { transform: rotate(0deg) scale(1); opacity: .9; } 50% { transform: rotate(8deg) scale(1.06); opacity: 1; } }
+@keyframes cowrieFloat { 0%,100% { translate: 0 0; } 50% { translate: 0 -2px; } }
+
+/* Epilogue */
+.lore-epilogue { margin-top: 12px; }
+.lore-epilogue .epilogue { padding: 16px; }
+
+/* Scroll progress line (decorative) */
+.lore-block{ --progress: 0%; }
+.lore-progress{
+  position: absolute; top: 52px; bottom: 18px; left: 14px; width: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  pointer-events: none;
+}
+.lore-progress::after{
+  content: ""; position: absolute; left: 0; top: 0; width: 100%;
+  height: var(--progress);
+  background: linear-gradient(180deg, rgba(255,212,102,.8), rgba(102,224,255,.65));
+  box-shadow: 0 0 10px rgba(255,212,102,.35), 0 0 20px rgba(102,224,255,.28);
+  transition: height .25s ease-out; border-radius: 2px;
+}
+
+/* Align with thread on small screens */
+@media (max-width: 640px){
+  .lore-node{ grid-template-columns: 24px 1fr; }
+  .lore-timeline::before{ left: 12px; }
+  .lore-progress{ left: 12px; }
+}
+
+/* Bottom callout */
+.bottom-callout { margin-top: 22px; position: relative; z-index: 3; }
+.callout-inner{
+  display:flex; align-items:center; justify-content:space-between; gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* --- Click-through safety for landing decorative layers --- */
+.bg-waves,
+.aurora,
+.bg-particles,
+.bg-particles > span {
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+.landing .section,
+.token-sale-banner,
+.token-sale-banner .tsb-actions,
+.hero .cta-row {
+  position: relative;
+  z-index: 2; /* ensure buttons sit above any visuals */
+}
+
+/* If your gradient border uses a ::before overlay, make sure it never captures clicks */
+.gradient-border::before {
+  pointer-events: none !important;
+}
+
+/* Extra safety for buttons/links in the banner and hero */
+.token-sale-banner a,
+.token-sale-banner button,
+.hero .btn {
+  position: relative;
+  z-index: 3;
+}

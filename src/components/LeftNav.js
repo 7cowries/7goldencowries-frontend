@@ -1,39 +1,78 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import './LeftNav.css';
+import React, { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import "./LeftNav.css";
+import logo from "../assets/logo.svg";
 
-const navItems = [
-  { name: 'Quests', path: '/quests', icon: '⚡' },
-  { name: 'Leaderboard', path: '/leaderboard', icon: '📊' },
-  { name: 'Referral', path: '/referral', icon: '👑' },
-  { name: 'Subscription', path: '/subscription', icon: '💎' },
-  { name: 'Token Sale', path: '/token-sale', icon: '🪙' },
-  { name: 'Profile', path: '/profile', icon: '🧬' },
-  { name: 'Isles', path: '/isles', icon: '🏝️' }
-];
+export default function LeftNav() {
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
 
-const LeftNav = () => {
-  const location = useLocation();
+  // Close the mobile menu whenever route changes
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
-    <nav className="sidebar">
-      <div className="sidebar-title">
-        <img src="/logo192.png" alt="logo" style={{ width: 28, marginRight: 8 }} />
-        <span>7GoldenCowries</span>
-      </div>
+    <>
+      {/* Mobile toggle (hamburger) */}
+      <button
+        className="nav-toggle"
+        aria-label="Toggle navigation"
+        aria-expanded={open ? "true" : "false"}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="bar" />
+        <span className="bar" />
+        <span className="bar" />
+      </button>
 
-      <ul className="sidebar-links">
-        {navItems.map((item) => (
-          <li key={item.path} className={location.pathname === item.path ? 'active' : ''}>
-            <Link to={item.path}>
-              <span className="icon">{item.icon}</span>
-              <span className="label">{item.name}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+      {/* Backdrop for mobile drawer */}
+      {open && <div className="leftnav-overlay" onClick={() => setOpen(false)} />}
+
+      <aside className={`leftnav ${open ? "open" : "closed"}`} role="navigation">
+        {/* Brand (clickable to landing) */}
+        <Link to="/" className="brand" aria-label="7GoldenCowries Home">
+          <img src={logo} alt="7GoldenCowries logo" className="brand-logo" />
+          <span className="brand-text">7GoldenCowries</span>
+        </Link>
+
+        <nav className="nav">
+          <NavLink to="/quests" className="nav-item">
+            <span className="emoji">⚡</span>
+            <span>Quests</span>
+          </NavLink>
+
+          <NavLink to="/leaderboard" className="nav-item">
+            <span className="emoji">📚</span>
+            <span>Leaderboard</span>
+          </NavLink>
+
+          <NavLink to="/referral" className="nav-item">
+            <span className="emoji">👑</span>
+            <span>Referral</span>
+          </NavLink>
+
+          <NavLink to="/subscription" className="nav-item">
+            <span className="emoji">💎</span>
+            <span>Subscription</span>
+          </NavLink>
+
+          <NavLink to="/token-sale" className="nav-item">
+            <span className="emoji">🪙</span>
+            <span>Token Sale</span>
+          </NavLink>
+
+          <NavLink to="/profile" className="nav-item">
+            <span className="emoji">🔗</span>
+            <span>Profile</span>
+          </NavLink>
+
+          <NavLink to="/isles" className="nav-item">
+            <span className="emoji">🌱</span>
+            <span>Isles</span>
+          </NavLink>
+        </nav>
+      </aside>
+    </>
   );
-};
-
-export default LeftNav;
+}

@@ -1,5 +1,5 @@
 // src/pages/Quests.js
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import XPModal from "../components/XPModal";
@@ -7,6 +7,9 @@ import XPBar from "../components/XPBar";
 import "../components/XPBar.css";
 import "./Quests.css";
 import "../App.css";
+
+// 🔊 Sound helpers (use playXP, not playChime)
+import { playClick, playXP } from "../utils/sounds";
 
 // 🔗 TonConnect (reads current wallet + opens connect modal)
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
@@ -30,11 +33,10 @@ const Quests = () => {
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
-  const prevLevel = useRef("");
 
   // 👉 TonConnect hooks
-  const tonAddress = useTonAddress(); // normalized address or ""
-  const [tonUI] = useTonConnectUI();  // to open the connect modal
+  const tonAddress = useTonAddress();
+  const [tonUI] = useTonConnectUI();
 
   // 0) Pick up any previously saved wallet (before TonConnect)
   useEffect(() => {
@@ -90,11 +92,13 @@ const Quests = () => {
 
   const loadProfile = async (addr) => {
     try {
-      const res = await axios.get(`${API}/api/profile?wallet=${encodeURIComponent(addr)}`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${API}/api/profile?wallet=${encodeURIComponent(addr)}`,
+        { withCredentials: true }
+      );
       const data = res.data || {};
       const p = data.profile || {};
+
       setXp(p.xp ?? 0);
       setTier(p.subscriptionTier || p.tier || "Free");
       setLevel({
@@ -103,9 +107,18 @@ const Quests = () => {
         progress: p.levelProgress ?? 0,
         nextXP: p.nextXP ?? 10000,
       });
-      prevLevel.current = p.levelName || p.level || "Shellborn";
+
+      return {
+        xp: p.xp ?? 0,
+        tier: p.subscriptionTier || p.tier || "Free",
+        levelName: p.levelName || p.level || "Shellborn",
+        levelSymbol: p.levelSymbol || "🐚",
+        nextXP: p.nextXP ?? 10000,
+        progress: p.levelProgress ?? 0,
+      };
     } catch (err) {
       console.error("Profile fetch failed", err);
+      return null;
     }
   };
 
@@ -118,6 +131,8 @@ const Quests = () => {
 
   // 4) Complete quest handler that opens wallet if needed
   const handleCompleteClick = async (quest) => {
+    playClick();
+
     if (!wallet) {
       try {
         await tonUI.openModal(); // open TonConnect modal
@@ -131,38 +146,48 @@ const Quests = () => {
   // ▶️ Complete quest + refresh local state + notify Profile
   const completeQuest = async (quest) => {
     const { id: questId, xp: xpGain, title } = quest;
+    const prevLevelName = level?.name || "Shellborn";
+
     try {
-      // Send full payload so backend can log history properly
-      await axios.post(
+      const res = await axios.post(
         `${API}/complete`,
         { wallet, questId, title, xp: xpGain },
         { withCredentials: true }
       );
 
-      // Refresh profile strip from unified endpoint
-      await loadProfile(wallet);
+      if (res?.data?.success === false) {
+        alert(res?.data?.message || "Could not complete this quest yet.");
+        return;
+      }
 
-      // Update recent XP modal
+      // Refresh profile and get the newly computed level
+      const newProfile = await loadProfile(wallet);
+
+      // Show XP toast (centered) + sound
       setRecentXP(xpGain);
       setXPModalOpen(true);
+      playXP();
 
-      // Detect new level (loadProfile already updated level + prevLevel.current)
-      if (level.name && level.name !== prevLevel.current) {
-        prevLevel.current = level.name;
-        setUnlocked({ name: level.name, symbol: level.symbol || "🐚" });
+      // Detect level up (optional UI modal — left in place)
+      const newLevelName = newProfile?.levelName || level.name;
+      const newLevelSymbol = newProfile?.levelSymbol || level.symbol;
+
+      if (newLevelName && newLevelName !== prevLevelName) {
+        setUnlocked({ name: newLevelName, symbol: newLevelSymbol || "🐚" });
         setShowLevelModal(true);
       }
 
       // Mark in local completed list
       setCompleted((prev) => (prev.includes(questId) ? prev : [...prev, questId]));
 
-      // Celebrate 🎉
+      // Confetti 🎉
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
 
       // 🔔 Tell other pages (Profile) to reload
       window.dispatchEvent(new Event("quests:updated"));
     } catch (err) {
       console.error("Quest complete error", err);
+      alert("Could not complete this quest. Please try again.");
     }
   };
 
@@ -211,7 +236,10 @@ const Quests = () => {
               <button
                 key={type}
                 className={`tab ${activeTab === type ? "active" : ""}`}
-                onClick={() => setActiveTab(type)}
+                onClick={() => {
+                  playClick();
+                  setActiveTab(type);
+                }}
               >
                 {type === "all" && "All Quests"}
                 {type === "daily" && "📅 Daily"}
@@ -243,7 +271,13 @@ const Quests = () => {
                 <p className="quest-title">{q.title}</p>
 
                 <div className="actions">
-                  <button className="btn primary" onClick={() => window.open(q.url, "_blank")}>
+                  <button
+                    className="btn primary"
+                    onClick={() => {
+                      playClick();
+                      if (q.url) window.open(q.url, "_blank", "noopener,noreferrer");
+                    }}
+                  >
                     Go to Quest
                   </button>
 
@@ -261,7 +295,7 @@ const Quests = () => {
           )}
         </div>
 
-        {/* Modals */}
+        {/* Level-up modal (optional) */}
         {showLevelModal && unlocked && (
           <div className="modal">
             <div className="glass-strong modal-box">
@@ -283,7 +317,10 @@ const Quests = () => {
           </div>
         )}
 
-        {xpModalOpen && <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />}
+        {/* XP modal (centered) */}
+        {xpModalOpen && (
+          <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />
+        )}
       </div>
     </div>
   );

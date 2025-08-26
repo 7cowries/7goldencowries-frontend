@@ -1,53 +1,120 @@
-.sidebar {
-  width: 220px;
-  height: 100vh;
-  background: #0a0a0a;
-  padding: 20px 16px;
+:root{
+  --sidebar-w: 300px;
+  --ink: #eaf2ff;
+  --ink-dim: #b8c7e8;
+  --border: rgba(255,255,255,0.12);
+  --panel-bg: linear-gradient(180deg, rgba(6,19,37,.95), rgba(6,19,37,.85));
+  --panel-glow: 0 20px 40px rgba(0,0,0,.35);
+  --r-lg: 20px;
+  --r-md: 14px;
+}
+
+/* Mobile hamburger */
+.nav-toggle{
   position: fixed;
-  left: 0;
-  top: 0;
-  color: #ffffff;
-  border-right: 1px solid #222;
-  z-index: 10;
+  top: 12px; left: 12px;
+  z-index: 100;
+  width: 42px; height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06);
+  backdrop-filter: blur(8px);
+  display: grid; place-items: center;
+  gap: 3px; padding: 6px 0;
+}
+.nav-toggle .bar{
+  display: block;
+  width: 22px; height: 2px;
+  background: #cfe9ff; border-radius: 2px;
+}
+@media (min-width: 1025px){
+  .nav-toggle{ display: none; }
 }
 
-.sidebar-title {
-  font-family: 'Orbitron', sans-serif;
-  font-weight: bold;
-  font-size: 1.1rem;
-  color: #ffde59;
-  display: flex;
-  align-items: center;
-  margin-bottom: 32px;
+/* Backdrop when drawer open (mobile) */
+.leftnav-overlay{
+  position: fixed; inset: 0;
+  background: rgba(0, 10, 20, .45);
+  backdrop-filter: blur(2px);
+  z-index: 95;
 }
 
-.sidebar-links {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* Sidebar container */
+.leftnav{
+  position: fixed; /* fixed so it stays visible; main content scrolls */
+  left: 0; top: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--panel-glow);
+  padding: 10px 14px 16px;
+  overflow-y: auto;
+  z-index: 99;
+  transform: translateX(0);
+  transition: transform .25s ease;
 }
 
-.sidebar-links li {
-  margin-bottom: 20px;
+/* Drawer behavior on small screens */
+@media (max-width: 1024px){
+  .leftnav.closed{ transform: translateX(-105%); }
+  .leftnav.open{ transform: translateX(0); }
 }
 
-.sidebar-links a {
-  display: flex;
-  align-items: center;
+/* Desktop: no transform, just sits there */
+@media (min-width: 1025px){
+  .leftnav{ transform: none !important; }
+}
+
+/* Brand */
+.brand{
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 14px;
+  margin: 6px 0 12px;
+  border-radius: 14px;
+  color: var(--ink);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #bbb;
-  transition: all 0.3s ease;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+}
+.brand:hover{ background: rgba(255,255,255,.06); }
+.brand-logo{ width: 26px; height: 26px; display: block; }
+.brand-text{
+  font-weight: 800; letter-spacing: .2px;
+  background: linear-gradient(180deg,#ffecb3,#ffd466 55%,#e9b84d);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
 }
 
-.sidebar-links li.active a,
-.sidebar-links a:hover {
-  color: #00ffff;
-  text-shadow: 0 0 6px #00ffff66;
+/* Nav list */
+.nav{ display: grid; gap: 12px; }
+.nav-item{
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 16px;
+  color: var(--ink); text-decoration: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+  transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+}
+.nav-item .emoji{ width: 22px; text-align: center; opacity: .92; }
+.nav-item:hover{
+  transform: translateY(-1px);
+  border-color: rgba(102,224,255,.28);
+  box-shadow: 0 10px 24px rgba(102,224,255,.12);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+}
+.nav-item.active{
+  outline: 1px solid rgba(255,212,102,.25);
+  box-shadow: 0 0 0 1px rgba(255,212,102,.08) inset, 0 8px 20px rgba(255,212,102,.12);
 }
 
-.icon {
-  margin-right: 10px;
-  font-size: 1.1rem;
+/* Push main content so it doesn't sit under the fixed sidebar (desktop only) */
+@media (min-width: 1025px){
+  .app-layout .main-view{ margin-left: var(--sidebar-w); }
+}
+
+/* On smaller screens, main content is full-width. Sidebar is a drawer. */
+@media (max-width: 1024px){
+  .app-layout .main-view{ margin-left: 0; }
 }

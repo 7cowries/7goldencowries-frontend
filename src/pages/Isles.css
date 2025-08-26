@@ -1,22 +1,213 @@
-.isles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 18px;
-  margin-top: 14px;
+/* src/pages/Isles.css */
+/* Oceanic theme — responsive grid, ring animation, skeleton loader */
+
+:root {
+  --bg-deep: #06152d;
+  --bg-ocean: #0a1f44;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.12);
+  --text: #eaf2ff;
+  --muted: #a8c1ff;
+  --accent: #ffd445; /* golden cowrie */
+  --accent-2: #79c3ff; /* aqua highlight */
+  --good: #76e2a8;
+  --locked: #8aa2cf;
+  --shadow: 0 10px 40px rgba(4, 13, 34, 0.45);
+  --radius: 18px;
 }
-.isle-card {
+
+/* page */
+.isles-page {
+  position: relative;
+  min-height: 100vh;
+  color: var(--text);
+  background: linear-gradient(180deg, var(--bg-ocean), var(--bg-deep) 60%, #030a18 100%);
+  overflow-x: hidden;
+}
+
+/* shimmer veil */
+.veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(70vw 60vh at 65% 25%, rgba(255,255,255,0.04), transparent 60%);
+  animation: shimmer 10s ease-in-out infinite alternate;
+}
+@keyframes shimmer {
+  from { opacity: 0.7; transform: translateY(0); }
+  to   { opacity: 1;   transform: translateY(-1%); }
+}
+
+/* header */
+.isles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 28px clamp(16px, 4vw, 40px);
+}
+.isles-header h1 { margin: 0; font-size: clamp(24px, 3vw, 42px); }
+.subtitle { color: var(--muted); margin: 4px 0 0; }
+.accent { color: var(--accent); }
+
+.profile-chip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--glass);
+  border: 1px solid var(--glass-strong);
   border-radius: 16px;
-  padding: 18px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: var(--shadow);
+}
+.chip-left { display: grid; }
+.chip-title { font-weight: 700; }
+.chip-sub { font-size: 12px; color: var(--muted); }
+
+/* map */
+.isles-map {
+  position: relative;
+  padding: 12px clamp(12px, 3vw, 24px) 24px;
+}
+
+/* route */
+.route { position: absolute; inset: 0; z-index: 0; opacity: 0.55; }
+.route-path {
+  fill: none;
+  stroke-width: 2.25;
+  filter: drop-shadow(0 0 6px rgba(122, 192, 255, 0.4));
+}
+.route-path.animated {
+  stroke-dasharray: 4 8;
+  animation: dash-move 5s linear infinite;
+}
+@keyframes dash-move { to { stroke-dashoffset: -50; } }
+
+/* waypoints */
+.wp-core { fill: #fff; }
+.wp-bloom { fill: rgba(121,195,255,0.3); }
+.waypoint.lit .wp-core { fill: var(--accent); }
+.waypoint.lit .wp-bloom {
+  fill: rgba(255,212,69,0.35);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: .5; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+
+/* grid */
+.isle-grid {
+  list-style: none;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  padding: 0;
+  margin: 0 auto;
+  max-width: 1200px;
+}
+@media (max-width: 960px) { .isle-grid { grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+@media (max-width: 640px) { .isle-grid { grid-template-columns: 1fr; } }
+
+/* cards */
+.isle-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid var(--glass-strong);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.isle-card:hover { transform: translateY(-3px); box-shadow: 0 18px 50px rgba(4,13,34,.55); }
+.isle-card.current {
+  border-color: rgba(255,212,69,.5);
+  box-shadow: 0 0 0 1px rgba(255,212,69,.2), 0 20px 60px rgba(255,212,69,.15);
+}
+.isle-card.locked::after {
+  content: "🔒";
+  position: absolute; top: 10px; right: 10px; font-size: 16px;
+}
+
+/* card top */
+.isle-top { display: flex; align-items: center; gap: 10px; }
+.isle-emoji { font-size: 22px; }
+.isle-name { margin: 0; font-size: 18px; }
+.isle-tagline { margin: 6px 0 10px; font-size: 14px; color: var(--muted); }
+
+/* states */
+.isle-state { margin-top: 6px; }
+.pill {
+  font-size: 12px; padding: 6px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.16);
+}
+.pill.good {
+  background: rgba(118,226,168,.12);
+  border-color: rgba(118,226,168,.35);
+  color: #c9ffe3;
+}
+.unlock-hint { color: var(--locked); font-size: 12px; }
+
+/* perks */
+.isle-perks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.perk {
+  font-size: 12px; padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(121,195,255,.12);
+  border: 1px solid rgba(121,195,255,.35);
+  color: #d9ecff;
+}
+
+/* progress */
+.isle-progress { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.progress-copy { font-size: 13px; color: var(--muted); }
+.progress-copy strong { color: var(--text); }
+
+/* ring */
+.ring-track { stroke: rgba(255,255,255,.16); }
+.ring-progress { stroke: var(--accent); transition: stroke-dasharray .8s ease; }
+.ring-text { fill: var(--text); font-size: 12px; }
+
+/* footer */
+.isles-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex; justify-content: center; gap: 14px;
+  padding: 16px;
   backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(3,10,24,0), rgba(3,10,24,.75));
 }
-.isle-card.unlocked {
-  outline: 1px solid rgba(0,255,170,0.18);
-  box-shadow: 0 0 0 1px rgba(0,255,170,0.08) inset;
+.cta {
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: var(--shadow);
 }
-.isle-card.locked { opacity: 0.6; }
-.isle-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.isle-name { font-weight: 700; font-size: 18px; margin-bottom: 6px; }
-.isle-name .emoji { margin-right: 6px; }
-.lock { font-size: 18px; opacity: 0.8; }
+.cta.primary {
+  background: linear-gradient(180deg, #ffe27a, #ffd445);
+  color: #0a1230;
+}
+.cta.ghost { background: rgba(255,255,255,.05); color: var(--text); }
+
+/* skeleton loader */
+.isle-card.skeleton {
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.08);
+}
+.sk-row, .sk-ring, .sk-chip {
+  background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.15), rgba(255,255,255,.05));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+.sk-row { height: 14px; margin: 6px 0; }
+.sk-title { width: 60%; height: 16px; }
+.sk-sub { width: 40%; }
+.sk-ring { width: 72px; height: 72px; border-radius: 50%; margin: 10px 0; }
+.sk-chip-row { display: flex; gap: 8px; margin-top: 6px; }
+.sk-chip { width: 60px; height: 18px; border-radius: 999px; }
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

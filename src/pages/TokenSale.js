@@ -1,203 +1,114 @@
-/* global BigInt */
-import React, { useMemo, useState } from 'react';
-import { TonConnectButton, useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { QRCodeCanvas } from 'qrcode.react';
-import './TokenSale.css';
-
-const SALE_ADDRESS =
-  process.env.REACT_APP_TON_SALE_ADDRESS ||
-  'UQDeBauP14FBpDmzFJIOHlWb4ncZO7Y0Bv4P_xiF0w_pmpHvb'; // <- replace with your real address
-
-const BACKEND =
-  process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-function toNanoStr(amountTon) {
-  const n = Number.parseFloat(amountTon || '0');
-  if (!Number.isFinite(n) || n <= 0) return '0';
-  // TON uses nanotons (10^9)
-  return window.BigInt(Math.round(n * 1e9)).toString();
-}
+// src/pages/TokenSale.js
+import React from "react";
+import "./TokenSale.css";
+import { useCountdown, SALE_START_ISO, openCalendarReminder, inviteFriend } from "../utils/launch";
 
 export default function TokenSale() {
-  const [amount, setAmount] = useState('2'); // default to 2 TON for demo
-  const [referral, setReferral] = useState('');
-  const [memo, setMemo] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [tonConnectUI] = useTonConnectUI();
-  const wallet = useTonWallet();
-
-  const amountNano = useMemo(() => toNanoStr(amount), [amount]);
-
-  // Deep link fallback for Tonkeeper/Tonhub/Telegram wallet
-  const deeplink = useMemo(() => {
-    const base = `ton://transfer/${SALE_ADDRESS}`;
-    const params = new URLSearchParams();
-    if (amountNano !== '0') params.set('amount', amountNano);
-    const text = memo || 'GCT contribution';
-    if (text) params.set('text', text);
-    return `${base}?${params.toString()}`;
-  }, [amountNano, memo]);
-
-  const copy = (text) => {
-    navigator.clipboard.writeText(text).catch(() => {});
-  };
-
-  const handleConnect = async () => {
-    try {
-      await tonConnectUI.openModal(); // opens TonConnect modal (QR on desktop)
-    } catch (e) {
-      alert('Could not open TON wallet. Try a different wallet app.');
-      console.error(e);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      alert('Enter a valid TON amount.');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      // 1) record the intent server-side (optional but recommended)
-      await fetch(`${BACKEND}/token-sale/contribute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amountTON: Number.parseFloat(amount),
-          referral: referral || null,
-          memo: memo || null
-        })
-      }).catch(() => {});
-
-      // 2) build TonConnect transfer
-      const tx = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
-        messages: [
-          {
-            address: SALE_ADDRESS,
-            amount: amountNano
-            // If you want to add text payload in TonConnect, use base64 payload (commented)
-            // payload: <base64 BOC>,
-          }
-        ]
-      };
-
-      // 3) if user is connected, send via TonConnect
-      if (wallet) {
-        const result = await tonConnectUI.sendTransaction(tx);
-        console.log('TonConnect result:', result);
-        alert('Thanks! Please confirm the transaction in your wallet.');
-        return;
-      }
-
-      // 4) if not connected, try opening the modal
-      try {
-        await tonConnectUI.openModal();
-      } catch (err) {
-        console.warn('Modal open failed, falling back to deeplink.');
-      }
-
-      // 5) still provide deep link fallback for wallets that don’t support TonConnect
-      window.open(deeplink, '_blank', 'noopener,noreferrer');
-    } catch (e) {
-      console.error(e);
-      alert('Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const { days, hours, minutes, seconds, finished } = useCountdown(SALE_START_ISO);
 
   return (
     <div className="page">
-      <div className="section sale-section">
-        <div className="sale-header">
-          <h1>🟡 Golden Cowrie Token Sale</h1>
-          <TonConnectButton />
-        </div>
-
-        <div className="sale-grid">
-          <div className="sale-form">
-            <label>Sale Address</label>
-            <div className="row">
-              <input value={SALE_ADDRESS} readOnly />
-              <button className="btn" onClick={() => copy(SALE_ADDRESS)}>Copy</button>
-            </div>
-
-            <label>Amount (TON)</label>
-            <input
-              inputMode="decimal"
-              placeholder="e.g. 12.5"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-
-            <div className="row mt">
-              <button className="btn outline" onClick={handleConnect}>
-                {wallet ? 'Wallet Connected' : 'Connect TON Wallet'}
-              </button>
-              <button className="btn primary" disabled={submitting} onClick={handleSubmit}>
-                {submitting ? 'Submitting…' : 'Submit Contribution'}
-              </button>
-            </div>
-
-            <label>Referral (optional)</label>
-            <input
-              placeholder="wallet or code"
-              value={referral}
-              onChange={(e) => setReferral(e.target.value)}
-            />
-
-            <label>Memo / Note (optional)</label>
-            <input
-              placeholder="e.g. my @handle"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-            />
-
-            <p className="hint">
-              Submitting records your intent (amount, referral, memo) and opens your TON wallet with exact
-              transfer details. Make sure the address matches before sending.
-            </p>
+      <div className="container">
+        {/* HERO */}
+        <section className="section ts-hero card gradient-border pad-24 fade-in">
+          <div className="ts-hero-head">
+            <h1 className="soft-title text-glow">$GCT — Golden Cowrie Token</h1>
+            <div className="ts-badge">First Wave • Oct 4, 2025 (UTC)</div>
           </div>
 
-          <div className="sale-summary">
-            <div className="qr-card">
-              <QRCodeCanvas value={deeplink} size={220} includeMargin />
-            </div>
-
-            <div className="summary-lines">
-              <div className="line">
-                <span>TON</span>
-                <strong>{Number.parseFloat(amount || '0').toFixed(2)}</strong>
-              </div>
-              <div className="line">
-                <span>Memo—</span>
-                <strong>{memo || '—'}</strong>
-              </div>
-              <div className="line">
-                <span>Referral—</span>
-                <strong>{referral || '—'}</strong>
-              </div>
-            </div>
-
-            <a className="deeplink" href={deeplink}>
-              ton://transfer… (deeplink)
-            </a>
-            <small className="tiny">
-              Tonhub, or tap the link on mobile.
-            </small>
-          </div>
-        </div>
-
-        <div className="sale-about">
-          <h3>About Golden Cowries</h3>
-          <p>
-            In our myth of discovery, the Golden Cowrie Token (<strong>$GCT</strong>) fuels the quest of ancient
-            explorers across the Seven Isles. Those who believe, contribute. Those who contribute, become part of the myth.
+          <p className="muted ts-hero-sub">
+            Forged from the Seven Isles, <b>$GCT</b> powers quests, boosts XP, unlocks
+            premium paths, and grants a voice in shaping new tides. No purchase here—just
+            the story, the vision, and the countdown.
           </p>
-        </div>
+
+          {/* COUNTDOWN */}
+          <div className="ts-countdown">
+            <div className="ts-countdown-title">
+              {finished ? "🌊 The First Wave Has Begun" : "🌊 The Tide Approaches"}
+            </div>
+            {!finished ? (
+              <div className="ts-countdown-grid">
+                <div className="ts-time"><span>{days}</span><label>days</label></div>
+                <div className="ts-time"><span>{hours}</span><label>hours</label></div>
+                <div className="ts-time"><span>{minutes}</span><label>mins</label></div>
+                <div className="ts-time"><span>{seconds}</span><label>secs</label></div>
+              </div>
+            ) : (
+              <div className="ts-live-note">Follow updates in-app and socials—waves are moving.</div>
+            )}
+          </div>
+
+          {/* CTA ROW (JS handlers so they always work) */}
+          <div className="ts-cta">
+            <button
+              className="btn aqua ripple"
+              onClick={() => openCalendarReminder({ startIso: SALE_START_ISO })}
+            >
+              Set Reminder
+            </button>
+            <button className="btn ghost ripple" onClick={() => inviteFriend({})}>
+              Invite a Friend
+            </button>
+          </div>
+
+          {/* Decorative waves */}
+          <div className="ts-waves">
+            <span className="wave w1" />
+            <span className="wave w2" />
+            <span className="wave w3" />
+          </div>
+        </section>
+
+        {/* WHY / TOKENOMICS */}
+        <section className="section grid ts-why">
+          <div className="card gradient-border pad-24 hover">
+            <h3 className="soft-title">Why $GCT?</h3>
+            <ul className="ts-bullets">
+              <li>⚡ <b>Quest Power:</b> Boost XP multipliers and unlock insider quests.</li>
+              <li>👑 <b>Prestige:</b> Access premium tiers & exclusive Cowrie NFT badges.</li>
+              <li>🌍 <b>Governance:</b> Vote on new quests, events, and Isles expansions.</li>
+              <li>🎁 <b>Early Perks:</b> First-wave supporters receive XP blessings & cosmetics.</li>
+            </ul>
+          </div>
+          <div className="card gradient-border pad-24 hover">
+            <h3 className="soft-title">Tokenomics (Preview)</h3>
+            <ul className="ts-bullets">
+              <li>🌊 <b>Supply:</b> <i>To Be Announced</i> — whispered across the Seven Isles.</li>
+              <li>🌀 <b>Launch:</b> First Wave opens <b>Oct 4, 2025 (UTC)</b>.</li>
+              <li>⛓ <b>Chain:</b> TON — fast, low fees, mobile-native.</li>
+              <li>💫 <b>Utility:</b> Gameplay boosts, premium access, governance & lore unlocks.</li>
+            </ul>
+            <div className="small muted">Full details reveal at T-0. Stay anchored.</div>
+          </div>
+        </section>
+
+        {/* ROADMAP */}
+        <section className="section card gradient-border pad-24 hover ts-roadmap">
+          <h3 className="soft-title">Roadmap • Waves of Release</h3>
+          <ol className="ts-steps">
+            <li><b>First Wave</b> — Presale opens, XP blessing airdrops, lore reveal.</li>
+            <li><b>Second Wave</b> — Premium Isles unlocks, governance proposals begin.</li>
+            <li><b>Third Wave</b> — Cross-event quests, Cowrie NFT badge crafting.</li>
+          </ol>
+        </section>
+
+        {/* FAQ */}
+        <section className="section card gradient-border pad-24 hover ts-faq">
+          <h3 className="soft-title">FAQ</h3>
+          <details open>
+            <summary>Will I be able to buy here?</summary>
+            <p className="muted">No. This page is for countdown, story and info only. Transactions go live at First Wave.</p>
+          </details>
+          <details>
+            <summary>Where will the live details be posted?</summary>
+            <p className="muted">Inside the app and on our socials at T-0. Use “Set Reminder” to add it to your calendar.</p>
+          </details>
+          <details>
+            <summary>Is the total supply fixed?</summary>
+            <p className="muted">Supply is <i>To Be Announced</i>. The reveal is part of the Seven Isles lore drop.</p>
+          </details>
+        </section>
       </div>
     </div>
   );

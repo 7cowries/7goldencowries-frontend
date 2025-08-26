@@ -1,0 +1,180 @@
+/* ========= Global "Polish Pack" =========
+   - Deep ocean palette + golden accents
+   - Subtle glassmorphism, inner/outer glow
+   - Reusable utilities: glow-card, hover-rise, pill, badge, soft-divider, glass, shimmer
+   - Works on all existing pages with almost no JSX edits
+*/
+
+/* Theme tokens */
+:root {
+  --bg-deep: #06152d;
+  --bg-ocean: #0a1f44;
+  --bg-reef: #0e2a5e;
+  --glass: rgba(255,255,255,0.06);
+  --glass-strong: rgba(255,255,255,0.12);
+  --stroke: rgba(255,255,255,0.18);
+  --text: #eaf2ff;
+  --muted: #a8c1ff;
+  --accent: #ffd445;     /* golden cowrie */
+  --accent-2: #79c3ff;   /* aqua */
+  --good: #76e2a8;
+  --warn: #ffbc6b;
+  --danger: #ff7f8a;
+  --shadow: rgba(6, 15, 33, 0.55);
+}
+
+/* Base page polish */
+body {
+  background: radial-gradient(1200px 800px at 70% 10%, #0b224b 0%, transparent 60%) ,
+              radial-gradient(900px 900px at -10% 90%, #0b2c61 0%, transparent 60%) ,
+              var(--bg-deep);
+  color: var(--text);
+}
+
+.page,
+.page-padded {
+  position: relative;
+  min-height: 100vh;
+  color: var(--text);
+}
+
+.page-padded { padding: 28px 28px 80px; }
+
+/* Soft fade top/btm so sections melt into canvas */
+.ocean-fade-top,
+.ocean-fade-bottom {
+  pointer-events: none;
+  position: absolute; left: 0; right: 0; height: 120px; z-index: 1;
+}
+.ocean-fade-top { top: 0; background: linear-gradient(180deg, rgba(10,31,68,0.45), transparent); }
+.ocean-fade-bottom { bottom: 0; background: linear-gradient(0deg, rgba(10,31,68,0.45), transparent); }
+
+/* Cards & panels */
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px var(--shadow);
+  backdrop-filter: saturate(1.1) blur(8px);
+}
+
+.glow-card {
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow:
+    0 18px 40px -10px rgba(3, 8, 20, 0.65),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+.glow-card::before {
+  content: "";
+  position: absolute; inset: -2px;
+  background: radial-gradient(600px 250px at 20% -10%, rgba(121,195,255,0.20), transparent 50%),
+              radial-gradient(700px 300px at 120% 110%, rgba(255,212,69,0.18), transparent 55%);
+  pointer-events: none;
+  filter: blur(10px);
+}
+.hover-rise { transition: transform .28s ease, box-shadow .28s ease; }
+.hover-rise:hover { transform: translateY(-4px); box-shadow: 0 24px 70px -14px rgba(3,8,20,.7); }
+
+/* Titles */
+.gradient-title {
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: .2px;
+  background: linear-gradient(180deg, #eaf2ff 0%, #b8ceff 40%, #86aef8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 6px 30px rgba(21,69,175,0.25);
+}
+
+/* Pills & badges */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 999px;
+  font-weight: 600; font-size: 12.5px; letter-spacing: .25px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  color: var(--text);
+}
+.pill--accent { border-color: rgba(255,212,69,0.6); box-shadow: inset 0 0 24px rgba(255,212,69,0.18); }
+.pill--aqua   { border-color: rgba(121,195,255,0.6); box-shadow: inset 0 0 24px rgba(121,195,255,0.18); }
+.pill--muted  { opacity: .9; color: var(--muted); }
+
+/* Buttons */
+.btn {
+  appearance: none; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: linear-gradient(180deg, #122d5a, #0d2346);
+  color: var(--text); padding: 10px 16px; border-radius: 14px;
+  font-weight: 700; letter-spacing: .2px;
+  box-shadow: 0 12px 28px -10px rgba(3,8,20,.6), inset 0 0 0 1px rgba(255,255,255,0.05);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.btn:hover { transform: translateY(-2px); filter: brightness(1.04); }
+.btn:active { transform: translateY(0); }
+.btn--gold {
+  background: linear-gradient(180deg, #ffd445, #f0bb2e);
+  color: #2b2300; border-color: rgba(255,212,69,0.9);
+  box-shadow: 0 14px 34px -10px rgba(255,212,69,.55), inset 0 0 0 1px rgba(255,255,255,0.35);
+}
+.btn--aqua {
+  background: linear-gradient(180deg, #6cc7ff, #3da6f6);
+  color: #021225; border-color: rgba(121,195,255,0.9);
+  box-shadow: 0 14px 34px -10px rgba(121,195,255,.55), inset 0 0 0 1px rgba(255,255,255,0.35);
+}
+
+/* Progress bars (XP etc.) */
+.progress {
+  width: 100%; height: 10px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+.progress > .bar {
+  height: 100%;
+  background: linear-gradient(90deg, #79c3ff, #ffd445 70%);
+  box-shadow: 0 0 24px rgba(121,195,255,.35);
+  transition: width .6s cubic-bezier(.22,1,.36,1);
+}
+
+/* Soft divider */
+.soft-divider {
+  width: 100%; height: 1px; margin: 18px 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+}
+
+/* Sidebar polish (works with your existing markup) */
+.sidebar,
+.left-nav,
+.side-nav {
+  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border-right: 1px solid rgba(255,255,255,0.10);
+}
+
+/* Hero/headers */
+.hero {
+  border-radius: 26px;
+  padding: 30px 26px;
+  background:
+    radial-gradient(900px 250px at 20% -5%, rgba(121,195,255,0.16), transparent 55%),
+    radial-gradient(900px 250px at 120% 110%, rgba(255,212,69,0.13), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 22px 55px -18px rgba(3,8,20,.65);
+}
+
+/* Subtle floating particles (optional but nice) */
+.particles {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.particles i {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,.0) 70%);
+  opacity: .28; animation: floatUp 12s linear infinite;
+}
+@keyframes floatUp {
+  from { transform: translateY(20px) scale(1); opacity: .28; }
+  to   { transform: translateY(-120vh) scale(.8); opacity: 0; }
+}

@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./Leaderboard.css";
 import "../App.css";
-
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+import { apiGet } from "../api"; // use the shared API helper
 
 const lore = {
   Shellborn: "Born from tide and shell — a humble beginning.",
@@ -22,11 +21,25 @@ export default function Leaderboard() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API}/leaderboard`, { credentials: "include" });
-        const data = await res.json();
-        // backend returns: { top: [{ rank,wallet,xp,tier,name,progress,twitter }] }
-        const rows = Array.isArray(data.top) ? data.top : [];
-        setLeaders(rows);
+        // ✅ correct endpoint (no /api prefix)
+        const data = await apiGet("/leaderboard");
+
+        // backend may return { top: [...] } or [...]
+        const rows = Array.isArray(data) ? data : Array.isArray(data?.top) ? data.top : [];
+
+        // normalize the fields we render
+        const normalized = rows.map((u, i) => ({
+          rank: u.rank ?? i + 1,
+          wallet: u.wallet ?? "",
+          twitter: u.twitter ?? u.twitterHandle ?? "",
+          name: u.name ?? u.levelName ?? "Shellborn",
+          xp: Number(u.xp ?? 0),
+          tier: u.tier ?? "Free",
+          progress: Number(u.progress ?? 0),
+          badge: u.badge ?? badgeSrc(u.name ?? u.levelName ?? "Shellborn"),
+        }));
+
+        setLeaders(normalized);
       } catch (e) {
         console.error("Leaderboard fetch failed:", e);
         setLeaders([]);
@@ -84,7 +97,7 @@ function PodiumStep({ place, user, tall }) {
       <div className="podium-rank">#{user.rank}</div>
       <img
         className="podium-badge"
-        src={badgeSrc(levelName)}
+        src={user.badge || badgeSrc(levelName)}
         alt={levelName}
         onError={(e) => (e.currentTarget.src = "/images/badges/unranked.png")}
       />
@@ -95,7 +108,6 @@ function PodiumStep({ place, user, tall }) {
         <span className="pill">{levelName}</span>
         <span className="pill">{formatXP(user.xp)} XP</span>
       </div>
-      {/* ✅ the bug was here — must be an expression */}
       <Progress percent={user.progress ?? 0} lore={lore[levelName] || ""} />
     </div>
   );
@@ -117,7 +129,7 @@ function List({ entries }) {
 
             <img
               className="user-badge"
-              src={badgeSrc(levelName)}
+              src={u.badge || badgeSrc(levelName)}
               alt={levelName}
               onError={(e) => (e.currentTarget.src = "/images/badges/unranked.png")}
             />

@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import WalletProvider from "./context/WalletContext";
+import './styles/polish.css';
 
 // Prefer an env override; otherwise use the local manifest served from /public
 const manifestUrl =

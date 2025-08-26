@@ -1,0 +1,64 @@
+// src/utils/launch.js
+import { useEffect, useMemo, useState } from "react";
+
+/** ONE SOURCE OF TRUTH for launch time (UTC) */
+export const SALE_START_ISO = "2025-10-04T15:00:00Z";
+
+/** Simple countdown hook that always ticks once per second */
+export function useCountdown(targetIso = SALE_START_ISO) {
+  const target = useMemo(() => new Date(targetIso).getTime(), [targetIso]);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = Math.max(0, target - now);
+  return {
+    finished: diff <= 0,
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+}
+
+/** Open Google Calendar reminder in a new tab (1h default) */
+export function openCalendarReminder({
+  title = "Golden Cowrie Token $GCT — First Wave",
+  details = "The tide rises. Follow in-app for live details.",
+  startIso = SALE_START_ISO,
+  durationMinutes = 60,
+}) {
+  const start = new Date(startIso);
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+  const toGCalFmt = (d) =>
+    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const url =
+    `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+    `&text=${encodeURIComponent(title)}` +
+    `&details=${encodeURIComponent(details)}` +
+    `&dates=${toGCalFmt(start)}/${toGCalFmt(end)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/** Share/invite with Web Share API, fall back to clipboard */
+export async function inviteFriend({
+  url = window.location.origin + "/token-sale",
+  title = "Golden Cowrie Token — First Wave",
+  text = "Set your sail — $GCT First Wave starts soon. Join me.",
+}) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url });
+      return;
+    } catch {
+      /* user cancelled; ignore */
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("Link copied to clipboard!");
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}

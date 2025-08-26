@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Warm gold gradient -->
+    <radialGradient id="gold" cx="50%" cy="35%" r="70%">
+      <stop offset="0%"  stop-color="#FFE89A"/>
+      <stop offset="45%" stop-color="#FFD467"/>
+      <stop offset="100%" stop-color="#B47900"/>
+    </radialGradient>
+    <!-- Soft golden glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#FFD466" flood-opacity=".35"/>
+    </filter>
+  </defs>
+
+  <!-- deep ocean tile -->
+  <rect x="8" y="8" width="240" height="240" rx="64" fill="#0B1F36"/>
+
+  <!-- golden halo -->
+  <circle cx="128" cy="128" r="92" fill="url(#gold)"/>
+
+  <!-- cowrie silhouette -->
+  <g filter="url(#glow)">
+    <!-- outer oval (shell body) -->
+    <path fill="#FFF6D8" d="M128 60c-30 0-54 30-54 66 0 39 23 74 54 74s54-35 54-74c0-36-24-66-54-66z"/>
+    <!-- seam/shadow -->
+    <path fill="#7A5200" d="M128 78c-12 0-22 12-22 26 0 18 10 32 22 32s22-14 22-32c0-14-10-26-22-26z"/>
+  </g>
+
+  <!-- subtle top highlight -->
+  <ellipse cx="128" cy="88" rx="40" ry="18" fill="#FFFFFF" opacity=".15"/>
+
+  <!-- tiny sparkle dots -->
+  <circle cx="178" cy="86" r="3" fill="#FFF2C0" opacity=".9"/>
+  <circle cx="82"  cy="92" r="2.5" fill="#FFF2C0" opacity=".7"/>
+</svg>
