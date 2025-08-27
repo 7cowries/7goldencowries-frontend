@@ -4,8 +4,6 @@ import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
 import { api } from "../utils/api"; // shared fetch wrapper
-import ConnectButtons from "../components/ConnectButtons";
-import "../components/ConnectButtons.css";
 
 // Only used to build redirect URLs (auth links fallback)
 const API_BASE = process.env.REACT_APP_API_URL || "";
