@@ -1,0 +1,22 @@
+/* src/components/ConnectButtons.css */
+.connect-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.connect-btn {
+  padding: 8px 16px;
+  background-color: #FFDC00;
+  color: #001F3F;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter .2s ease, transform .02s ease;
+}
+
+.connect-btn:hover { filter: brightness(1.05); }
+.connect-btn:active { transform: translateY(1px); }
+.connect-btn:disabled { opacity: .6; cursor: not-allowed; }
