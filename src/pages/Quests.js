@@ -14,7 +14,12 @@ import { playClick, playXP } from "../utils/sounds";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 
 // ✅ Unified API helpers (talks to Render)
-import { getQuests, getProfile, postJSON, API_BASE } from "../utils/api";
+import {
+  getQuests,
+  getProfile,
+  getCompleted,
+  completeQuest as apiCompleteQuest,
+} from "../utils/api";
 
 const Quests = () => {
   const [quests, setQuests] = useState([]);
@@ -84,18 +89,12 @@ const Quests = () => {
   // Helpers: completed + profile
   async function loadCompleted(addr) {
     try {
-      // ✅ canonical route is /api/quest/completed/:wallet
-      const res = await fetch(`${API_BASE}/api/quest/completed/${encodeURIComponent(addr)}`, {
-        credentials: "include",
-      });
-      if (res.ok) {
-        const j = await res.json();
-        if (Array.isArray(j?.completed)) {
-          setCompleted(j.completed.map((x) => Number(x)));
-          return;
-        }
+      const j = await getCompleted(addr);
+      if (Array.isArray(j?.completed)) {
+        setCompleted(j.completed.map((x) => Number(x)));
+      } else {
+        setCompleted([]);
       }
-      setCompleted([]);
     } catch (e) {
       console.error("Completed fetch failed", e);
       setCompleted([]);
@@ -155,8 +154,8 @@ const Quests = () => {
     const prevLevelName = level?.name || "Shellborn";
 
     try {
-      // ✅ canonical complete endpoint
-      await postJSON("/api/quest/complete", { wallet, questId, title, xp: xpGain });
+      // ✅ canonical complete endpoint via helper
+      await apiCompleteQuest({ wallet, questId, title, xp: xpGain });
 
       // Refresh profile
       const newProfile = await loadProfile(wallet);
