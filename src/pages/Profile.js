@@ -19,7 +19,6 @@ const perksMap = {
 };
 
 // Fallback: no-op ConnectButtons to keep builds green
-
 const ConnectButtons = () => null;
 
 export default function Profile() {
@@ -87,7 +86,7 @@ export default function Profile() {
         !!links?.discord ||
         (Array.isArray(data?.history) && data.history.length > 0);
       return hasAny ? data : null;
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
   }
@@ -172,10 +171,13 @@ export default function Profile() {
     const linked = params.get("linked");
     if (linked) {
       const pretty =
-        linked === "twitter" ? "X (Twitter)" :
-        linked === "discord" ? "Discord" :
-        linked === "telegram" ? "Telegram" :
-        linked;
+        linked === "twitter"
+          ? "X (Twitter)"
+          : linked === "discord"
+          ? "Discord"
+          : linked === "telegram"
+          ? "Telegram"
+          : linked;
       setToast(`Connected ${pretty} ✅`);
       params.delete("linked");
       const newUrl =
@@ -191,6 +193,10 @@ export default function Profile() {
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
     window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
+  };
+  const connectTelegram = () => {
+    if (!address) return alert("Connect wallet first");
+    window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
   };
   const connectDiscord = () => {
     if (!address) return alert("Connect wallet first");
@@ -309,7 +315,7 @@ export default function Profile() {
             <h3>Link New Accounts</h3>
             <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-            {/* Use the shared ConnectButtons (recommended) */}
+            {/* Use the shared ConnectButtons (recommended). It’s a stub here if not present. */}
             <ConnectButtons onLinked={() => loadProfile()} />
 
             {/* Fallback mini row in case ConnectButtons is removed */}
@@ -317,10 +323,12 @@ export default function Profile() {
               <button className="connect-btn" onClick={connectTwitter}>
                 🐦 Connect X (Twitter)
               </button>
+              <button className="connect-btn" onClick={connectTelegram}>
+                📣 Connect Telegram
+              </button>
               <button className="connect-btn" onClick={connectDiscord}>
                 🎮 Connect Discord
               </button>
-              {/* Telegram handled by ConnectButtons; no fallback here because it requires the widget */}
             </div>
           </section>
 
