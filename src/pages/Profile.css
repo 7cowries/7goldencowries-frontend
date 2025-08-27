@@ -1,26 +1,38 @@
+/* src/pages/Profile.css */
+
 .profile-wrapper {
   padding: 40px;
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(to bottom, #001F3F, #002855);
+  background: radial-gradient(circle at top, #001f3f, #000b1a 70%);
   color: #ffffff;
   min-height: 100vh;
 }
 
 .section-title {
-  font-size: 2rem;
-  color: #FFDC00;
+  font-size: 2.2rem;
+  color: #ffd445; /* golden accent */
   text-align: center;
   margin-bottom: 32px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 12px rgba(255, 212, 69, 0.6);
+}
+
+.card.glass {
+  background: rgba(0, 25, 51, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .profile-card {
   display: flex;
   flex-wrap: wrap;
-  background: #002244;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 40px;
-  box-shadow: 0 0 14px rgba(0, 0, 0, 0.6);
+  align-items: center;
+  gap: 20px;
 }
 
 .profile-left {
@@ -29,29 +41,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .level-badge {
   width: 120px;
   height: auto;
   margin-bottom: 16px;
-  border-radius: 8px;
-  background: #001933;
-  padding: 8px;
+  border-radius: 12px;
+  background: rgba(0, 19, 51, 0.8);
+  padding: 10px;
+  box-shadow: 0 0 18px rgba(255, 212, 69, 0.25);
 }
 
 .perk {
   font-size: 1rem;
   margin-top: 8px;
-  color: #FFDC00;
+  color: #ffd445;
   text-align: center;
+  font-weight: 500;
 }
 
 .profile-info {
   flex: 2;
   min-width: 280px;
-  padding-left: 24px;
 }
 
 .profile-info p {
@@ -60,25 +72,32 @@
 }
 
 .xp-bar {
-  background: #333;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   overflow: hidden;
-  height: 12px;
+  height: 14px;
   margin-top: 10px;
   width: 100%;
+  position: relative;
 }
 
 .xp-fill {
   height: 100%;
-  background: #FFDC00;
-  width: 0%;
+  background: linear-gradient(90deg, #ffd445, #ffe97a, #ffd445);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite linear;
   transition: width 1s ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .progress-label {
   font-size: 0.85rem;
-  color: #aaa;
-  margin-top: 4px;
+  color: #a8c1ff;
+  margin-top: 6px;
 }
 
 .connect-buttons {
@@ -89,49 +108,80 @@
 }
 
 .connect-btn {
-  padding: 8px 16px;
-  background-color: #FFDC00;
-  color: #001F3F;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #ffd445, #ffb347);
+  color: #041314;
   border: none;
-  border-radius: 6px;
-  font-weight: bold;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .connect-btn:hover {
-  background-color: #ffe94a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 212, 69, 0.4);
+}
+
+/* Connected account badges */
+.social-status-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.social-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+}
+
+.connected {
+  color: #76e2a8;
+  font-weight: 600;
+}
+
+.not-connected {
+  color: #ff7a7a;
+  font-weight: 600;
 }
 
 .history {
-  background: #001a33;
   border-radius: 10px;
-  padding: 24px;
+  padding: 20px;
 }
 
-.history h2 {
-  color: #FFDC00;
-  margin-bottom: 16px;
+.history h3 {
+  color: #ffd445;
+  margin-bottom: 14px;
+  font-size: 1.2rem;
 }
 
 .history ul {
   list-style: none;
   padding-left: 0;
+  margin: 0;
 }
 
 .history li {
-  background: #002d4d;
-  border-radius: 8px;
+  background: rgba(0, 45, 77, 0.6);
+  border-radius: 10px;
   margin-bottom: 12px;
   padding: 12px 16px;
   line-height: 1.4;
   color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.history li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
 .timestamp {
   display: block;
   font-size: 0.8rem;
-  color: #bbb;
+  color: #a8c1ff;
   margin-top: 4px;
 }
 
@@ -139,11 +189,9 @@
   .profile-card {
     flex-direction: column;
   }
-
   .profile-info {
     padding-left: 0;
   }
-
   .connect-buttons {
     flex-direction: column;
     gap: 8px;
