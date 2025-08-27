@@ -1,20 +1,17 @@
 // src/utils/api.js
 // Tiny fetch helper for calling the Render backend from the Vercel frontend.
 
-const API_BASE = (
-  process.env.REACT_APP_API_URL ||
-  (typeof window !== "undefined" ? window.__API_URL__ : undefined) ||
-  "http://localhost:5000"
-)?.replace(/\/+$/, "") || "http://localhost:5000";
+const API_BASE =
+  (
+    process.env.REACT_APP_API_URL ||
+    (typeof window !== "undefined" ? window.__API_URL__ : undefined) ||
+    "http://localhost:5000"
+  )?.replace(/\/+$/, "") || "http://localhost:5000";
 
-// ---- internals --------------------------------------------------------------
+/* ---------------- internals ---------------- */
 
 async function safeJson(res) {
-  try {
-    return await res.json();
-  } catch {
-    return null;
-  }
+  try { return await res.json(); } catch { return null; }
 }
 
 async function request(path, { method = "GET", body, headers } = {}) {
@@ -36,38 +33,66 @@ async function request(path, { method = "GET", body, headers } = {}) {
 async function tryPaths(paths, opts) {
   let lastErr;
   for (const p of paths) {
-    try {
-      return await request(p, opts);
-    } catch (e) {
-      lastErr = e;
-    }
+    try { return await request(p, opts); } catch (e) { lastErr = e; }
   }
   throw lastErr || new Error("No endpoint responded");
 }
 
-// ---- public API -------------------------------------------------------------
+/* ---------------- public API ---------------- */
 
 export const getHealth = () => request("/health");
 
+/** Profile */
 export function getProfile(wallet) {
   if (!wallet) throw new Error("wallet is required");
-  const qs = encodeURIComponent(wallet);
-  return request(`/api/profile?wallet=${qs}`);
+  return request(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
 }
 
+/** Quests list (current mount + fallbacks) */
 export function getQuests() {
-  return tryPaths(["/api/quests", "/api/quest", "/quests"]);
+  return tryPaths([
+    "/api/quest/quests",  // ✅ current backend mount
+    "/api/quests",
+    "/quests",
+  ]);
 }
 
+/** Completed quests for a wallet -> { completed: number[] } */
+export function getCompleted(wallet) {
+  const w = encodeURIComponent(wallet);
+  return tryPaths([
+    `/api/quest/completed/${w}`,            // ✅ current backend mount
+    `/completed/${w}`,                      // legacy
+    `/api/quests/completed?wallet=${w}`,    // legacy
+  ]);
+}
+
+/** Complete a quest -> { message, xpGain } */
+export function completeQuest(payload) {
+  return tryPaths(
+    [
+      "/api/quest/complete",  // ✅ current backend mount
+      "/api/quests/complete",
+      "/complete",
+    ],
+    { method: "POST", body: payload }
+  );
+}
+
+/** Leaderboard */
 export function getLeaderboard() {
-  return tryPaths(["/api/leaderboard", "/leaderboard"]);
+  return tryPaths([
+    "/api/leaderboard",
+    "/leaderboard",
+  ]);
 }
 
+/** Generic POST (rarely needed directly) */
 export function postJSON(path, payload) {
   return request(path, { method: "POST", body: payload });
 }
 
-// ---- compatibility exports for existing imports -----------------------------
+/* ---- compatibility shims for existing imports ---- */
 export const apiGet  = (path) => request(path);
 export const apiPost = (path, payload) => request(path, { method: "POST", body: payload });
 
@@ -78,6 +103,8 @@ export const api = {
   getHealth,
   getProfile,
   getQuests,
+  getCompleted,
+  completeQuest,
   getLeaderboard,
   base: API_BASE,
 };
