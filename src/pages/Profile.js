@@ -18,7 +18,7 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
-// Fallback: no-op ConnectButtons to keep builds green
+// Optional shared widget (kept as a no-op so builds never break)
 const ConnectButtons = () => null;
 
 export default function Profile() {
@@ -35,7 +35,7 @@ export default function Profile() {
 
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error,   setError] = useState("");
 
   const [xp, setXp] = useState(0);
   const [tier, setTier] = useState("Free");
@@ -86,7 +86,7 @@ export default function Profile() {
         !!links?.discord ||
         (Array.isArray(data?.history) && data.history.length > 0);
       return hasAny ? data : null;
-    } catch (_e) {
+    } catch {
       return null;
     }
   }
@@ -157,7 +157,7 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
-  // Reload after returning from OAuth (tab becomes visible again)
+  // Reload after returning from OAuth (tab became visible again)
   useEffect(() => {
     const onVis = () => document.visibilityState === "visible" && loadProfile();
     document.addEventListener("visibilitychange", onVis);
@@ -171,13 +171,10 @@ export default function Profile() {
     const linked = params.get("linked");
     if (linked) {
       const pretty =
-        linked === "twitter"
-          ? "X (Twitter)"
-          : linked === "discord"
-          ? "Discord"
-          : linked === "telegram"
-          ? "Telegram"
-          : linked;
+        linked === "twitter" ? "X (Twitter)" :
+        linked === "discord" ? "Discord" :
+        linked === "telegram" ? "Telegram" :
+        linked;
       setToast(`Connected ${pretty} ✅`);
       params.delete("linked");
       const newUrl =
@@ -188,7 +185,7 @@ export default function Profile() {
     }
   }, []);
 
-  // Fallback direct links if ConnectButtons isn’t available for some reason
+  // Fallback direct links if ConnectButtons isn’t available
   const state = btoa(unescape(encodeURIComponent(address || "")));
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
@@ -196,6 +193,7 @@ export default function Profile() {
   };
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
+    // This shows the Telegram widget page hosted by the backend
     window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
   };
   const connectDiscord = () => {
@@ -253,15 +251,9 @@ export default function Profile() {
                 <strong>Wallet:</strong>{" "}
                 {address.slice(0, 6)}...{address.slice(-4)}
               </p>
-              <p>
-                <strong>Subscription:</strong> {tier}
-              </p>
-              <p>
-                <strong>Level:</strong> {level.name} {level.symbol}
-              </p>
-              <p>
-                <strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}
-              </p>
+              <p><strong>Subscription:</strong> {tier}</p>
+              <p><strong>Level:</strong> {level.name} {level.symbol}</p>
+              <p><strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}</p>
 
               <div className="xp-bar">
                 <div
@@ -310,15 +302,15 @@ export default function Profile() {
             </div>
           </section>
 
-          {/* Connect buttons (uses Telegram Widget internally) */}
+          {/* Connect buttons (widget + fallbacks) */}
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>Link New Accounts</h3>
             <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-            {/* Use the shared ConnectButtons (recommended). It’s a stub here if not present. */}
+            {/* (optional) shared component if you add it back later */}
             <ConnectButtons onLinked={() => loadProfile()} />
 
-            {/* Fallback mini row in case ConnectButtons is removed */}
+            {/* Fallback mini row */}
             <div className="connect-buttons" style={{ marginTop: 12 }}>
               <button className="connect-btn" onClick={connectTwitter}>
                 🐦 Connect X (Twitter)
