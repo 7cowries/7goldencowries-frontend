@@ -226,6 +226,18 @@ export default function Profile() {
     };
   }, [loadProfile]);
 
+  // --- Listen for popup Telegram link message (new) ---
+  useEffect(() => {
+    function handleTelegramLinked(event) {
+      if (event.data === 'telegram-linked') {
+        setToast("Connected Telegram ✅");
+        loadProfile({ bust: true });
+      }
+    }
+    window.addEventListener('message', handleTelegramLinked);
+    return () => window.removeEventListener('message', handleTelegramLinked);
+  }, [loadProfile]);
+
   // Fallback direct links if ConnectButtons isn’t available
   const state = b64(address || "");
 
@@ -234,9 +246,14 @@ export default function Profile() {
     window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
   };
 
+  // --- Updated for popup! ---
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
+    window.open(
+      `${API_BASE}/auth/telegram/start?state=${state}`,
+      "tgpopup",
+      "width=500,height=600"
+    );
   };
 
   const connectDiscord = async () => {
