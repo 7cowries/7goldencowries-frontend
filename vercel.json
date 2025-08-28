@@ -8,12 +8,5 @@
       "source": "/api/:match*",
       "destination": "https://sevengoldencowries-backend.onrender.com/api/:match*"
     }
-  ],
-  "redirects": [
-    {
-      "source": "/:path*",
-      "destination": "https://www.7goldencowries.com/:path*",
-      "permanent": true
-    }
   ]
 }
