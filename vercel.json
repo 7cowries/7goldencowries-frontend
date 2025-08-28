@@ -12,7 +12,6 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "7goldencowries.com" }],
       "destination": "https://www.7goldencowries.com/:path*",
       "permanent": true
     }
