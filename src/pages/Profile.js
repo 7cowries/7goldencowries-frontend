@@ -1,20 +1,21 @@
 // src/pages/Profile.js
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { api } from "../utils/api"; // shared fetch wrapper
+import { api, getJSON } from "../utils/api"; // named getJSON fixes earlier getJSON error
 
 // Backend base URL for fallbacks (relative '' hits same origin)
 const API_BASE =
+  (api && api.base) ||
   process.env.REACT_APP_API_URL ||
   (typeof window !== "undefined" && window.__API_BASE) ||
   "";
 
 // Optional: invite link shown if user linked Discord but isn't in the server
-const DISCORD_INVITE =
-  process.env.REACT_APP_DISCORD_INVITE || ""; // e.g. "https://discord.gg/yourInvite"
+const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
 
+// Level perks
 const perksMap = {
   Shellborn: "Welcome badge + access to basic quests",
   "Wave Seeker": "Retweet quests unlocked",
@@ -28,7 +29,8 @@ const perksMap = {
 // No-op placeholder so builds never break if shared widget is absent
 const ConnectButtons = () => null;
 
-// safe b64 for unicode
+// Helpers
+const stripAt = (h) => String(h || "").replace(/^@/, "");
 function b64(s) {
   try {
     return window.btoa(unescape(encodeURIComponent(s || "")));
@@ -82,57 +84,53 @@ export default function Profile() {
       setAddress(lsCandidates[0] || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tonWallet]);
+  }, [tonWallet, lsCandidates]);
 
   const badgeSrc = useMemo(() => {
     const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
     return `/images/badges/level-${slug}.png`;
   }, [level.name]);
 
-  async function tryLoadFor(addr) {
-    const path = `/api/profile?wallet=${encodeURIComponent(addr)}`;
-    try {
-      const data = await api(path);
-      const p = data?.profile || {};
-      const links = p?.links || {};
-      const hasAny =
-        p?.wallet ||
-        typeof p?.xp === "number" ||
-        !!links?.twitter ||
-        !!links?.telegram ||
-        !!links?.discord ||
-        (Array.isArray(data?.history) && data.history.length > 0);
-      return hasAny ? data : null;
-    } catch {
-      return null;
-    }
-  }
+  // Core fetcher (memoized to satisfy hooks deps)
+  const fetchProfile = useCallback(async (addr, { bust = false } = {}) => {
+    const data = await getJSON("/api/profile", { wallet: addr, t: bust ? Date.now() : undefined });
 
-  async function loadProfile() {
-    setError("");
-    if (!address && lsCandidates.length === 0) return;
-    setLoading(true);
-    try {
-      let data = address ? await tryLoadFor(address) : null;
+    const p = data?.profile || {};
+    const links = p?.links || {};
 
-      // Fallback to any other saved address
-      if (!data) {
-        for (const alt of lsCandidates) {
-          if (alt === address) continue;
-          const found = await tryLoadFor(alt);
-          if (found) {
-            data = found;
-            setAddress(alt);
-            localStorage.setItem("wallet", alt);
-            localStorage.setItem("walletAddress", alt);
-            localStorage.setItem("ton_wallet", alt);
-            break;
-          }
-        }
-      }
+    setXp(p.xp ?? 0);
+    const lvlName = p.levelName || p.level || "Shellborn";
+    setTier(p.tier || p.subscriptionTier || "Free");
+    setLevel({
+      name: lvlName,
+      symbol: p.levelSymbol || "🐚",
+      progress: p.levelProgress ?? 0,
+      nextXP: p.nextXP ?? 10000,
+    });
+    setPerk(perksMap[lvlName] || "");
 
-      if (!data) {
-        // Reset defaults
+    setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
+    setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
+    setDiscord(String(links.discord || p.discordHandle || ""));
+    setDiscordGuildMember(!!p.discordGuildMember);
+
+    setHistory(Array.isArray(data?.history) ? data.history : []);
+  }, []);
+
+  // Wrapper with defaults + errors handled
+  const loadProfile = useCallback(
+    async ({ bust = false } = {}) => {
+      setError("");
+      const addr = address || lsCandidates[0];
+      if (!addr) return;
+
+      setLoading(true);
+      try {
+        await fetchProfile(addr, { bust });
+      } catch (e) {
+        console.error(e);
+        setError("Failed to load profile.");
+        // Reset sensible defaults
         setXp(0);
         setTier("Free");
         setLevel({ name: "Shellborn", symbol: "🐚", progress: 0, nextXP: 10000 });
@@ -142,79 +140,64 @@ export default function Profile() {
         setDiscordGuildMember(false);
         setHistory([]);
         setPerk("");
-        return;
+      } finally {
+        setLoading(false);
       }
+    },
+    [address, lsCandidates, fetchProfile]
+  );
 
-      const p = data.profile || {};
-      const links = p.links || {};
-
-      setXp(p.xp ?? 0);
-      setTier(p.tier || p.subscriptionTier || "Free");
-      const lvlName = p.levelName || p.level || "Shellborn";
-      setLevel({
-        name: lvlName,
-        symbol: p.levelSymbol || "🐚",
-        progress: p.levelProgress ?? 0,
-        nextXP: p.nextXP ?? 10000,
-      });
-      setPerk(perksMap[lvlName] || "");
-      setTwitter(links.twitter || p.twitterHandle || "");
-      setTelegram(links.telegram || p.telegramHandle || "");
-      setDiscord(links.discord || p.discordHandle || "");
-      setDiscordGuildMember(!!p.discordGuildMember);
-      setHistory(Array.isArray(data.history) ? data.history : []);
-    } catch (e) {
-      setError("Failed to load profile.");
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // Initial / on address change
   useEffect(() => {
-    if (address) loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address]);
+    if (address) loadProfile({ bust: true });
+  }, [address, loadProfile]);
 
   // Reload after returning from OAuth (tab became visible again)
   useEffect(() => {
-    const onVis = () => document.visibilityState === "visible" && loadProfile();
+    const onVis = () => document.visibilityState === "visible" && loadProfile({ bust: true });
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address]);
+  }, [loadProfile]);
 
   // Toast when ?linked=twitter|telegram|discord (& optional guildMember) is present
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const linked = params.get("linked");
     const gm = params.get("guildMember");
-    if (linked) {
-      const pretty =
-        linked === "twitter"
-          ? "X (Twitter)"
-          : linked === "discord"
-          ? "Discord"
-          : linked === "telegram"
-          ? "Telegram"
-          : linked;
-      let msg = `Connected ${pretty} ✅`;
-      if (linked === "discord" && gm) {
-        msg += gm === "true" ? " — server member 🎉" : " — please join our server";
-      }
-      setToast(msg);
-      // Clean URL and refresh profile immediately
-      params.delete("linked");
-      params.delete("guildMember");
-      const newUrl =
-        window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
-      window.history.replaceState({}, "", newUrl);
-      loadProfile();
-      const t = setTimeout(() => setToast(""), 3500);
-      return () => clearTimeout(t);
+    if (!linked) return;
+
+    const pretty =
+      linked === "twitter" ? "X (Twitter)" :
+      linked === "discord" ? "Discord" :
+      linked === "telegram" ? "Telegram" : linked;
+
+    let msg = `Connected ${pretty} ✅`;
+    if (linked === "discord" && gm) {
+      msg += gm === "true" ? " — server member 🎉" : " — please join our server";
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setToast(msg);
+
+    // Clean URL
+    params.delete("linked");
+    params.delete("guildMember");
+    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+    window.history.replaceState({}, "", newUrl);
+
+    // Refresh now + poll briefly to beat caches
+    let tries = 0;
+    const id = setInterval(() => {
+      loadProfile({ bust: true });
+      if (++tries >= 8) clearInterval(id);
+    }, 1000);
+    const clear = setTimeout(() => {
+      clearInterval(id);
+      setToast("");
+    }, 8000);
+    return () => {
+      clearInterval(id);
+      clearTimeout(clear);
+    };
+  }, [loadProfile]);
 
   // Fallback direct links if ConnectButtons isn’t available
   const state = b64(address || "");
@@ -233,7 +216,7 @@ export default function Profile() {
   const connectDiscord = async () => {
     if (!address) return alert("Connect wallet first");
     try {
-      const resp = await api(`/api/discord/login?state=${encodeURIComponent(state)}`);
+      const resp = await getJSON("/api/discord/login", { state });
       if (resp?.url) {
         window.location.href = resp.url;
         return;
@@ -305,15 +288,9 @@ export default function Profile() {
                   Copy
                 </button>
               </p>
-              <p>
-                <strong>Subscription:</strong> {tier}
-              </p>
-              <p>
-                <strong>Level:</strong> {level.name} {level.symbol}
-              </p>
-              <p>
-                <strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}
-              </p>
+              <p><strong>Subscription:</strong> {tier}</p>
+              <p><strong>Level:</strong> {level.name} {level.symbol}</p>
+              <p><strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}</p>
 
               <div className="xp-bar">
                 <div
@@ -328,7 +305,7 @@ export default function Profile() {
                 {((level.progress ?? 0) * 100).toFixed(1)}% to next virtue
               </p>
 
-              <button className="connect-btn" style={{ marginTop: 8 }} onClick={loadProfile}>
+              <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadProfile({ bust: true })}>
                 🔄 Refresh
               </button>
             </div>
@@ -344,11 +321,11 @@ export default function Profile() {
                 {twitter ? (
                   <a
                     className="connected"
-                    href={`https://x.com/${String(twitter).replace(/^@/, "")}`}
+                    href={`https://x.com/${stripAt(twitter)}`}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    ✅ @{String(twitter).replace(/^@/, "")}
+                    ✅ @{stripAt(twitter)}
                   </a>
                 ) : (
                   <span className="not-connected">❌ Not Connected</span>
@@ -360,11 +337,11 @@ export default function Profile() {
                 {telegram ? (
                   <a
                     className="connected"
-                    href={`https://t.me/${String(telegram).replace(/^@/, "")}`}
+                    href={`https://t.me/${stripAt(telegram)}`}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    ✅ @{String(telegram).replace(/^@/, "")}
+                    ✅ @{stripAt(telegram)}
                   </a>
                 ) : (
                   <span className="not-connected">❌ Not Connected</span>
@@ -406,10 +383,8 @@ export default function Profile() {
             <h3>Link New Accounts</h3>
             <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-            {/* (optional) shared component if you add it back later */}
-            <ConnectButtons onLinked={() => loadProfile()} />
+            <ConnectButtons onLinked={() => loadProfile({ bust: true })} />
 
-            {/* Fallback mini row */}
             <div className="connect-buttons" style={{ marginTop: 12 }}>
               <button className="connect-btn" onClick={connectTwitter}>
                 🐦 Connect X (Twitter)
