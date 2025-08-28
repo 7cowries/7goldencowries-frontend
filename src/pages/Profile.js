@@ -3,9 +3,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { api, getJSON } from "../utils/api"; // named getJSON fixes earlier getJSON error
+import { api } from "../utils/api"; // use only the api object
 
-// Backend base URL for fallbacks (relative '' hits same origin)
+// Resolve backend base (prefer api.base if present)
 const API_BASE =
   (api && api.base) ||
   process.env.REACT_APP_API_URL ||
@@ -26,7 +26,7 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
-// No-op placeholder so builds never break if shared widget is absent
+// No-op shared widget placeholder
 const ConnectButtons = () => null;
 
 // Helpers
@@ -37,6 +37,27 @@ function b64(s) {
   } catch {
     return "";
   }
+}
+
+// Minimal fallback if api.getJSON isn’t available in older builds
+function toQS(query) {
+  if (!query) return "";
+  const entries = Object.entries(query).filter(
+    ([, v]) => v !== undefined && v !== null
+  );
+  if (!entries.length) return "";
+  const sp = new URLSearchParams();
+  for (const [k, v] of entries) sp.append(k, String(v));
+  return `?${sp.toString()}`;
+}
+async function apiGetJSON(path, query) {
+  if (api && typeof api.getJSON === "function") {
+    return api.getJSON(path, query);
+  }
+  const url = `${API_BASE}${path}${toQS(query)}`;
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 export default function Profile() {
@@ -91,31 +112,37 @@ export default function Profile() {
     return `/images/badges/level-${slug}.png`;
   }, [level.name]);
 
-  // Core fetcher (memoized to satisfy hooks deps)
-  const fetchProfile = useCallback(async (addr, { bust = false } = {}) => {
-    const data = await getJSON("/api/profile", { wallet: addr, t: bust ? Date.now() : undefined });
+  // Core fetcher (memoized)
+  const fetchProfile = useCallback(
+    async (addr, { bust = false } = {}) => {
+      const data = await apiGetJSON("/api/profile", {
+        wallet: addr,
+        t: bust ? Date.now() : undefined,
+      });
 
-    const p = data?.profile || {};
-    const links = p?.links || {};
+      const p = data?.profile || {};
+      const links = p?.links || {};
 
-    setXp(p.xp ?? 0);
-    const lvlName = p.levelName || p.level || "Shellborn";
-    setTier(p.tier || p.subscriptionTier || "Free");
-    setLevel({
-      name: lvlName,
-      symbol: p.levelSymbol || "🐚",
-      progress: p.levelProgress ?? 0,
-      nextXP: p.nextXP ?? 10000,
-    });
-    setPerk(perksMap[lvlName] || "");
+      setXp(p.xp ?? 0);
+      const lvlName = p.levelName || p.level || "Shellborn";
+      setTier(p.tier || p.subscriptionTier || "Free");
+      setLevel({
+        name: lvlName,
+        symbol: p.levelSymbol || "🐚",
+        progress: p.levelProgress ?? 0,
+        nextXP: p.nextXP ?? 10000,
+      });
+      setPerk(perksMap[lvlName] || "");
 
-    setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
-    setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
-    setDiscord(String(links.discord || p.discordHandle || ""));
-    setDiscordGuildMember(!!p.discordGuildMember);
+      setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
+      setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
+      setDiscord(String(links.discord || p.discordHandle || ""));
+      setDiscordGuildMember(!!p.discordGuildMember);
 
-    setHistory(Array.isArray(data?.history) ? data.history : []);
-  }, []);
+      setHistory(Array.isArray(data?.history) ? data.history : []);
+    },
+    []
+  );
 
   // Wrapper with defaults + errors handled
   const loadProfile = useCallback(
@@ -159,7 +186,7 @@ export default function Profile() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [loadProfile]);
 
-  // Toast when ?linked=twitter|telegram|discord (& optional guildMember) is present
+  // Toast + quick polling on ?linked=...
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const linked = params.get("linked");
@@ -209,20 +236,19 @@ export default function Profile() {
 
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    // Backend page renders the Telegram Login widget
     window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
   };
 
   const connectDiscord = async () => {
     if (!address) return alert("Connect wallet first");
     try {
-      const resp = await getJSON("/api/discord/login", { state });
+      const resp = await apiGetJSON("/api/discord/login", { state });
       if (resp?.url) {
         window.location.href = resp.url;
         return;
       }
     } catch {
-      // ignore; fall through to direct route
+      // ignore; fall through
     }
     window.location.href = `${API_BASE}/auth/discord?state=${state}`;
   };
@@ -256,7 +282,7 @@ export default function Profile() {
         <p>🔌 Connect your TON wallet to view your profile.</p>
       ) : (
         <>
-          {/* Top card: Badge + Wallet + Core stats */}
+          {/* Top card */}
           <section className="card glass profile-card">
             <div className="profile-left">
               <img
