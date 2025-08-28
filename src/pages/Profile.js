@@ -259,7 +259,8 @@ export default function Profile() {
   // --- Centered popup + fallback redirect ---
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    const url = `${API_BASE}/auth/telegram/start?state=${state}`;
+    // IMPORTANT: use a relative path so the popup URL stays on https://www.7goldencowries.com
+    const url = `/auth/telegram/start?state=${state}`;
 
     const w = 500, h = 620;
     const y = (window.top?.outerHeight || window.innerHeight) / 2 + (window.top?.screenY || 0) - (h / 2);
