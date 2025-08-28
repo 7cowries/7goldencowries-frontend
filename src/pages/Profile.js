@@ -5,17 +5,15 @@ import "./Profile.css";
 import "../App.css";
 import { api } from "../utils/api"; // use only the api object
 
-// Resolve backend base (prefer api.base if present)
+// ---------- Config & Helpers ----------
 const API_BASE =
   (api && api.base) ||
   process.env.REACT_APP_API_URL ||
   (typeof window !== "undefined" && window.__API_BASE) ||
   "";
 
-// Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
 
-// Level perks
 const perksMap = {
   Shellborn: "Welcome badge + access to basic quests",
   "Wave Seeker": "Retweet quests unlocked",
@@ -26,11 +24,10 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
-// No-op shared widget placeholder
-const ConnectButtons = () => null;
+const ConnectButtons = () => null; // shared widget placeholder
 
-// Helpers
 const stripAt = (h) => String(h || "").replace(/^@/, "");
+
 function b64(s) {
   try {
     return window.btoa(unescape(encodeURIComponent(s || "")));
@@ -39,7 +36,6 @@ function b64(s) {
   }
 }
 
-// Minimal fallback if api.getJSON isn’t available in older builds
 function toQS(query) {
   if (!query) return "";
   const entries = Object.entries(query).filter(
@@ -50,6 +46,8 @@ function toQS(query) {
   for (const [k, v] of entries) sp.append(k, String(v));
   return `?${sp.toString()}`;
 }
+
+// Minimal fallback if api.getJSON isn’t available in older builds
 async function apiGetJSON(path, query) {
   if (api && typeof api.getJSON === "function") {
     return api.getJSON(path, query);
@@ -60,6 +58,15 @@ async function apiGetJSON(path, query) {
   return res.json();
 }
 
+function getOrigin(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+}
+
+// ---------- Component ----------
 export default function Profile() {
   // Prefer TonConnect, fall back to any cached values
   const tonWallet = useTonAddress();
@@ -226,16 +233,19 @@ export default function Profile() {
     };
   }, [loadProfile]);
 
-  // --- Listen for popup Telegram link message (new) ---
+  // --- Listen for popup Telegram link message (strict origin optional) ---
   useEffect(() => {
+    const backendOrigin = getOrigin(API_BASE || window.location.origin);
     function handleTelegramLinked(event) {
-      if (event.data === 'telegram-linked') {
+      // If you want strict checking, uncomment next line:
+      // if (backendOrigin && event.origin !== backendOrigin) return;
+      if (event.data === "telegram-linked") {
         setToast("Connected Telegram ✅");
         loadProfile({ bust: true });
       }
     }
-    window.addEventListener('message', handleTelegramLinked);
-    return () => window.removeEventListener('message', handleTelegramLinked);
+    window.addEventListener("message", handleTelegramLinked);
+    return () => window.removeEventListener("message", handleTelegramLinked);
   }, [loadProfile]);
 
   // Fallback direct links if ConnectButtons isn’t available
@@ -246,14 +256,24 @@ export default function Profile() {
     window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
   };
 
-  // --- Updated for popup! ---
+  // --- Centered popup + fallback redirect ---
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    window.open(
-      `${API_BASE}/auth/telegram/start?state=${state}`,
+    const url = `${API_BASE}/auth/telegram/start?state=${state}`;
+
+    const w = 500, h = 620;
+    const y = (window.top?.outerHeight || window.innerHeight) / 2 + (window.top?.screenY || 0) - (h / 2);
+    const x = (window.top?.outerWidth || window.innerWidth) / 2 + (window.top?.screenX || 0) - (w / 2);
+    const popup = window.open(
+      url,
       "tgpopup",
-      "width=500,height=600"
+      `width=${w},height=${h},left=${x},top=${y},resizable,scrollbars`
     );
+
+    if (!popup) {
+      // Fallback if blocked
+      window.location.href = url;
+    }
   };
 
   const connectDiscord = async () => {
