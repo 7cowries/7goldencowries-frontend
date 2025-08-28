@@ -1,16 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "http://7goldencowries.com/:path*",
-      "destination": "https://www.7goldencowries.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "https://7goldencowries.com/:path*",
-      "destination": "https://www.7goldencowries.com/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/auth/:match*",
@@ -19,6 +7,14 @@
     {
       "source": "/api/:match*",
       "destination": "https://sevengoldencowries-backend.onrender.com/api/:match*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "7goldencowries.com" }],
+      "destination": "https://www.7goldencowries.com/:path*",
+      "permanent": true
     }
   ]
 }
