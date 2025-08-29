@@ -253,7 +253,8 @@ export default function Profile() {
 
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
+    // Use relative path so it stays on www origin and Vercel rewrites apply
+    window.location.href = `/auth/twitter?state=${state}`;
   };
 
   // --- Centered popup + fallback redirect ---
@@ -288,7 +289,8 @@ export default function Profile() {
     } catch {
       // ignore; fall through
     }
-    window.location.href = `${API_BASE}/auth/discord?state=${state}`;
+    // Use relative fallback
+    window.location.href = `/auth/discord?state=${state}`;
   };
 
   return (
