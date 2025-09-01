@@ -233,21 +233,6 @@ export default function Profile() {
     };
   }, [loadProfile]);
 
-  // --- Listen for popup Telegram link message (strict origin optional) ---
-  useEffect(() => {
-    const backendOrigin = getOrigin(API_BASE || window.location.origin);
-    function handleTelegramLinked(event) {
-      // If you want strict checking, uncomment next line:
-      // if (backendOrigin && event.origin !== backendOrigin) return;
-      if (event.data === "telegram-linked") {
-        setToast("Connected Telegram ✅");
-        loadProfile({ bust: true });
-      }
-    }
-    window.addEventListener("message", handleTelegramLinked);
-    return () => window.removeEventListener("message", handleTelegramLinked);
-  }, [loadProfile]);
-
   // Fallback direct links if ConnectButtons isn’t available
   const state = b64(address || "");
 
@@ -257,25 +242,11 @@ export default function Profile() {
     window.location.href = `/auth/twitter?state=${state}`;
   };
 
-  // --- Centered popup + fallback redirect ---
+  // --- Same-tab Telegram flow (no popup)
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    // IMPORTANT: use a relative path so the popup URL stays on https://www.7goldencowries.com
-    const url = `/auth/telegram/start?state=${state}`;
-
-    const w = 500, h = 620;
-    const y = (window.top?.outerHeight || window.innerHeight) / 2 + (window.top?.screenY || 0) - (h / 2);
-    const x = (window.top?.outerWidth || window.innerWidth) / 2 + (window.top?.screenX || 0) - (w / 2);
-    const popup = window.open(
-      url,
-      "tgpopup",
-      `width=${w},height=${h},left=${x},top=${y},resizable,scrollbars`
-    );
-
-    if (!popup) {
-      // Fallback if blocked
-      window.location.href = url;
-    }
+    const url = `/auth/telegram/start?state=${state}`; // relative keeps on www domain
+    window.location.href = url; // navigate in the same tab
   };
 
   const connectDiscord = async () => {
