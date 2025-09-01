@@ -180,7 +180,8 @@ export default function Profile() {
 
   // Reload after returning from OAuth (tab became visible again)
   useEffect(() => {
-    const onVis = () => document.visibilityState === "visible" && loadProfile({ bust: true });
+    const onVis = () =>
+      document.visibilityState === "visible" && loadProfile({ bust: true });
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [loadProfile]);
@@ -193,20 +194,27 @@ export default function Profile() {
     if (!linked) return;
 
     const pretty =
-      linked === "twitter" ? "X (Twitter)" :
-      linked === "discord" ? "Discord" :
-      linked === "telegram" ? "Telegram" : linked;
+      linked === "twitter"
+        ? "X (Twitter)"
+        : linked === "discord"
+        ? "Discord"
+        : linked === "telegram"
+        ? "Telegram"
+        : linked;
 
     let msg = `Connected ${pretty} ✅`;
     if (linked === "discord" && gm) {
-      msg += gm === "true" ? " — server member 🎉" : " — please join our server";
+      msg +=
+        gm === "true" ? " — server member 🎉" : " — please join our server";
     }
     setToast(msg);
 
     // Clean URL
     params.delete("linked");
     params.delete("guildMember");
-    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+    const newUrl =
+      window.location.pathname +
+      (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
     // Refresh now + poll briefly to beat caches
@@ -226,19 +234,19 @@ export default function Profile() {
   }, [loadProfile]);
 
   // Fallback direct links if ConnectButtons isn’t available
-  const state = b64(address || "");
+  const stateRaw = b64(address || "");
+  const state = encodeURIComponent(stateRaw);
 
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
     // Use relative path so it stays on www origin and Vercel rewrites apply
-    window.location.href = `/auth/twitter?state=${state}`;
+    window.location.assign(`/auth/twitter?state=${state}`);
   };
 
-  // --- Same-tab Telegram flow (no popup)
+  // --- Same-tab Telegram flow (no popup). Backend 302's to oauth.telegram.org/auth/push...
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    // Relative keeps on the www domain; backend /auth/telegram/start 302's to Telegram
-    window.location.href = `/auth/telegram/start?state=${state}`;
+    window.location.assign(`/auth/telegram/start?state=${state}`);
   };
 
   const connectDiscord = async () => {
@@ -246,14 +254,14 @@ export default function Profile() {
     try {
       const resp = await apiGetJSON("/api/discord/login", { state });
       if (resp?.url) {
-        window.location.href = resp.url;
+        window.location.assign(resp.url);
         return;
       }
     } catch {
       // ignore; fall through
     }
     // Use relative fallback
-    window.location.href = `/auth/discord?state=${state}`;
+    window.location.assign(`/auth/discord?state=${state}`);
   };
 
   return (
@@ -317,9 +325,15 @@ export default function Profile() {
                   Copy
                 </button>
               </p>
-              <p><strong>Subscription:</strong> {tier}</p>
-              <p><strong>Level:</strong> {level.name} {level.symbol}</p>
-              <p><strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}</p>
+              <p>
+                <strong>Subscription:</strong> {tier}
+              </p>
+              <p>
+                <strong>Level:</strong> {level.name} {level.symbol}
+              </p>
+              <p>
+                <strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}
+              </p>
 
               <div className="xp-bar">
                 <div
@@ -334,7 +348,11 @@ export default function Profile() {
                 {((level.progress ?? 0) * 100).toFixed(1)}% to next virtue
               </p>
 
-              <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadProfile({ bust: true })}>
+              <button
+                className="connect-btn"
+                style={{ marginTop: 8 }}
+                onClick={() => loadProfile({ bust: true })}
+              >
                 🔄 Refresh
               </button>
             </div>
@@ -410,7 +428,9 @@ export default function Profile() {
           {/* Link New Accounts */}
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>Link New Accounts</h3>
-            <p className="muted">Link your socials to unlock quests and show badges.</p>
+            <p className="muted">
+              Link your socials to unlock quests and show badges.
+            </p>
 
             <ConnectButtons onLinked={() => loadProfile({ bust: true })} />
 
@@ -440,7 +460,9 @@ export default function Profile() {
                     <strong>{q.title}</strong> — +{q.xp} XP
                     <br />
                     <span className="timestamp">
-                      {new Date(q.completed_at || q.timestamp || Date.now()).toLocaleString()}
+                      {new Date(
+                        q.completed_at || q.timestamp || Date.now()
+                      ).toLocaleString()}
                     </span>
                   </li>
                 ))}
