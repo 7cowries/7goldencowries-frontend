@@ -58,14 +58,6 @@ async function apiGetJSON(path, query) {
   return res.json();
 }
 
-function getOrigin(url) {
-  try {
-    return new URL(url).origin;
-  } catch {
-    return "";
-  }
-}
-
 // ---------- Component ----------
 export default function Profile() {
   // Prefer TonConnect, fall back to any cached values
@@ -245,8 +237,8 @@ export default function Profile() {
   // --- Same-tab Telegram flow (no popup)
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    const url = `/auth/telegram/start?state=${state}`; // relative keeps on www domain
-    window.location.href = url; // navigate in the same tab
+    // Relative keeps on the www domain; backend /auth/telegram/start 302's to Telegram
+    window.location.href = `/auth/telegram/start?state=${state}`;
   };
 
   const connectDiscord = async () => {
