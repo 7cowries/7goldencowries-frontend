@@ -1,19 +1,21 @@
-// src/pages/Profile.js (Frontend)
+// src/pages/Profile.js
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
 import { api } from "../utils/api"; // use only the api object
 
-// ---------- Config & Helpers ----------
+// Resolve backend base (prefer api.base if present)
 const API_BASE =
   (api && api.base) ||
   process.env.REACT_APP_API_URL ||
   (typeof window !== "undefined" && window.__API_BASE) ||
   "";
 
+// Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
 
+// Level perks
 const perksMap = {
   Shellborn: "Welcome badge + access to basic quests",
   "Wave Seeker": "Retweet quests unlocked",
@@ -24,10 +26,11 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
-const ConnectButtons = () => null; // shared widget placeholder
+// No-op shared widget placeholder
+const ConnectButtons = () => null;
 
+// Helpers
 const stripAt = (h) => String(h || "").replace(/^@/, "");
-
 function b64(s) {
   try {
     return window.btoa(unescape(encodeURIComponent(s || "")));
@@ -36,6 +39,7 @@ function b64(s) {
   }
 }
 
+// Minimal fallback if api.getJSON isn’t available in older builds
 function toQS(query) {
   if (!query) return "";
   const entries = Object.entries(query).filter(
@@ -46,8 +50,6 @@ function toQS(query) {
   for (const [k, v] of entries) sp.append(k, String(v));
   return `?${sp.toString()}`;
 }
-
-// Minimal fallback if api.getJSON isn’t available in older builds
 async function apiGetJSON(path, query) {
   if (api && typeof api.getJSON === "function") {
     return api.getJSON(path, query);
@@ -58,7 +60,6 @@ async function apiGetJSON(path, query) {
   return res.json();
 }
 
-// ---------- Component ----------
 export default function Profile() {
   // Prefer TonConnect, fall back to any cached values
   const tonWallet = useTonAddress();
@@ -111,14 +112,14 @@ export default function Profile() {
     return `/images/badges/level-${slug}.png`;
   }, [level.name]);
 
-  // Core fetcher (memoized) with debug logging
+  // Core fetcher (memoized)
   const fetchProfile = useCallback(
     async (addr, { bust = false } = {}) => {
       const data = await apiGetJSON("/api/profile", {
         wallet: addr,
         t: bust ? Date.now() : undefined,
       });
-      console.log("API Response:", data);
+
       const p = data?.profile || {};
       const links = p?.links || {};
 
@@ -185,19 +186,6 @@ export default function Profile() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [loadProfile]);
 
-  // Handle postMessage from popup
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data === 'telegram-linked' && event.origin === window.location.origin) {
-        console.log("Received postMessage:", event.data, "from", event.origin);
-        loadProfile({ bust: true }); // Refresh profile on message
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [loadProfile]);
-
   // Toast + quick polling on ?linked=...
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -216,13 +204,13 @@ export default function Profile() {
     }
     setToast(msg);
 
+    // Clean URL
     params.delete("linked");
     params.delete("guildMember");
     const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
-    // Immediate refresh + polling
-    loadProfile({ bust: true });
+    // Refresh now + poll briefly to beat caches
     let tries = 0;
     const id = setInterval(() => {
       loadProfile({ bust: true });
@@ -243,15 +231,12 @@ export default function Profile() {
 
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
-    // Use relative path so it stays on www origin and Vercel rewrites apply
-    window.location.href = `/auth/twitter?state=${state}`;
+    window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
   };
 
-  // --- Same-tab Telegram flow (no popup)
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    // Relative keeps on the www domain; backend /auth/telegram/start 302's to Telegram
-    window.location.href = `/auth/telegram/start?state=${state}`;
+    window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
   };
 
   const connectDiscord = async () => {
@@ -265,8 +250,7 @@ export default function Profile() {
     } catch {
       // ignore; fall through
     }
-    // Use relative fallback
-    window.location.href = `/auth/discord?state=${state}`;
+    window.location.href = `${API_BASE}/auth/discord?state=${state}`;
   };
 
   return (
