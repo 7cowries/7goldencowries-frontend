@@ -4,7 +4,7 @@ import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
 
-import { API_BASE, getMe, getJSON } from "../utils/api"; // session profile + generic getter
+import { API_BASE, getMe, getJSON, postJSON } from "../utils/api"; // session profile + helpers
 
 // Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
@@ -67,7 +67,7 @@ export default function Profile() {
   const [history, setHistory] = useState([]);
   const [toast, setToast] = useState("");
 
-  // Choose best address source (for display only; server uses session cookie)
+  // Choose best address source (for display only; server session is separate)
   useEffect(() => {
     if (tonWallet) {
       setAddress(tonWallet);
@@ -80,46 +80,61 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tonWallet, lsCandidates]);
 
+  // Bind wallet to session when TonConnect provides it (helps /api/users/me)
+  useEffect(() => {
+    if (!tonWallet) return;
+    postJSON("/api/session/bind-wallet", { wallet: tonWallet }).catch(() => {});
+  }, [tonWallet]);
+
   const badgeSrc = useMemo(() => {
     const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
     return `/images/badges/level-${slug}.png`;
   }, [level.name]);
 
-  // ------- LOAD SESSION PROFILE (getMe) -------
-  const applyProfile = useCallback((me) => {
-    const p = me?.profile || {};
-    const links = p?.links || {};
+  // ------- LOAD PROFILE (prefer session; fallback to wallet query) -------
+  const applyProfile = useCallback(
+    (pObj) => {
+      const p = pObj?.profile || {};
+      const links = p?.links || {};
 
-    setXp(p.xp ?? 0);
-    setTier(p.tier || p.subscriptionTier || "Free");
+      setXp(p.xp ?? 0);
+      setTier(p.tier || p.subscriptionTier || "Free");
 
-    const lvlName = p.levelName || p.level || "Shellborn";
-    setLevel({
-      name: lvlName,
-      symbol: p.levelSymbol || "🐚",
-      progress: p.levelProgress ?? 0,
-      nextXP: p.nextXP ?? 10000,
-    });
-    setPerk(perksMap[lvlName] || "");
+      const lvlName = p.levelName || p.level || "Shellborn";
+      setLevel({
+        name: lvlName,
+        symbol: p.levelSymbol || "🐚",
+        progress: p.levelProgress ?? 0,
+        nextXP: p.nextXP ?? 10000,
+      });
+      setPerk(perksMap[lvlName] || "");
 
-    // handles
-    setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
-    setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
-    setDiscord(String(links.discord || p.discordHandle || ""));
-    setDiscordGuildMember(!!p.discordGuildMember);
+      setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
+      setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
+      setDiscord(String(links.discord || p.discordHandle || ""));
+      setDiscordGuildMember(!!p.discordGuildMember);
 
-    setHistory(Array.isArray(me?.history) ? me.history : []);
-    // also surface wallet returned by server if present
-    if (p.wallet && !address) setAddress(p.wallet);
-  }, [address]);
+      const hist = Array.isArray(pObj?.history) ? pObj.history : [];
+      setHistory(hist);
+
+      if (p.wallet && !address) setAddress(p.wallet);
+    },
+    [address]
+  );
 
   const loadMe = useCallback(async () => {
     setError("");
     setLoading(true);
     try {
-      const me = await getMe(); // calls /api/users/me and sends credentials
-      if (!me?.authed) {
-        // not logged in (no session cookie)
+      const me = await getMe(); // /api/users/me (credentials included)
+      if (me?.authed) {
+        applyProfile(me);
+      } else if (address) {
+        // Fallback to legacy profile-by-wallet
+        const legacy = await getJSON(`/api/profile?wallet=${encodeURIComponent(address)}`);
+        applyProfile(legacy);
+      } else {
+        // No session and no wallet to fall back to
         setHistory([]);
         setTwitter("");
         setTelegram("");
@@ -128,9 +143,7 @@ export default function Profile() {
         setXp(0);
         setTier("Free");
         setLevel({ name: "Shellborn", symbol: "🐚", progress: 0, nextXP: 10000 });
-        return;
       }
-      applyProfile(me);
     } catch (e) {
       console.error(e);
       setError("Failed to load profile.");
@@ -138,7 +151,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [applyProfile]);
+  }, [applyProfile, address]);
 
   useEffect(() => {
     loadMe();
@@ -159,9 +172,13 @@ export default function Profile() {
     if (!linked) return;
 
     const pretty =
-      linked === "twitter" ? "X (Twitter)" :
-      linked === "discord" ? "Discord" :
-      linked === "telegram" ? "Telegram" : linked;
+      linked === "twitter"
+        ? "X (Twitter)"
+        : linked === "discord"
+        ? "Discord"
+        : linked === "telegram"
+        ? "Telegram"
+        : linked;
 
     let msg = `Connected ${pretty} ✅`;
     if (linked === "discord" && gm) {
@@ -172,7 +189,8 @@ export default function Profile() {
     // Clean URL
     params.delete("linked");
     params.delete("guildMember");
-    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+    const newUrl =
+      window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
     // Refresh now + brief polling
@@ -191,17 +209,18 @@ export default function Profile() {
     };
   }, [loadMe]);
 
-  // --- Connect flows (prefer dedicated endpoints; fallback to legacy) ---
+  // --- Connect flows (use relative paths so Vercel rewrites keep us on www origin) ---
   const state = b64(address || "");
 
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
+    window.location.href = `/auth/twitter?state=${state}`;
   };
 
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
+    // default flow uses Telegram hosted page; add &mode=embed if you want in-page widget
+    window.location.href = `/auth/telegram/start?state=${state}`;
   };
 
   const connectDiscord = async () => {
@@ -216,7 +235,7 @@ export default function Profile() {
     } catch {
       // ignore and fall back
     }
-    window.location.href = `${API_BASE}/auth/discord?state=${state}`;
+    window.location.href = `/auth/discord?state=${state}`;
   };
 
   return (
@@ -280,9 +299,15 @@ export default function Profile() {
                   Copy
                 </button>
               </p>
-              <p><strong>Subscription:</strong> {tier}</p>
-              <p><strong>Level:</strong> {level.name} {level.symbol}</p>
-              <p><strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}</p>
+              <p>
+                <strong>Subscription:</strong> {tier}
+              </p>
+              <p>
+                <strong>Level:</strong> {level.name} {level.symbol}
+              </p>
+              <p>
+                <strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}
+              </p>
 
               <div className="xp-bar">
                 <div
