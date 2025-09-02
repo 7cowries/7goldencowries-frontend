@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <title>Connecting X…</title>
+  </head>
+  <body>
+    <script>
+      // Forward full query string to backend callback (preserves session set on backend)
+      var q = location.search || "";
+      location.replace("https://sevengoldencowries-backend.onrender.com/auth/twitter/callback" + q);
+    </script>
+  </body>
+</html>
