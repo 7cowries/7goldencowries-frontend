@@ -6,7 +6,7 @@
 const API_BASE = (
   process.env.REACT_APP_API_URL ||
   (typeof window !== 'undefined' && (window.__API_BASE || window.__API_URL__)) ||
-  'http://localhost:5000'
+  ''
 ).replace(/\/+$/, ''); // trim trailing slashes
 
 // ---------- internals ----------
@@ -76,9 +76,21 @@ async function tryPaths(paths, opts) {
 export const getHealth = () =>
   tryPaths(['/api/health', '/health', '/'], {});
 
-// Session-based profile (reads cookie session; no wallet param)
-export const getMe = () =>
-  tryPaths(['/api/users/me', '/users/me'], {});
+// Session-style "me": adapt to /api/profile using wallet from localStorage
+export async function getMe() {
+  const wallet =
+    (typeof window !== 'undefined' && (
+      localStorage.getItem('wallet') ||
+      localStorage.getItem('ton_wallet') ||
+      localStorage.getItem('walletAddress')
+    )) || '';
+
+  if (!wallet) return { authed: false };
+
+  const data = await getProfile(wallet);
+  // /api/profile returns { profile, history }
+  return { authed: true, profile: data.profile, history: data.history || [] };
+}
 
 // Wallet-query profile (explicit wallet string)
 export function getProfile(wallet, { bust } = {}) {
@@ -110,18 +122,18 @@ export const completeQuest = (payload) =>
 export const getLeaderboard = () =>
   tryPaths(['/leaderboard', '/api/leaderboard'], {});
 
-// Discord login URL (flexible: your router may mount under /auth or /api)
+// Discord login URL (backend exposes /api/discord/login; keep fallbacks)
 export const getDiscordLogin = ({ state }) =>
   tryPaths(
     [
+      `/api/discord/login${qs({ state })}`,
       `/auth/discord/login${qs({ state })}`,
       `/auth/discord/start${qs({ state })}`,
-      `/api/discord/login${qs({ state })}`,
     ],
     {}
   );
 
-// Generic helpers (sometimes useful directly)
+// Generic helpers
 export const getJSON  = (path) => request(path);
 export const postJSON = (path, payload) => request(path, { method: 'POST', body: payload });
 
