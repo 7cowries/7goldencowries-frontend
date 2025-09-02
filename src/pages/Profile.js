@@ -4,6 +4,7 @@ import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
 import { API_BASE, getMe, getJSON, postJSON } from "../utils/api";
+import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 
 // Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
@@ -22,6 +23,7 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
+// Keep placeholder to preserve layout; we now use explicit buttons below
 const ConnectButtons = () => null;
 
 const stripAt = (h) => String(h || "").replace(/^@/, "");
@@ -98,6 +100,9 @@ export default function Profile() {
   const [perk, setPerk] = useState("");
   const [history, setHistory] = useState([]);
   const [toast, setToast] = useState("");
+
+  // Busy flags for unlink/resync
+  const [busy, setBusy] = useState({ twitter: false, telegram: false, discord: false });
 
   // Prefer TonConnect address; persist for later visits
   useEffect(() => {
@@ -275,6 +280,28 @@ export default function Profile() {
     window.location.href = `${API_BASE}/auth/discord?state=${state}`;
   };
 
+  // === Social unlink/resync actions ===
+  const act = async (provider, fn) => {
+    setBusy((b) => ({ ...b, [provider]: true }));
+    try {
+      await fn(provider);
+      setToast(
+        fn === unlinkSocial
+          ? `Unlinked ${provider} ✅`
+          : `Resynced ${provider} ✅`
+      );
+      setTimeout(() => setToast(""), 2500);
+      await loadMe();
+    } catch (e) {
+      console.error(e);
+      setError(`Action failed for ${provider}.`);
+    } finally {
+      setBusy((b) => ({ ...b, [provider]: false }));
+    }
+  };
+  const doUnlink = (p) => act(p, unlinkSocial);
+  const doResync = (p) => act(p, resyncSocial);
+
   return (
     <div className="page profile">
       {/* toast */}
@@ -369,64 +396,137 @@ export default function Profile() {
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>Connected Accounts</h3>
             {error && <p style={{ color: "#ff7a7a" }}>{error}</p>}
+
             <div className="social-status-list">
+              {/* Twitter / X */}
               <div className="social-status">
                 <span>X (Twitter):</span>
                 {twitter ? (
-                  <a
-                    className="connected"
-                    href={`https://x.com/${stripAt(twitter)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    ✅ @{stripAt(twitter)}
-                  </a>
+                  <>
+                    <a
+                      className="connected"
+                      href={`https://x.com/${stripAt(twitter)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      ✅ @{stripAt(twitter)}
+                    </a>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        disabled={busy.twitter}
+                        onClick={() => doResync("twitter")}
+                      >
+                        {busy.twitter ? "Resync…" : "Resync"}
+                      </button>
+                      <button
+                        className="mini"
+                        disabled={busy.twitter}
+                        onClick={() => doUnlink("twitter")}
+                      >
+                        {busy.twitter ? "Unlink…" : "Unlink"}
+                      </button>
+                    </div>
+                  </>
                 ) : (
-                  <span className="not-connected">❌ Not Connected</span>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button className="mini" onClick={connectTwitter}>Connect</button>
+                    </div>
+                  </>
                 )}
               </div>
 
+              {/* Telegram */}
               <div className="social-status">
                 <span>Telegram:</span>
                 {telegram ? (
-                  <a
-                    className="connected"
-                    href={`https://t.me/${stripAt(telegram)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    ✅ @{stripAt(telegram)}
-                  </a>
+                  <>
+                    <a
+                      className="connected"
+                      href={`https://t.me/${stripAt(telegram)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      ✅ @{stripAt(telegram)}
+                    </a>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        disabled={busy.telegram}
+                        onClick={() => doResync("telegram")}
+                      >
+                        {busy.telegram ? "Resync…" : "Resync"}
+                      </button>
+                      <button
+                        className="mini"
+                        disabled={busy.telegram}
+                        onClick={() => doUnlink("telegram")}
+                      >
+                        {busy.telegram ? "Unlink…" : "Unlink"}
+                      </button>
+                    </div>
+                  </>
                 ) : (
-                  <span className="not-connected">❌ Not Connected</span>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button className="mini" onClick={connectTelegram}>Connect</button>
+                    </div>
+                  </>
                 )}
               </div>
 
+              {/* Discord */}
               <div className="social-status">
                 <span>Discord:</span>
                 {discord ? (
-                  <span className="connected">
-                    ✅ {discord}{" "}
-                    <em style={{ opacity: 0.85 }}>
-                      {discordGuildMember ? "(Server Member)" : "(Not in server)"}
-                    </em>
-                    {!discordGuildMember && DISCORD_INVITE && (
-                      <>
-                        {" "}
-                        <a
-                          href={DISCORD_INVITE}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-link"
-                          style={{ marginLeft: 6 }}
-                        >
-                          Join
-                        </a>
-                      </>
-                    )}
-                  </span>
+                  <>
+                    <span className="connected">
+                      ✅ {discord}{" "}
+                      <em style={{ opacity: 0.85 }}>
+                        {discordGuildMember ? "(Server Member)" : "(Not in server)"}
+                      </em>
+                      {!discordGuildMember && DISCORD_INVITE && (
+                        <>
+                          {" "}
+                          <a
+                            href={DISCORD_INVITE}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-link"
+                            style={{ marginLeft: 6 }}
+                          >
+                            Join
+                          </a>
+                        </>
+                      )}
+                    </span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        disabled={busy.discord}
+                        onClick={() => doResync("discord")}
+                      >
+                        {busy.discord ? "Resync…" : "Resync"}
+                      </button>
+                      <button
+                        className="mini"
+                        disabled={busy.discord}
+                        onClick={() => doUnlink("discord")}
+                      >
+                        {busy.discord ? "Unlink…" : "Unlink"}
+                      </button>
+                    </div>
+                  </>
                 ) : (
-                  <span className="not-connected">❌ Not Connected</span>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button className="mini" onClick={connectDiscord}>Connect</button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -460,9 +560,7 @@ export default function Profile() {
             {/* Tiny fallback link to hosted flow, just in case */}
             <p className="muted" style={{ marginTop: 8 }}>
               If the button doesn’t render,{" "}
-              <a
-                href={`${API_BASE}/auth/telegram/start?state=${encodeURIComponent(state)}`}
-              >
+              <a href={`${API_BASE}/auth/telegram/start?state=${encodeURIComponent(b64(address || ""))}`}>
                 open Telegram login
               </a>
               .
@@ -477,15 +575,19 @@ export default function Profile() {
               <p>No quests completed yet.</p>
             ) : (
               <ul>
-                {history.map((q, i) => (
-                  <li key={q.id || i}>
-                    <strong>{q.title}</strong> — +{q.xp} XP
-                    <br />
-                    <span className="timestamp">
-                      {new Date(q.completed_at || q.timestamp || Date.now()).toLocaleString()}
-                    </span>
-                  </li>
-                ))}
+                {history.map((q, i) => {
+                  const when = q.created_at || q.completed_at || q.timestamp;
+                  const ts = when ? new Date(when) : null;
+                  return (
+                    <li key={q.id || i}>
+                      <strong>{q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ""}`}</strong> — +{q.xp ?? q.delta ?? 0} XP
+                      <br />
+                      <span className="timestamp">
+                        {ts ? ts.toLocaleString() : "—"}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

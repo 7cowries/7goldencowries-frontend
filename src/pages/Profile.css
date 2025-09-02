@@ -1,5 +1,6 @@
 /* src/pages/Profile.css */
 
+/* ===== Page wrappers ===== */
 .profile-wrapper {
   padding: 40px;
   font-family: 'Poppins', sans-serif;
@@ -8,6 +9,16 @@
   min-height: 100vh;
 }
 
+/* Also support the new wrapper from Profile.js */
+.page.profile {
+  min-height: 100vh;
+  padding: 40px 16px;
+  font-family: 'Poppins', sans-serif;
+  color: #ffffff;
+  background: radial-gradient(circle at top, #001f3f, #000b1a 70%);
+}
+
+/* ===== Headings ===== */
 .section-title {
   font-size: 2.2rem;
   color: #ffd445; /* golden accent */
@@ -17,6 +28,7 @@
   text-shadow: 0 0 12px rgba(255, 212, 69, 0.6);
 }
 
+/* ===== Glass cards ===== */
 .card.glass {
   background: rgba(0, 25, 51, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -28,6 +40,7 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
+/* ===== Top profile card ===== */
 .profile-card {
   display: flex;
   flex-wrap: wrap;
@@ -71,6 +84,7 @@
   font-size: 1rem;
 }
 
+/* ===== XP bar ===== */
 .xp-bar {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -100,6 +114,7 @@
   margin-top: 6px;
 }
 
+/* ===== Connect buttons row ===== */
 .connect-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -115,15 +130,18 @@
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
-
 .connect-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(255, 212, 69, 0.4);
 }
+.connect-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 
-/* Connected account badges */
+/* ===== Social status list ===== */
 .social-status-list {
   display: grid;
   gap: 10px;
@@ -133,7 +151,10 @@
 .social-status {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   font-size: 1rem;
+  flex-wrap: wrap;
 }
 
 .connected {
@@ -146,6 +167,46 @@
   font-weight: 600;
 }
 
+/* Mini action buttons (Resync / Unlink) */
+.social-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mini {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaf6ff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+.mini:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+.mini:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Inline link for Discord "Join" */
+.inline-link {
+  color: #93c5ff;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(147, 197, 253, 0.5);
+}
+.inline-link:hover {
+  color: #cde4ff;
+  border-bottom-color: rgba(205, 228, 255, 0.85);
+}
+
+/* ===== History list ===== */
 .history {
   border-radius: 10px;
   padding: 20px;
@@ -172,7 +233,6 @@
   color: #fff;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .history li:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
@@ -185,6 +245,15 @@
   margin-top: 4px;
 }
 
+/* ===== Helpers ===== */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.muted {
+  opacity: 0.75;
+}
+
+/* ===== Responsive ===== */
 @media screen and (max-width: 768px) {
   .profile-card {
     flex-direction: column;

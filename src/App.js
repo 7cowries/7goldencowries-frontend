@@ -7,7 +7,7 @@ import LeftNav from "./components/LeftNav";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./App.css";
 
-// 🔊 sound bootstrapping + global click SFX
+// 🔊 Global sound system
 import {
   enableAmbientSound,
   resumeAmbientIfNeeded,
@@ -15,7 +15,9 @@ import {
   attachGlobalClickSFX,
 } from "./utils/sounds";
 
-/** Lazy routes for faster first paint */
+/* -----------------------------
+   Lazy-loaded pages (code split)
+----------------------------- */
 const Landing      = lazy(() => import("./pages/Landing"));
 const Quests       = lazy(() => import("./pages/Quests"));
 const Leaderboard  = lazy(() => import("./pages/Leaderboard"));
@@ -24,12 +26,12 @@ const Subscription = lazy(() => import("./pages/Subscription"));
 const TokenSale    = lazy(() => import("./pages/TokenSale"));
 const Profile      = lazy(() => import("./pages/Profile"));
 const Isles        = lazy(() => import("./pages/Isles"));
-const NotFound     = lazy(() => import("./pages/NotFound")); // make sure this file exists
+const NotFound     = lazy(() => import("./pages/NotFound"));  // fallback route
+const TestAPI      = lazy(() => import("./pages/TestAPI"));   // connectivity check
 
-// 🔧 Test page to confirm frontend ↔ backend connectivity
-const TestAPI      = lazy(() => import("./pages/TestAPI"));
-
-/** Ambient background layers (veil + orbs) */
+/* -----------------------------
+   Ambient background layers
+----------------------------- */
 function AmbientLayers() {
   return (
     <>
@@ -44,12 +46,15 @@ function AmbientLayers() {
   );
 }
 
+/* -----------------------------
+   App Component
+----------------------------- */
 const App = () => {
   useEffect(() => {
-    // Global click sound for all pages, once.
+    // 1) Attach click sound globally
     attachGlobalClickSFX();
 
-    // Arm ambient on first explicit user gesture (autoplay policies).
+    // 2) Enable ambient sound only after explicit user gesture
     const arm = () => {
       if (soundIsEnabled()) enableAmbientSound();
       window.removeEventListener("pointerdown", arm);
@@ -58,7 +63,7 @@ const App = () => {
     window.addEventListener("pointerdown", arm);
     window.addEventListener("keydown", arm);
 
-    // Resume after tab visibility changes
+    // 3) Resume sound if tab regains visibility
     const vis = () => resumeAmbientIfNeeded();
     document.addEventListener("visibilitychange", vis);
 
@@ -70,14 +75,16 @@ const App = () => {
   }, []);
 
   return (
-    <TonConnectUIProvider manifestUrl="https://7cowries.github.io/7goldencowries-connect/tonconnect-manifest.json">
+    <TonConnectUIProvider
+      manifestUrl="https://7cowries.github.io/7goldencowries-connect/tonconnect-manifest.json"
+    >
       <ErrorBoundary>
         <Router>
           <AmbientLayers />
           <div className="app-layout">
             <LeftNav />
             <main className="main-view">
-              <Suspense fallback={<div className="section">Loading…</div>}>
+              <Suspense fallback={<div className="section">🌊 Loading tides…</div>}>
                 <Routes>
                   <Route path="/" element={<Landing />} />
                   <Route path="/quests" element={<Quests />} />
@@ -91,6 +98,7 @@ const App = () => {
                   {/* 🔧 Connectivity check route */}
                   <Route path="/test-api" element={<TestAPI />} />
 
+                  {/* Fallback 404 */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

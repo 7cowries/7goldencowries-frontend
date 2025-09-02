@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Isles.css";
 import "../App.css";
+import { getMe } from "../utils/api"; // ✅ use session-aware profile first
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -131,10 +132,10 @@ function Confetti({ active, onDone, duration = 4000 }) {
 }
 
 /* ======================= Level Up Toast ======================= */
-function LevelToast({ show, level }) {
+function LevelToast({ show, level, onClose }) {
   if (!show || !level) return null;
   return (
-    <div className="toast">
+    <div className="toast" onClick={onClose}>
       <h3>Level Up</h3>
       <p>You unlocked <b>{level.name}</b></p>
       <ul>{level.perks.map((p, i) => <li key={i}>✅ {p}</li>)}</ul>
@@ -216,17 +217,25 @@ function useProfile(address) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!address) { setLoading(false); return; }
     let cancelled = false;
 
     async function fetchProfile() {
       try {
-        const url = `${API}/api/profile?wallet=${encodeURIComponent(address)}`;
-        const res = await fetch(url, { credentials: "include" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const norm = normalizeUser(data, profile);
-        if (!cancelled) setProfile(norm);
+        // 1) Prefer session-aware /api/users/me
+        const me = await getMe().catch(() => null);
+        if (me?.authed) {
+          const norm = normalizeUser(me, profile);
+          if (!cancelled) setProfile(norm);
+        } else if (address) {
+          // 2) Fallback to legacy /api/profile?wallet=
+          const url = `${API}/api/profile?wallet=${encodeURIComponent(address)}`;
+          const res = await fetch(url, { credentials: "include" });
+          if (res.ok) {
+            const data = await res.json();
+            const norm = normalizeUser(data, profile);
+            if (!cancelled) setProfile(norm);
+          }
+        }
       } catch (e) {
         console.error("Isles profile fetch failed:", e);
       } finally {
@@ -235,8 +244,21 @@ function useProfile(address) {
     }
 
     fetchProfile();
+    // periodic refresh
     const id = setInterval(fetchProfile, 10000);
-    return () => { cancelled = true; clearInterval(id); };
+    // refresh when user completes quests elsewhere
+    const onQuests = () => fetchProfile();
+    window.addEventListener("quests:updated", onQuests);
+    // refresh when tab becomes visible again
+    const onVis = () => document.visibilityState === "visible" && fetchProfile();
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      window.removeEventListener("quests:updated", onQuests);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [address]);
 
   const progressPct = Math.round(clamp01(profile.levelProgress) * 100);
@@ -267,11 +289,18 @@ export default function Isles() {
     lastLevelRef.current = profile.levelName || "Shellborn";
   }, [profile.levelName]);
 
+  // auto-hide toast after a few seconds
+  useEffect(() => {
+    if (!toastOn) return;
+    const t = setTimeout(() => setToastOn(false), 5000);
+    return () => clearTimeout(t);
+  }, [toastOn]);
+
   return (
     <div className="isles-page">
       <div className="veil" />
       <Confetti active={confettiOn} onDone={() => setConfettiOn(false)} />
-      <LevelToast show={toastOn} level={LEVELS[currentIndex]} />
+      <LevelToast show={toastOn} level={LEVELS[currentIndex]} onClose={() => setToastOn(false)} />
 
       <header className="isles-header">
         <div>
@@ -338,6 +367,7 @@ export default function Isles() {
                     `pos-${i + 1}`,
                   ].join(" ")}
                   aria-current={isCurrent ? "step" : undefined}
+                  data-level={isle.key}
                 >
                   <div className="isle-top">
                     <span className="isle-emoji" aria-hidden>{isle.emoji}</span>

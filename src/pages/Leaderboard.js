@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./Leaderboard.css";
 import "../App.css";
-import { apiGet } from "../utils/api"; // ✅ corrected import path
+import { apiGet } from "../utils/api"; // ✅ use your helper
 
 const lore = {
   Shellborn: "Born from tide and shell — a humble beginning.",
@@ -19,38 +19,38 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
-        // ✅ FIX: use /api/leaderboard
         const data = await apiGet("/api/leaderboard");
 
-        // backend may return { top: [...] } or just [...]
-        const rows = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.top)
-          ? data.top
-          : [];
+        const rows = Array.isArray(data) ? data : Array.isArray(data?.top) ? data.top : [];
+        const normalized = rows.map((u, i) => {
+          const levelName = u.name ?? u.levelName ?? "Shellborn";
+          return {
+            rank: u.rank ?? i + 1,
+            wallet: u.wallet ?? "",
+            twitter: u.twitter ?? u.twitterHandle ?? "",
+            name: levelName,
+            xp: Number(u.xp ?? 0),
+            tier: u.tier ?? "Free",
+            // backend gives 0..1 — convert to percent for the bar component
+            progressPct: Math.max(0, Math.min(1, Number(u.progress ?? 0))) * 100,
+            badge: u.badge ?? badgeSrc(levelName),
+          };
+        });
 
-        // normalize the fields we render
-        const normalized = rows.map((u, i) => ({
-          rank: u.rank ?? i + 1,
-          wallet: u.wallet ?? "",
-          twitter: u.twitter ?? u.twitterHandle ?? "",
-          name: u.name ?? u.levelName ?? "Shellborn",
-          xp: Number(u.xp ?? 0),
-          tier: u.tier ?? "Free",
-          progress: Number(u.progress ?? 0),
-          badge: u.badge ?? badgeSrc(u.name ?? u.levelName ?? "Shellborn"),
-        }));
-
-        setLeaders(normalized);
+        if (alive) setLeaders(normalized);
       } catch (e) {
         console.error("Leaderboard fetch failed:", e);
-        setLeaders([]);
+        if (alive) setLeaders([]);
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const top3 = leaders.slice(0, 3);
@@ -96,6 +96,11 @@ function Podium({ entries }) {
 
 function PodiumStep({ place, user, tall }) {
   const levelName = user?.name || "Shellborn";
+  const handleCopy = () => {
+    if (!user.wallet) return;
+    navigator.clipboard?.writeText(user.wallet);
+  };
+
   return (
     <div className={`podium-step ${tall ? "tall" : ""} place-${place}`}>
       <div className="podium-rank">#{user.rank}</div>
@@ -105,14 +110,27 @@ function PodiumStep({ place, user, tall }) {
         alt={levelName}
         onError={(e) => (e.currentTarget.src = "/images/badges/unranked.png")}
       />
-      <div className="podium-name">{shorten(user.wallet)}</div>
-      {user.twitter && <div className="podium-twitter">🐦 @{user.twitter}</div>}
+      <div className="podium-name" title={user.wallet} onClick={handleCopy} style={{ cursor: "pointer" }}>
+        {shorten(user.wallet)}
+      </div>
+      {user.twitter && (
+        <div className="podium-twitter">
+          <a
+            href={`https://x.com/${user.twitter}`}
+            className="lb-link"
+            target="_blank"
+            rel="noreferrer"
+          >
+            🐦 @{user.twitter}
+          </a>
+        </div>
+      )}
       <div className="podium-meta">
         <span className="pill">{user.tier || "Free"}</span>
         <span className="pill">{levelName}</span>
         <span className="pill">{formatXP(user.xp)} XP</span>
       </div>
-      <Progress percent={user.progress ?? 0} lore={lore[levelName] || ""} />
+      <Progress percent={user.progressPct ?? 0} lore={lore[levelName] || ""} />
     </div>
   );
 }
@@ -127,6 +145,10 @@ function List({ entries }) {
     <div className="leaderboard-list">
       {entries.map((u) => {
         const levelName = u?.name || "Shellborn";
+        const handleCopy = () => {
+          if (!u.wallet) return;
+          navigator.clipboard?.writeText(u.wallet);
+        };
         return (
           <div key={`${u.rank}-${u.wallet}`} className="leader-card">
             <div className="rank-badge">#{u.rank}</div>
@@ -140,13 +162,27 @@ function List({ entries }) {
 
             <div className="user-meta">
               <div className="user-line">
-                <strong>{shorten(u.wallet)}</strong>
-                {u.twitter && <span className="muted"> &nbsp;•&nbsp; 🐦 @{u.twitter}</span>}
+                <strong title={u.wallet} onClick={handleCopy} style={{ cursor: "pointer" }}>
+                  {shorten(u.wallet)}
+                </strong>
+                {u.twitter && (
+                  <span className="muted">
+                    &nbsp;•&nbsp;
+                    <a
+                      href={`https://x.com/${u.twitter}`}
+                      className="lb-link"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      🐦 @{u.twitter}
+                    </a>
+                  </span>
+                )}
               </div>
               <div className="user-line muted">
                 {u.tier || "Free"} • {levelName} • {formatXP(u.xp)} XP
               </div>
-              <Progress percent={u.progress ?? 0} lore={lore[levelName] || ""} compact />
+              <Progress percent={u.progressPct ?? 0} lore={lore[levelName] || ""} compact />
             </div>
           </div>
         );
@@ -156,6 +192,7 @@ function List({ entries }) {
 }
 
 function Progress({ percent = 0, lore = "", compact = false }) {
+  // percent expected 0..100
   const clamped = Math.max(0, Math.min(100, Number(percent) || 0));
   return (
     <div className={`progress-wrap ${compact ? "compact" : ""}`}>

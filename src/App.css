@@ -91,6 +91,22 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* Shared "glass" surfaces used across pages (Profile/Leaderboard/Isles/etc.) */
+.glass{
+  background: var(--glass-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(12px) saturate(120%);
+}
+.glass-strong{
+  background: var(--glass-2);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
 /* Gradient frame utility (nice for hero blocks) */
 .gradient-border{ position:relative; border-radius: var(--r-lg); }
 .gradient-border::before{
@@ -134,6 +150,25 @@ h2{ font-weight: 700; font-size: clamp(1.4rem, 1.2vw + 1rem, 2rem); }
 }
 .btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 26px rgba(255,200,90,0.45); }
 .btn:active{ transform: translateY(0); filter: brightness(.98); }
+
+.btn.primary{
+  background: linear-gradient(135deg, var(--gold), #ffb347);
+  color: #041314;
+}
+.btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255,212,69,0.45);
+}
+
+.btn.success{
+  background: linear-gradient(135deg, #76e2a8, #43c87c);
+  color: #041314;
+  box-shadow: 0 10px 20px rgba(118,226,168,0.35);
+}
+.btn.success:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px rgba(118,226,168,0.45);
+}
 
 .btn.ghost{
   background: transparent;
@@ -426,4 +461,41 @@ input:focus, select:focus, textarea:focus{
     0 22px 50px rgba(0,0,0,.45),
     0 0 44px rgba(255,212,102,.24) !important;
   padding: 24px !important;
+}
+
+/* ===== Ambient layers for <AmbientLayers/> (veil + orbs) ===== */
+.veil{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60vw 40vh at 70% 20%, rgba(255,255,255,0.04), transparent 60%);
+  animation: veil-pulse 14s ease-in-out infinite alternate;
+  z-index: 0;
+}
+@keyframes veil-pulse {
+  from { opacity: .65; transform: translateY(0); }
+  to   { opacity: 1;   transform: translateY(-1.5%); }
+}
+
+#magic-orbs{
+  position: fixed; inset: 0;
+  overflow: hidden; pointer-events: none;
+  z-index: 1;
+}
+#magic-orbs .orb{
+  position: absolute;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: radial-gradient(circle, var(--aqua), transparent 70%);
+  opacity: .18; filter: blur(80px);
+  animation: orb-drift 40s linear infinite;
+}
+#magic-orbs .orb:nth-child(1){ top: 10%; left: 15%; animation-duration: 60s; }
+#magic-orbs .orb:nth-child(2){ top: 50%; left: 70%; background: radial-gradient(circle, var(--gold), transparent 70%); animation-duration: 55s; }
+#magic-orbs .orb:nth-child(3){ bottom: 20%; left: 25%; animation-duration: 70s; }
+#magic-orbs .orb:nth-child(4){ bottom: 15%; right: 10%; background: radial-gradient(circle, #9b6bff, transparent 70%); animation-duration: 65s; }
+
+@keyframes orb-drift{
+  0%{   transform: translateY(0) translateX(0); }
+  50%{  transform: translateY(-30px) translateX(20px); }
+  100%{ transform: translateY(0) translateX(0); }
 }

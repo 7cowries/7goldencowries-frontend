@@ -1,139 +1,169 @@
 /* ===== Leaderboard — Enchanted Ocean Polish ===== */
 
-.subtitle{ color:var(--ink-dim); margin-top:6px; }
+/* Safeguard CSS vars with gentle fallbacks */
+:root {
+  --ink-dim: rgba(220, 233, 255, 0.75);
+  --aqua: #66e0ff;
+  --gold: #ffd445;
+  --violet: #9b8cff;
+}
+
+.subtitle { color: var(--ink-dim); margin-top: 6px; }
 
 /* Wrapper that matches the global glass theme */
-.leaderboard-wrapper{
-  max-width:1100px; margin:0 auto; padding:28px;
+.leaderboard-wrapper {
+  max-width: 1100px; margin: 0 auto; padding: 28px;
+}
+
+.leaderboard-wrapper h1 {
+  font-size: 2.2rem;
+  margin: 0 0 6px;
+  text-align: center;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(255, 212, 69, 0.4);
+}
+.leaderboard-wrapper .subtitle {
+  text-align: center;
 }
 
 /* -------------------
    Podium (Top 3)
 ------------------- */
-.podium{
-  display:grid; grid-template-columns:1fr 1fr 1fr;
-  gap:20px; align-items:stretch; margin:18px 0 8px;
+.podium {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px; align-items: stretch; margin: 18px 0 8px;
 }
-.podium-step{
-  position:relative; text-align:center;
+.podium-step {
+  position: relative; text-align: center;
   background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  border:1px solid rgba(255,255,255,0.10);
-  border-radius:20px; padding:18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 20px; padding: 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   backdrop-filter: blur(14px) saturate(120%);
   transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease;
 }
-.podium-step:hover{
+.podium-step:hover {
   transform: translateY(-4px);
   border-color: rgba(255,255,255,0.18);
   box-shadow: 0 16px 38px rgba(0,0,0,0.4), 0 0 28px rgba(122,125,255,0.18);
 }
-.podium-step.tall{ transform: translateY(-6px); }
-.podium-step.ghost{ height:220px; opacity:.18; }
+.podium-step.tall { transform: translateY(-6px); }
+.podium-step.ghost { height: 220px; opacity: .18; }
 
-.podium-rank{
-  position:absolute; top:10px; left:12px;
-  font-weight:800; font-size:14px; opacity:.9; color:#cfe9ff;
+.podium-rank {
+  position: absolute; top: 10px; left: 12px;
+  font-weight: 800; font-size: 14px; opacity: .9; color: #cfe9ff;
 }
-.podium-badge{
-  width:72px; height:72px; object-fit:contain; margin:8px auto;
+.podium-badge {
+  width: 72px; height: 72px; object-fit: contain; margin: 8px auto;
   filter: drop-shadow(0 0 18px rgba(102,224,255,0.25));
 }
-.podium-name{ font-weight:800; font-size:18px; margin-top:6px; }
-.podium-twitter{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
-.podium-meta{ display:flex; gap:8px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
-.pill{
-  padding:5px 10px; border-radius:999px; font-weight:700; font-size:12px;
-  background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1);
+.podium-name { font-weight: 800; font-size: 18px; margin-top: 6px; }
+.podium-twitter { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+.podium-meta { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+.pill {
+  padding: 5px 10px; border-radius: 999px; font-weight: 700; font-size: 12px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Link style used for Twitter handles */
+.lb-link {
+  color: #93c5ff;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(147, 197, 253, 0.45);
+}
+.lb-link:hover {
+  color: #cde4ff;
+  border-bottom-color: rgba(205, 228, 255, 0.85);
 }
 
 /* -------------------
    Progress
 ------------------- */
-.progress-wrap{ margin-top:10px; display:grid; gap:6px; }
-.progress-wrap.compact{ margin-top:6px; gap:4px; }
-.progress-bar{
-  position:relative; height:8px; border-radius:999px;
+.progress-wrap { margin-top: 10px; display: grid; gap: 6px; }
+.progress-wrap.compact { margin-top: 6px; gap: 4px; }
+.progress-bar {
+  position: relative; height: 8px; border-radius: 999px;
   background: rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.12);
-  overflow:hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
 }
-.progress-fill{
-  height:100%; border-radius:inherit;
+.progress-fill {
+  height: 100%; border-radius: inherit;
   background: linear-gradient(90deg, var(--aqua), var(--gold), var(--violet));
   box-shadow: 0 0 24px rgba(102,224,255,0.35), inset 0 0 10px rgba(255,212,102,0.35);
   transition: width .6s cubic-bezier(.22,1,.36,1);
 }
-.muted{ color:var(--ink-dim); }
+.muted { color: var(--ink-dim); }
 
 /* -------------------
    List (rest of board)
 ------------------- */
-.leaderboard-list{
-  margin-top:18px; border-radius:18px; overflow:hidden;
-  border:1px solid rgba(255,255,255,0.10);
+.leaderboard-list {
+  margin-top: 18px; border-radius: 18px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.03);
   backdrop-filter: blur(14px) saturate(120%);
 }
-.leader-card{
-  display:grid; grid-template-columns:64px 72px 1fr;
-  gap:16px; align-items:center; padding:14px 18px;
-  border-top:1px solid rgba(255,255,255,0.08);
+.leader-card {
+  display: grid; grid-template-columns: 64px 72px 1fr;
+  gap: 16px; align-items: center; padding: 14px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
   transition: transform .18s ease, border-color .25s ease, box-shadow .25s ease;
 }
-.leader-card:first-child{ border-top:none; }
-.leader-card:hover{
+.leader-card:first-child { border-top: none; }
+.leader-card:hover {
   transform: translateY(-2px);
   border-color: rgba(255,255,255,0.16);
   box-shadow: 0 12px 24px rgba(0,0,0,0.25);
 }
-.rank-badge{
-  width:56px; height:56px; border-radius:12px; display:grid; place-items:center;
-  font-weight:900; color:#06131f;
+.rank-badge {
+  width: 56px; height: 56px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 900; color: #06131f;
   background: linear-gradient(180deg, #c7f0ff, #8bdcff);
   box-shadow: 0 8px 16px rgba(0,0,0,0.25);
 }
-.user-badge{
-  width:64px; height:64px; object-fit:contain; border-radius:14px;
+.user-badge {
+  width: 64px; height: 64px; object-fit: contain; border-radius: 14px;
   background: rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.10);
   filter: drop-shadow(0 0 12px rgba(102,224,255,0.25));
 }
-.user-meta .user-line{ line-height:1.2rem; }
-.user-meta .user-line.muted{ margin-top:4px; }
+.user-meta .user-line { line-height: 1.2rem; }
+.user-meta .user-line.muted { margin-top: 4px; }
 
 /* -------------------
    Skeleton / Empty
 ------------------- */
-.skeleton{ margin-top:18px; }
-.skeleton-bar{
-  height:18px; width:38%; border-radius:10px;
+.skeleton { margin-top: 18px; }
+.skeleton-bar {
+  height: 18px; width: 38%; border-radius: 10px;
   background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.12), rgba(255,255,255,0.06));
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
-.skeleton-list{ margin-top:16px; display:grid; gap:10px; }
-.skeleton-item{
-  height:64px; border-radius:14px;
+.skeleton-list { margin-top: 16px; display: grid; gap: 10px; }
+.skeleton-item {
+  height: 64px; border-radius: 14px;
   background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.12), rgba(255,255,255,0.06));
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
-@keyframes shimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-.empty{
-  margin-top:18px; text-align:center; padding:24px;
-  border:1px dashed rgba(255,255,255,0.18);
-  border-radius:16px; background:rgba(255,255,255,0.03);
+.empty {
+  margin-top: 18px; text-align: center; padding: 24px;
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: 16px; background: rgba(255,255,255,0.03);
 }
 
 /* -------------------
    Responsive
 ------------------- */
-@media (max-width: 960px){
-  .podium{ grid-template-columns:1fr; gap:12px; }
-  .podium-step.tall{ order:-1; }
-  .leader-card{ grid-template-columns:54px 54px 1fr; padding:12px; }
-  .rank-badge{ width:48px; height:48px; }
-  .user-badge{ width:54px; height:54px; }
+@media (max-width: 960px) {
+  .podium { grid-template-columns: 1fr; gap: 12px; }
+  .podium-step.tall { order: -1; }
+  .leader-card { grid-template-columns: 54px 54px 1fr; padding: 12px; }
+  .rank-badge { width: 48px; height: 48px; }
+  .user-badge { width: 54px; height: 54px; }
 }

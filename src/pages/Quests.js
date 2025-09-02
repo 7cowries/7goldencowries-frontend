@@ -11,13 +11,21 @@ import { playClick, playXP } from "../utils/sounds";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 
 // API helpers (session-aware)
-import {
-  getQuests,
-  getMe,
-  completeQuest as apiCompleteQuest,
-} from "../utils/api";
+import { getQuests, getMe } from "../utils/api";
+
+// NEW: secure quest utilities
+import { startLinkQuest, finishLinkQuest } from "../utils/quests";
+import { verifyTelegramJoin, verifyDiscordJoin } from "../utils/socialQuests";
 
 const QUEST_TABS = ["all", "daily", "social", "partner", "insider", "onchain"];
+
+// Helpers to detect social requirements from your legacy schema
+const isTelegramReq = (req = "") =>
+  ["tg_channel_member", "tg_group_member", "join_telegram", "join_telegram_channel", "join_telegram_group"].includes(
+    String(req).toLowerCase()
+  );
+const isDiscordReq = (req = "") =>
+  ["discord_member", "join_discord"].includes(String(req).toLowerCase());
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -37,6 +45,11 @@ export default function Quests() {
   const [unlocked, setUnlocked] = useState(null);
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
+
+  // NEW: per-quest countdown and claiming state
+  const [timers, setTimers] = useState({}); // { [key]: secondsLeft }
+  const [claiming, setClaiming] = useState({}); // { [key]: boolean }
+  const [verifying, setVerifying] = useState(false); // for Telegram/Discord batch verify
 
   // TonConnect
   const tonAddress = useTonAddress();
@@ -81,15 +94,18 @@ export default function Quests() {
           setCompleted(done);
         }
 
-        // Quests list (supports multiple mounts)
+        // Quests list (supports multiple shapes)
         const q = await getQuests();
         const list = Array.isArray(q) ? q : Array.isArray(q?.quests) ? q.quests : [];
         const normalized = list.map((quest) => ({
           id: Number(quest.id),
+          code: quest.code || String(quest.id),
           title: quest.title,
           type: String(quest.type || "daily").toLowerCase(),
-          url: quest.url || "#",
+          url: quest.url || "",
           xp: quest.xp ?? 0,
+          requirement: String(quest.requirement || "").toLowerCase(),
+          active: quest.active !== 0, // default to active
           completed: !!quest.completed,
         }));
         setQuests(normalized);
@@ -106,70 +122,247 @@ export default function Quests() {
     return quests.filter((q) => (q.type || "").toLowerCase() === activeTab);
   }, [quests, activeTab]);
 
-  // Complete quest flow
-  const handleCompleteClick = async (quest) => {
-    playClick();
+  // Tick all active countdowns
+  useEffect(() => {
+    const hasAny = Object.values(timers).some((v) => v > 0);
+    if (!hasAny) return;
+    const t = setInterval(() => {
+      setTimers((prev) => {
+        const next = { ...prev };
+        for (const k of Object.keys(next)) {
+          if (next[k] > 0) next[k] = next[k] - 1;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [timers]);
 
-    if (!wallet) {
-      try {
-        await tonUI.openModal();
-      } catch {}
-      alert("Connect your TON wallet to complete quests.");
-      return;
-    }
-
-    await completeQuest(quest);
-  };
-
-  const completeQuest = async (quest) => {
-    const { id: questId, xp: xpGain, title } = quest;
-    const prevLevelName = level?.name || "Shellborn";
-
+  // Utility to refresh profile (after awards)
+  const refreshProfile = async () => {
     try {
-      await apiCompleteQuest({ wallet, questId, title, xp: xpGain });
-
-      // Refresh session profile after completion
       const me = await getMe();
-      if (me?.authed) {
-        const p = me.profile || {};
-        setXp(p.xp ?? 0);
-        setTier(p.tier || p.subscriptionTier || "Free");
-        setLevel({
-          name: p.levelName || p.level || "Shellborn",
-          symbol: p.levelSymbol || "🐚",
-          progress: p.levelProgress ?? 0,
-          nextXP: p.nextXP ?? 10000,
-        });
-      }
-
-      // XP modal + sound
-      setRecentXP(xpGain);
-      setXPModalOpen(true);
-      playXP();
-
+      if (!me?.authed) return;
+      const p = me.profile || {};
+      setXp(p.xp ?? 0);
+      setTier(p.tier || p.subscriptionTier || "Free");
+      const prevName = level?.name || "Shellborn";
+      const newName = p.levelName || p.level || prevName;
+      const newSymbol = p.levelSymbol || "🐚";
+      setLevel({
+        name: newName,
+        symbol: newSymbol,
+        progress: p.levelProgress ?? 0,
+        nextXP: p.nextXP ?? 10000,
+      });
       // Level-up detection
-      const newLevelName = me?.profile?.levelName || level.name;
-      const newLevelSymbol = me?.profile?.levelSymbol || level.symbol;
-      if (newLevelName && newLevelName !== prevLevelName) {
-        setUnlocked({ name: newLevelName, symbol: newLevelSymbol || "🐚" });
+      if (newName && newName !== prevName) {
+        setUnlocked({ name: newName, symbol: newSymbol || "🐚" });
         setShowLevelModal(true);
       }
-
-      // Mark completed locally
-      setCompleted((prev) => (prev.includes(questId) ? prev : [...prev, questId]));
-      setQuests((prev) =>
-        prev.map((q) => (q.id === questId ? { ...q, completed: true } : q))
-      );
-
-      // 🎉
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-
-      // Notify other tabs/pages
-      window.dispatchEvent(new Event("quests:updated"));
-    } catch (err) {
-      console.error("Quest complete error", err);
-      alert(`Could not complete this quest. ${err?.message || "Please try again."}`);
+    } catch (e) {
+      console.error("Profile refresh failed", e);
     }
+  };
+
+  // ========= Secure flows =========
+
+  // 1) Start a link quest (opens /r/:nonce and starts a countdown)
+  const handleVisit = async (q) => {
+    try {
+      playClick();
+      const key = q.code || String(q.id);
+      const { redirectUrl, minSeconds, status } = await startLinkQuest(key);
+      if (status === "already_completed") {
+        // Mark completed locally
+        setCompleted((prev) => (prev.includes(q.id) ? prev : [...prev, q.id]));
+        setQuests((prev) => prev.map((it) => (it.id === q.id ? { ...it, completed: true } : it)));
+        return;
+      }
+      if (redirectUrl) {
+        // Start timer
+        setTimers((m) => ({ ...m, [key]: Number(minSeconds || 7) }));
+      }
+    } catch (e) {
+      console.error("startLinkQuest failed", e);
+      alert("Could not open quest link. Please try again.");
+    }
+  };
+
+  // 2) Claim a link quest (after the timer expires)
+  const handleClaim = async (q) => {
+    const key = q.code || String(q.id);
+    setClaiming((m) => ({ ...m, [key]: true }));
+    try {
+      const { status, xp: gained, error } = await finishLinkQuest(key);
+      if (error) {
+        alert(error);
+      } else {
+        if (status === "completed") {
+          // XP modal + sound
+          setRecentXP(Number(gained || q.xp || 0));
+          setXPModalOpen(true);
+          playXP();
+          // confetti
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+          // mark completed
+          setCompleted((prev) => (prev.includes(q.id) ? prev : [...prev, q.id]));
+          setQuests((prev) => prev.map((it) => (it.id === q.id ? { ...it, completed: true } : it)));
+          // refresh profile
+          await refreshProfile();
+        } else if (status === "already_completed") {
+          setCompleted((prev) => (prev.includes(q.id) ? prev : [...prev, q.id]));
+          setQuests((prev) => prev.map((it) => (it.id === q.id ? { ...it, completed: true } : it)));
+        } else {
+          // e.g., Too fast
+          alert(status || "Unable to claim yet.");
+        }
+      }
+    } catch (e) {
+      console.error("finishLinkQuest failed", e);
+      alert("Could not claim. Please try again.");
+    } finally {
+      setClaiming((m) => ({ ...m, [key]: false }));
+      // clear timer
+      setTimers((m) => {
+        const copy = { ...m };
+        delete copy[key];
+        return copy;
+      });
+    }
+  };
+
+  // 3) Telegram verify (all/group/channel)
+  const handleVerifyTelegram = async (target /* 'group'|'channel'|undefined */) => {
+    try {
+      playClick();
+      setVerifying(true);
+      const { ok, results, error } = await verifyTelegramJoin(target);
+      if (error) {
+        alert(error);
+      } else if (ok) {
+        const earned = (results || []).filter((r) => r.status === "completed");
+        if (earned.length) {
+          const total = earned.reduce((s, r) => s + (r.xp || 0), 0);
+          setRecentXP(total);
+          setXPModalOpen(true);
+          playXP();
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.7 } });
+          await refreshProfile();
+        } else {
+          const notYet = (results || []).find((r) => r.status === "not_member");
+          if (notYet) alert(`Join the Telegram ${notYet.target} first, then verify again.`);
+          else alert("Nothing to verify right now.");
+        }
+      } else {
+        alert("Telegram verify failed.");
+      }
+    } catch (e) {
+      console.error("verifyTelegramJoin failed", e);
+      alert("Telegram verify failed. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // 4) Discord verify
+  const handleVerifyDiscord = async () => {
+    try {
+      playClick();
+      setVerifying(true);
+      const { status, xp: gained, error } = await verifyDiscordJoin();
+      if (error) {
+        alert(error);
+      } else if (status === "completed") {
+        setRecentXP(Number(gained || 0));
+        setXPModalOpen(true);
+        playXP();
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.7 } });
+        await refreshProfile();
+      } else if (status === "already_completed") {
+        alert("Discord quest already completed ✅");
+      } else {
+        alert(status || "Nothing to verify.");
+      }
+    } catch (e) {
+      console.error("verifyDiscordJoin failed", e);
+      alert("Discord verify failed. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Render helpers for actions
+  const renderActions = (q) => {
+    const key = q.code || String(q.id);
+    const secondsLeft = timers[key] ?? 0;
+    const isDone = completed.includes(q.id) || q.completed;
+
+    // Telegram/Discord verify buttons take precedence if required
+    if (isTelegramReq(q.requirement)) {
+      return (
+        <div className="actions">
+          <button className="btn" disabled={verifying} onClick={() => handleVerifyTelegram()}>
+            {verifying ? "Verifying…" : "Verify Telegram (All)"}
+          </button>
+          <button className="btn ghost" disabled={verifying} onClick={() => handleVerifyTelegram("group")}>
+            Group
+          </button>
+          <button className="btn ghost" disabled={verifying} onClick={() => handleVerifyTelegram("channel")}>
+            Channel
+          </button>
+        </div>
+      );
+    }
+    if (isDiscordReq(q.requirement)) {
+      return (
+        <div className="actions">
+          <button className="btn" disabled={verifying} onClick={handleVerifyDiscord}>
+            {verifying ? "Verifying…" : "Verify Discord"}
+          </button>
+        </div>
+      );
+    }
+
+    // Link / visit quests (secure start → claim)
+    if (q.url && q.active) {
+      return (
+        <div className="actions">
+          {secondsLeft > 0 ? (
+            <button className="btn" disabled>
+              Wait {secondsLeft}s…
+            </button>
+          ) : isDone ? (
+            <button className="btn success" disabled>
+              Completed
+            </button>
+          ) : (
+            <>
+              <button className="btn primary" onClick={() => handleVisit(q)}>
+                Visit
+              </button>
+              <button
+                className="btn ghost"
+                disabled={!!claiming[key]}
+                onClick={() => handleClaim(q)}
+                title="Click after the timer finishes"
+              >
+                {claiming[key] ? "Claiming…" : "Claim"}
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback: just a disabled “Complete” (we no longer use DEV_COMPLETE)
+    return (
+      <div className="actions">
+        <button className="btn ghost" disabled title="No action available">
+          Complete
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -234,7 +427,6 @@ export default function Quests() {
             </div>
           ) : (
             shownQuests.map((q) => {
-              const isDone = completed.includes(q.id) || q.completed;
               return (
                 <div key={q.id} className="glass quest-card">
                   <div className="q-row">
@@ -244,28 +436,15 @@ export default function Quests() {
                     <span className="xp-badge">+{q.xp} XP</span>
                   </div>
 
-                  <p className="quest-title">{q.title}</p>
+                  <p className="quest-title">{q.title || q.code}</p>
 
-                  <div className="actions">
-                    <button
-                      className="btn primary"
-                      onClick={() => {
-                        playClick();
-                        if (q.url) window.open(q.url, "_blank", "noopener,noreferrer");
-                      }}
-                    >
-                      Go to Quest
-                    </button>
+                  {q.url ? (
+                    <div className="muted mono" style={{ wordBreak: "break-all" }}>
+                      {q.url}
+                    </div>
+                  ) : null}
 
-                    <button
-                      className={`btn ${isDone ? "success" : "ghost"}`}
-                      onClick={() => handleCompleteClick(q)}
-                      disabled={isDone}
-                      title={!wallet ? "Connect a wallet to complete quests" : ""}
-                    >
-                      {isDone ? "Completed" : "Complete"}
-                    </button>
-                  </div>
+                  {renderActions(q)}
                 </div>
               );
             })
@@ -278,9 +457,7 @@ export default function Quests() {
             <div className="glass-strong modal-box">
               <h2>🎉 Level Up!</h2>
               <img
-                src={`/images/badges/level-${unlocked.name
-                  .toLowerCase()
-                  .replace(/\s+/g, "-")}.png`}
+                src={`/images/badges/level-${unlocked.name.toLowerCase().replace(/\s+/g, "-")}.png`}
                 alt={unlocked.name}
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
