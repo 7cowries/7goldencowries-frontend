@@ -110,7 +110,7 @@ export const completeQuest = (payload) =>
 export const getLeaderboard = () =>
   tryPaths(['/leaderboard', '/api/leaderboard'], {});
 
-// Discord login URL (keep flexible: your router may mount under /auth)
+// Discord login URL (flexible: your router may mount under /auth or /api)
 export const getDiscordLogin = ({ state }) =>
   tryPaths(
     [
@@ -125,7 +125,11 @@ export const getDiscordLogin = ({ state }) =>
 export const getJSON  = (path) => request(path);
 export const postJSON = (path, payload) => request(path, { method: 'POST', body: payload });
 
-// Back-compat shim for older imports
+// ---- legacy named exports kept for compatibility (older imports) ----
+export const apiGet  = (path) => request(path);
+export const apiPost = (path, payload) => request(path, { method: 'POST', body: payload });
+
+// Back-compat shim for modules importing `{ api }`
 export const api = {
   base: API_BASE,
   get: getJSON,
