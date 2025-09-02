@@ -1,5 +1,5 @@
 // src/pages/Quests.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
 import XPModal from "../components/XPModal";
 import XPBar from "../components/XPBar";
@@ -7,23 +7,21 @@ import "../components/XPBar.css";
 import "./Quests.css";
 import "../App.css";
 
-// 🔊 Sound
 import { playClick, playXP } from "../utils/sounds";
-
-// 🔗 TonConnect
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 
-// ✅ Unified API helpers (talks to Render)
+// API helpers (session-aware)
 import {
   getQuests,
-  getProfile,
-  getCompleted,
+  getMe,
   completeQuest as apiCompleteQuest,
 } from "../utils/api";
 
-const Quests = () => {
+const QUEST_TABS = ["all", "daily", "social", "partner", "insider", "onchain"];
+
+export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [completed, setCompleted] = useState([]);
+  const [completed, setCompleted] = useState([]); // quest IDs
   const [xp, setXp] = useState(0);
   const [tier, setTier] = useState("Free");
   const [level, setLevel] = useState({
@@ -33,109 +31,82 @@ const Quests = () => {
     nextXP: 10000,
   });
   const [wallet, setWallet] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("all");
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [unlocked, setUnlocked] = useState(null);
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
-  const [activeTab, setActiveTab] = useState("all");
 
   // TonConnect
   const tonAddress = useTonAddress();
   const [tonUI] = useTonConnectUI();
 
-  // 0) Previously saved wallet (before TonConnect)
-  useEffect(() => {
-    const saved =
-      localStorage.getItem("wallet") ||
-      localStorage.getItem("ton_wallet") ||
-      localStorage.getItem("walletAddress");
-    if (saved) setWallet(saved);
-  }, []);
-
-  // 1) Whenever TonConnect provides an address, save + use it
+  // Persist any Ton wallet we learn about (helps other pages)
   useEffect(() => {
     if (tonAddress && tonAddress.length > 0) {
       setWallet(tonAddress);
       localStorage.setItem("wallet", tonAddress);
       localStorage.setItem("ton_wallet", tonAddress);
       localStorage.setItem("walletAddress", tonAddress);
+    } else {
+      const saved =
+        localStorage.getItem("wallet") ||
+        localStorage.getItem("ton_wallet") ||
+        localStorage.getItem("walletAddress");
+      if (saved) setWallet(saved);
     }
   }, [tonAddress]);
 
-  // 2) Load quests (no wallet required)
+  // Initial load: session profile + quests
   useEffect(() => {
-    const loadQuests = async () => {
+    (async () => {
       try {
-        const data = await getQuests();
-        // Support both {quests: [...]} and plain array
-        const list = Array.isArray(data) ? data : Array.isArray(data?.quests) ? data.quests : [];
-        const normalized = list.map((q) => ({
-          id: q.id,
-          title: q.title,
-          type: (q.type || "daily").toLowerCase(),
-          url: q.url || "#",
-          xp: q.xp ?? 0,
-          completed: !!q.completed,
+        // Profile via session cookie
+        const me = await getMe();
+        if (me?.authed) {
+          const p = me.profile || {};
+          setWallet((w) => w || p.wallet || null);
+          setXp(p.xp ?? 0);
+          setTier(p.tier || p.subscriptionTier || "Free");
+          setLevel({
+            name: p.levelName || p.level || "Shellborn",
+            symbol: p.levelSymbol || "🐚",
+            progress: p.levelProgress ?? 0,
+            nextXP: p.nextXP ?? 10000,
+          });
+          const done = Array.isArray(me.history)
+            ? me.history.map((h) => Number(h.id)).filter((n) => !Number.isNaN(n))
+            : [];
+          setCompleted(done);
+        }
+
+        // Quests list (supports multiple mounts)
+        const q = await getQuests();
+        const list = Array.isArray(q) ? q : Array.isArray(q?.quests) ? q.quests : [];
+        const normalized = list.map((quest) => ({
+          id: Number(quest.id),
+          title: quest.title,
+          type: String(quest.type || "daily").toLowerCase(),
+          url: quest.url || "#",
+          xp: quest.xp ?? 0,
+          completed: !!quest.completed,
         }));
         setQuests(normalized);
       } catch (err) {
-        console.error("Failed to load quests", err);
+        console.error("Failed to load quests/profile", err);
         setQuests([]);
       }
-    };
-    loadQuests();
+    })();
   }, []);
 
-  // Helpers: completed + profile
-  async function loadCompleted(addr) {
-    try {
-      const j = await getCompleted(addr);
-      if (Array.isArray(j?.completed)) {
-        setCompleted(j.completed.map((x) => Number(x)));
-      } else {
-        setCompleted([]);
-      }
-    } catch (e) {
-      console.error("Completed fetch failed", e);
-      setCompleted([]);
-    }
-  }
+  // Derived list per tab
+  const shownQuests = useMemo(() => {
+    if (activeTab === "all") return quests;
+    return quests.filter((q) => (q.type || "").toLowerCase() === activeTab);
+  }, [quests, activeTab]);
 
-  async function loadProfile(addr) {
-    try {
-      const data = await getProfile(addr);
-      const p = data?.profile || {};
-      setXp(p.xp ?? 0);
-      const nextTier = p.subscriptionTier || p.tier || "Free";
-      setTier(nextTier);
-      setLevel({
-        name: p.levelName || p.level || "Shellborn",
-        symbol: p.levelSymbol || "🐚",
-        progress: p.levelProgress ?? 0,
-        nextXP: p.nextXP ?? 10000,
-      });
-      return {
-        xp: p.xp ?? 0,
-        tier: nextTier,
-        levelName: p.levelName || p.level || "Shellborn",
-        levelSymbol: p.levelSymbol || "🐚",
-        nextXP: p.nextXP ?? 10000,
-        progress: p.levelProgress ?? 0,
-      };
-    } catch (e) {
-      console.error("Profile fetch failed", e);
-      return null;
-    }
-  }
-
-  // 3) With a wallet present, load profile + completed
-  useEffect(() => {
-    if (!wallet) return;
-    loadCompleted(wallet);
-    loadProfile(wallet);
-  }, [wallet]);
-
-  // 4) Complete quest handler
+  // Complete quest flow
   const handleCompleteClick = async (quest) => {
     playClick();
 
@@ -143,9 +114,10 @@ const Quests = () => {
       try {
         await tonUI.openModal();
       } catch {}
-      alert("Connect / save a wallet to complete quests.");
+      alert("Connect your TON wallet to complete quests.");
       return;
     }
+
     await completeQuest(quest);
   };
 
@@ -154,46 +126,51 @@ const Quests = () => {
     const prevLevelName = level?.name || "Shellborn";
 
     try {
-      // ✅ canonical complete endpoint via helper
       await apiCompleteQuest({ wallet, questId, title, xp: xpGain });
 
-      // Refresh profile
-      const newProfile = await loadProfile(wallet);
+      // Refresh session profile after completion
+      const me = await getMe();
+      if (me?.authed) {
+        const p = me.profile || {};
+        setXp(p.xp ?? 0);
+        setTier(p.tier || p.subscriptionTier || "Free");
+        setLevel({
+          name: p.levelName || p.level || "Shellborn",
+          symbol: p.levelSymbol || "🐚",
+          progress: p.levelProgress ?? 0,
+          nextXP: p.nextXP ?? 10000,
+        });
+      }
 
-      // Show XP modal
+      // XP modal + sound
       setRecentXP(xpGain);
       setXPModalOpen(true);
       playXP();
 
-      // Detect level up
-      const newLevelName = newProfile?.levelName || level.name;
-      const newLevelSymbol = newProfile?.levelSymbol || level.symbol;
+      // Level-up detection
+      const newLevelName = me?.profile?.levelName || level.name;
+      const newLevelSymbol = me?.profile?.levelSymbol || level.symbol;
       if (newLevelName && newLevelName !== prevLevelName) {
         setUnlocked({ name: newLevelName, symbol: newLevelSymbol || "🐚" });
         setShowLevelModal(true);
       }
 
-      // Mark as completed locally
+      // Mark completed locally
       setCompleted((prev) => (prev.includes(questId) ? prev : [...prev, questId]));
-      setQuests((prev) => prev.map((q) => (q.id === questId ? { ...q, completed: true } : q)));
+      setQuests((prev) =>
+        prev.map((q) => (q.id === questId ? { ...q, completed: true } : q))
+      );
 
-      // Confetti 🎉
+      // 🎉
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
 
-      // 🔔 Notify other pages
+      // Notify other tabs/pages
       window.dispatchEvent(new Event("quests:updated"));
     } catch (err) {
       console.error("Quest complete error", err);
       alert(`Could not complete this quest. ${err?.message || "Please try again."}`);
     }
   };
-
-  const filterQuests = (type) => {
-    if (type === "all") return quests;
-    return quests.filter((q) => (q.type || "").toLowerCase() === type);
-  };
-
-  const questTypes = ["all", "daily", "social", "partner", "insider", "onchain"];
 
   return (
     <div className="page">
@@ -229,7 +206,7 @@ const Quests = () => {
           <p className="subtitle">Complete tasks. Earn XP. Level up.</p>
 
           <div className="tabs">
-            {questTypes.map((type) => (
+            {QUEST_TABS.map((type) => (
               <button
                 key={type}
                 className={`tab ${activeTab === type ? "active" : ""}`}
@@ -251,12 +228,12 @@ const Quests = () => {
 
         {/* Quest list */}
         <div className="q-list">
-          {filterQuests(activeTab).length === 0 ? (
+          {shownQuests.length === 0 ? (
             <div className="glass quest-card">
               <p className="quest-title">No quests yet for this category.</p>
             </div>
           ) : (
-            filterQuests(activeTab).map((q) => {
+            shownQuests.map((q) => {
               const isDone = completed.includes(q.id) || q.completed;
               return (
                 <div key={q.id} className="glass quest-card">
@@ -301,7 +278,9 @@ const Quests = () => {
             <div className="glass-strong modal-box">
               <h2>🎉 Level Up!</h2>
               <img
-                src={`/images/badges/level-${unlocked.name.toLowerCase().replace(/\s+/g, "-")}.png`}
+                src={`/images/badges/level-${unlocked.name
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}.png`}
                 alt={unlocked.name}
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
@@ -318,12 +297,8 @@ const Quests = () => {
         )}
 
         {/* XP modal */}
-        {xpModalOpen && (
-          <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />
-        )}
+        {xpModalOpen && <XPModal xpGained={recentXP} onClose={() => setXPModalOpen(false)} />}
       </div>
     </div>
   );
-};
-
-export default Quests;
+}
