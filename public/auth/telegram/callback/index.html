@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <title>Connecting Telegram…</title>
+  </head>
+  <body>
+    <script>
+      // carry Telegram's signed query string to your backend for verification
+      var q = window.location.search || "";
+      window.location.replace("https://sevengoldencowries-backend.onrender.com/auth/telegram/callback" + q);
+    </script>
+  </body>
+</html>
