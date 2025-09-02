@@ -1,52 +1,50 @@
 // src/utils/api.js
-// Tiny fetch helper for calling the Render backend from the Vercel frontend.
+// Unified fetch helper for calling the Render backend from Vercel (or local).
+// - Always sends credentials (cookies) so sessions work cross-origin.
+// - Has timeouts, JSON safety, and multiple endpoint fallbacks.
 
-const API_BASE =
-  (
-    process.env.REACT_APP_API_URL ||
-    (typeof window !== "undefined" && (window.__API_BASE || window.__API_URL__)) ||
-    "http://localhost:5000"
-  )?.replace(/\/+$/, "") || "http://localhost:5000";
+const API_BASE = (
+  process.env.REACT_APP_API_URL ||
+  (typeof window !== 'undefined' && (window.__API_BASE || window.__API_URL__)) ||
+  'http://localhost:5000'
+).replace(/\/+$/, ''); // trim trailing slashes
 
-// -------- internals --------
+// ---------- internals ----------
 
 const DEFAULT_TIMEOUT_MS = 12000;
 
-function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
+function withTimeout(ms = DEFAULT_TIMEOUT_MS) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort("timeout"), ms);
-  return {
-    exec: (fn) => fn(ctrl.signal).finally(() => clearTimeout(t)),
-    signal: ctrl.signal,
-  };
+  const t = setTimeout(() => ctrl.abort('timeout'), ms);
+  return { signal: ctrl.signal, clear: () => clearTimeout(t) };
 }
 
-async function safeJson(res) {
+async function asJson(res) {
+  if (res.status === 204) return null;
   try { return await res.json(); } catch { return null; }
 }
 
-function toQS(query) {
-  if (!query) return "";
+function qs(query) {
+  if (!query) return '';
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {
-    if (v !== undefined && v !== null && v !== "") sp.append(k, String(v));
+    if (v !== undefined && v !== null && v !== '') sp.append(k, String(v));
   }
   const s = sp.toString();
-  return s ? `?${s}` : "";
+  return s ? `?${s}` : '';
 }
 
-async function request(path, { method = "GET", body, headers, timeoutMs } = {}) {
-  const { exec } = withTimeout(null, timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  return exec(async (signal) => {
+async function request(path, { method = 'GET', body, headers, timeoutMs } = {}) {
+  const { signal, clear } = withTimeout(timeoutMs);
+  try {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...headers },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...headers },
       body: body ? JSON.stringify(body) : undefined,
       signal,
     });
-
-    const data = await safeJson(res);
+    const data = await asJson(res);
     if (!res.ok) {
       const msg = data?.error || data?.message || res.statusText || `HTTP ${res.status}`;
       const err = new Error(msg);
@@ -55,7 +53,9 @@ async function request(path, { method = "GET", body, headers, timeoutMs } = {}) 
       throw err;
     }
     return data;
-  });
+  } finally {
+    clear();
+  }
 }
 
 async function tryPaths(paths, opts) {
@@ -67,82 +67,71 @@ async function tryPaths(paths, opts) {
       lastErr = e;
     }
   }
-  throw lastErr || new Error("No endpoint responded");
+  throw lastErr || new Error('No endpoint responded');
 }
 
-// -------- public API --------
+// ---------- public API ----------
 
-// Health (backend has "/" not "/health")
-export const getHealth = () => request("/");
+// Health
+export const getHealth = () =>
+  tryPaths(['/api/health', '/health', '/'], {});
 
-// Profile
+// Session-based profile (reads cookie session; no wallet param)
+export const getMe = () =>
+  tryPaths(['/api/users/me', '/users/me'], {});
+
+// Wallet-query profile (explicit wallet string)
 export function getProfile(wallet, { bust } = {}) {
-  if (!wallet) throw new Error("wallet is required");
-  const q = toQS({ wallet, t: bust ? Date.now() : undefined });
-  return request(`/api/profile${q}`);
+  if (!wallet) throw new Error('wallet is required');
+  return request(`/api/profile${qs({ wallet, t: bust ? Date.now() : undefined })}`);
 }
 
-// Quests list (support current + legacy mounts)
-export function getQuests() {
-  return tryPaths([
-    "/api/quest/quests",  // current
-    "/api/quests",        // legacy
-    "/quests",            // legacy
-  ]);
-}
+// Quests list
+export const getQuests = () =>
+  tryPaths(['/api/quest/quests', '/api/quests', '/quests'], {});
 
 // Completed quests for a wallet -> { completed: number[] }
-export function getCompleted(wallet) {
+export const getCompleted = (wallet) => {
   const w = encodeURIComponent(wallet);
-  return tryPaths([
-    `/api/quest/completed/${w}`,            // current
-    `/completed/${w}`,                      // legacy
-    `/api/quests/completed?wallet=${w}`,    // legacy
-  ]);
-}
+  return tryPaths(
+    [`/api/quest/completed/${w}`, `/api/quests/completed?wallet=${w}`, `/completed/${w}`],
+    {}
+  );
+};
 
 // Complete a quest -> { message, xpGain }
-export function completeQuest(payload) {
-  return tryPaths(
-    [
-      "/api/quest/complete",  // current
-      "/api/quests/complete",
-      "/complete",
-    ],
-    { method: "POST", body: payload }
+export const completeQuest = (payload) =>
+  tryPaths(
+    ['/api/quest/complete', '/api/quests/complete', '/complete'],
+    { method: 'POST', body: payload }
   );
-}
 
-// Leaderboard (backend exposes /leaderboard; keep /api/leaderboard fallback)
-export function getLeaderboard() {
-  return tryPaths([
-    "/leaderboard",
-    "/api/leaderboard",
-  ]);
-}
+// Leaderboard
+export const getLeaderboard = () =>
+  tryPaths(['/leaderboard', '/api/leaderboard'], {});
 
-// Discord: fetch login URL (Profile uses this, then window.location = resp.url)
-export function getDiscordLogin({ state }) {
-  return tryPaths([
-    `/api/discord/login${toQS({ state })}`,
-  ]);
-}
+// Discord login URL (keep flexible: your router may mount under /auth)
+export const getDiscordLogin = ({ state }) =>
+  tryPaths(
+    [
+      `/auth/discord/login${qs({ state })}`,
+      `/auth/discord/start${qs({ state })}`,
+      `/api/discord/login${qs({ state })}`,
+    ],
+    {}
+  );
 
-// Generic POST (rarely needed directly)
-export function postJSON(path, payload) {
-  return request(path, { method: "POST", body: payload });
-}
+// Generic helpers (sometimes useful directly)
+export const getJSON  = (path) => request(path);
+export const postJSON = (path, payload) => request(path, { method: 'POST', body: payload });
 
-// ---- compatibility shims for existing imports ----
-export const apiGet  = (path) => request(path);
-export const apiPost = (path, payload) => request(path, { method: "POST", body: payload });
-
-// Some files import `{ api }` — provide a shim object:
+// Back-compat shim for older imports
 export const api = {
   base: API_BASE,
-  get: apiGet,
-  post: apiPost,
+  get: getJSON,
+  post: postJSON,
   getHealth,
+  getMe,
   getProfile,
   getQuests,
   getCompleted,
@@ -151,5 +140,5 @@ export const api = {
   getDiscordLogin,
 };
 
-// Export the resolved base for direct imports
+// Expose resolved base
 export { API_BASE };
