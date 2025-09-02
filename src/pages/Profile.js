@@ -3,14 +3,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { api } from "../utils/api"; // use only the api object
 
-// Resolve backend base (prefer api.base if present)
-const API_BASE =
-  (api && api.base) ||
-  process.env.REACT_APP_API_URL ||
-  (typeof window !== "undefined" && window.__API_BASE) ||
-  "";
+import { API_BASE, getMe, getJSON } from "../utils/api"; // session profile + generic getter
 
 // Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
@@ -39,29 +33,8 @@ function b64(s) {
   }
 }
 
-// Minimal fallback if api.getJSON isn’t available in older builds
-function toQS(query) {
-  if (!query) return "";
-  const entries = Object.entries(query).filter(
-    ([, v]) => v !== undefined && v !== null
-  );
-  if (!entries.length) return "";
-  const sp = new URLSearchParams();
-  for (const [k, v] of entries) sp.append(k, String(v));
-  return `?${sp.toString()}`;
-}
-async function apiGetJSON(path, query) {
-  if (api && typeof api.getJSON === "function") {
-    return api.getJSON(path, query);
-  }
-  const url = `${API_BASE}${path}${toQS(query)}`;
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
 export default function Profile() {
-  // Prefer TonConnect, fall back to any cached values
+  // Prefer TonConnect address for wallet display / legacy state param
   const tonWallet = useTonAddress();
   const lsCandidates = useMemo(() => {
     const items = [
@@ -94,7 +67,7 @@ export default function Profile() {
   const [history, setHistory] = useState([]);
   const [toast, setToast] = useState("");
 
-  // Choose best address source
+  // Choose best address source (for display only; server uses session cookie)
   useEffect(() => {
     if (tonWallet) {
       setAddress(tonWallet);
@@ -112,81 +85,73 @@ export default function Profile() {
     return `/images/badges/level-${slug}.png`;
   }, [level.name]);
 
-  // Core fetcher (memoized)
-  const fetchProfile = useCallback(
-    async (addr, { bust = false } = {}) => {
-      const data = await apiGetJSON("/api/profile", {
-        wallet: addr,
-        t: bust ? Date.now() : undefined,
-      });
+  // ------- LOAD SESSION PROFILE (getMe) -------
+  const applyProfile = useCallback((me) => {
+    const p = me?.profile || {};
+    const links = p?.links || {};
 
-      const p = data?.profile || {};
-      const links = p?.links || {};
+    setXp(p.xp ?? 0);
+    setTier(p.tier || p.subscriptionTier || "Free");
 
-      setXp(p.xp ?? 0);
-      const lvlName = p.levelName || p.level || "Shellborn";
-      setTier(p.tier || p.subscriptionTier || "Free");
-      setLevel({
-        name: lvlName,
-        symbol: p.levelSymbol || "🐚",
-        progress: p.levelProgress ?? 0,
-        nextXP: p.nextXP ?? 10000,
-      });
-      setPerk(perksMap[lvlName] || "");
+    const lvlName = p.levelName || p.level || "Shellborn";
+    setLevel({
+      name: lvlName,
+      symbol: p.levelSymbol || "🐚",
+      progress: p.levelProgress ?? 0,
+      nextXP: p.nextXP ?? 10000,
+    });
+    setPerk(perksMap[lvlName] || "");
 
-      setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
-      setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
-      setDiscord(String(links.discord || p.discordHandle || ""));
-      setDiscordGuildMember(!!p.discordGuildMember);
+    // handles
+    setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
+    setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
+    setDiscord(String(links.discord || p.discordHandle || ""));
+    setDiscordGuildMember(!!p.discordGuildMember);
 
-      setHistory(Array.isArray(data?.history) ? data.history : []);
-    },
-    []
-  );
+    setHistory(Array.isArray(me?.history) ? me.history : []);
+    // also surface wallet returned by server if present
+    if (p.wallet && !address) setAddress(p.wallet);
+  }, [address]);
 
-  // Wrapper with defaults + errors handled
-  const loadProfile = useCallback(
-    async ({ bust = false } = {}) => {
-      setError("");
-      const addr = address || lsCandidates[0];
-      if (!addr) return;
-
-      setLoading(true);
-      try {
-        await fetchProfile(addr, { bust });
-      } catch (e) {
-        console.error(e);
-        setError("Failed to load profile.");
-        // Reset sensible defaults
-        setXp(0);
-        setTier("Free");
-        setLevel({ name: "Shellborn", symbol: "🐚", progress: 0, nextXP: 10000 });
+  const loadMe = useCallback(async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const me = await getMe(); // calls /api/users/me and sends credentials
+      if (!me?.authed) {
+        // not logged in (no session cookie)
+        setHistory([]);
         setTwitter("");
         setTelegram("");
         setDiscord("");
         setDiscordGuildMember(false);
-        setHistory([]);
-        setPerk("");
-      } finally {
-        setLoading(false);
+        setXp(0);
+        setTier("Free");
+        setLevel({ name: "Shellborn", symbol: "🐚", progress: 0, nextXP: 10000 });
+        return;
       }
-    },
-    [address, lsCandidates, fetchProfile]
-  );
+      applyProfile(me);
+    } catch (e) {
+      console.error(e);
+      setError("Failed to load profile.");
+      setHistory([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [applyProfile]);
 
-  // Initial / on address change
   useEffect(() => {
-    if (address) loadProfile({ bust: true });
-  }, [address, loadProfile]);
+    loadMe();
+  }, [loadMe]);
 
-  // Reload after returning from OAuth (tab became visible again)
+  // Reload after OAuth tab becomes visible again
   useEffect(() => {
-    const onVis = () => document.visibilityState === "visible" && loadProfile({ bust: true });
+    const onVis = () => document.visibilityState === "visible" && loadMe();
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
-  }, [loadProfile]);
+  }, [loadMe]);
 
-  // Toast + quick polling on ?linked=...
+  // Toast + brief polling when returning with ?linked=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const linked = params.get("linked");
@@ -210,10 +175,10 @@ export default function Profile() {
     const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
-    // Refresh now + poll briefly to beat caches
+    // Refresh now + brief polling
     let tries = 0;
     const id = setInterval(() => {
-      loadProfile({ bust: true });
+      loadMe();
       if (++tries >= 8) clearInterval(id);
     }, 1000);
     const clear = setTimeout(() => {
@@ -224,9 +189,9 @@ export default function Profile() {
       clearInterval(id);
       clearTimeout(clear);
     };
-  }, [loadProfile]);
+  }, [loadMe]);
 
-  // Fallback direct links if ConnectButtons isn’t available
+  // --- Connect flows (prefer dedicated endpoints; fallback to legacy) ---
   const state = b64(address || "");
 
   const connectTwitter = () => {
@@ -242,13 +207,14 @@ export default function Profile() {
   const connectDiscord = async () => {
     if (!address) return alert("Connect wallet first");
     try {
-      const resp = await apiGetJSON("/api/discord/login", { state });
+      // preferred: dynamic login URL from backend
+      const resp = await getJSON(`/api/discord/login?state=${encodeURIComponent(state)}`);
       if (resp?.url) {
         window.location.href = resp.url;
         return;
       }
     } catch {
-      // ignore; fall through
+      // ignore and fall back
     }
     window.location.href = `${API_BASE}/auth/discord?state=${state}`;
   };
@@ -331,7 +297,7 @@ export default function Profile() {
                 {((level.progress ?? 0) * 100).toFixed(1)}% to next virtue
               </p>
 
-              <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadProfile({ bust: true })}>
+              <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadMe()}>
                 🔄 Refresh
               </button>
             </div>
@@ -409,7 +375,7 @@ export default function Profile() {
             <h3>Link New Accounts</h3>
             <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-            <ConnectButtons onLinked={() => loadProfile({ bust: true })} />
+            <ConnectButtons onLinked={() => loadMe()} />
 
             <div className="connect-buttons" style={{ marginTop: 12 }}>
               <button className="connect-btn" onClick={connectTwitter}>
