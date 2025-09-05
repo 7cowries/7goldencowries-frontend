@@ -1,30 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { clamp01, abbrevWallet, normalizeUser } from '../lib/format';
-codex/polish-leaderboard-layout-and-functionality-eo3z5p
 import { getLeaderboard } from '../lib/api';
 
 async function fetchLeaderboard() {
   try {
     const data = await getLeaderboard();
-    // Accept {users:[...]} or direct array
-    const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+    // Accept { users:[...] }, { top:[...] }, or direct array
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray(data.users)
+      ? data.users
+      : Array.isArray(data.top)
+      ? data.top
+      : [];
     if (list.length) return list.map(normalizeUser);
   } catch {}
-  
-
-async function fetchLeaderboard() {
-  const tryUrls = ['/api/leaderboard', '/api/leaderboard/top'];
-  for (const u of tryUrls) {
-    try {
-      const r = await fetch(u, { credentials: 'include' });
-      if (!r.ok) continue;
-      const data = await r.json();
-      // Accept {users:[...]} or direct array
-      const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
-      if (list.length) return list.map(normalizeUser);
-    } catch {}
-  }
- main
   return [];
 }
 
@@ -38,7 +28,7 @@ export default function Leaderboard() {
     try {
       const list = await fetchLeaderboard();
       // sort by XP desc, stable
-      list.sort((a,b) => (b.xp||0) - (a.xp||0));
+      list.sort((a, b) => (b.xp || 0) - (a.xp || 0));
       setRows(list);
     } catch (e) {
       setError(e.message || 'Failed to load leaderboard');
@@ -93,8 +83,11 @@ export default function Leaderboard() {
       {/* Podium */}
       <div className="grid podium">
         {podium.map((u, i) => (
-          <div key={u.wallet || i} className={`card glass podium-${i+1} ${walletRef.current===u.wallet ? 'me' : ''}`}>
-            <div className="corner-rank">#{i+1}</div>
+          <div
+            key={u.wallet || i}
+            className={`card glass podium-${i + 1} ${walletRef.current === u.wallet ? 'me' : ''}`}
+          >
+            <div className="corner-rank">#{i + 1}</div>
             <div className="big-wallet">{abbrevWallet(u.wallet)}</div>
             <div className="chips">
               <span className="chip">{u.tier || 'Free'}</span>
@@ -130,3 +123,4 @@ export default function Leaderboard() {
     </div>
   );
 }
+
