@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getMe } from '../lib/api';
 
 export default function ProfileWidget() {
+  const [loading, setLoading] = useState(true);
   const [me, setMe] = useState(null);
   const [error, setError] = useState('');
 
@@ -12,13 +13,16 @@ export default function ProfileWidget() {
         const data = await getMe(wallet);
         setMe(data);
       } catch (e) {
-        setError(e.message || 'Failed to load');
+        setError(e.message || 'Failed to load profile');
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
+  if (loading) return <div>Loading profile...</div>;
   if (error) return <div>Error: {error}</div>;
-  if (!me) return <div>Loading profile...</div>;
+  if (!me) return null;
 
   const pct = Math.min(100, Math.round((me.levelProgress || 0) * 100));
 
