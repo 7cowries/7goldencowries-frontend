@@ -1,73 +1,57 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { clamp01, abbrevWallet, normalizeUser } from '../lib/format';
-
-async function fetchLeaderboard() {
-  const tryUrls = ['/api/leaderboard', '/api/leaderboard/top'];
-  for (const u of tryUrls) {
-    try {
-      const r = await fetch(u, { credentials: 'include' });
-      if (!r.ok) continue;
-      const data = await r.json();
-      // Accept {users:[...]} or direct array
-      const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
-      if (list.length) return list.map(normalizeUser);
-    } catch {}
-  }
-  return [];
-}
+import { getLeaderboard } from '../utils/api';
+import { normalizeUser, abbreviateWallet, clampProgress } from '../lib/format';
 
 export default function Leaderboard() {
-  const [rows, setRows] = useState([]);
+  const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const walletRef = useRef('');
-
-  const load = async () => {
-    try {
-      const list = await fetchLeaderboard();
-      // sort by XP desc, stable
-      list.sort((a,b) => (b.xp||0) - (a.xp||0));
-      setRows(list);
-    } catch (e) {
-      setError(e.message || 'Failed to load leaderboard');
-    }
-  };
+  const mountedRef = useRef(true);
+  const timerRef = useRef(null);
+  const REFRESH_MS = 60000;
 
   useEffect(() => {
     walletRef.current = localStorage.getItem('wallet') || '';
-    (async () => {
-      await load();
-      setLoading(false);
-    })();
+    mountedRef.current = true;
+    const controller = new AbortController();
 
-    // refresh every 60s
-    const t = setInterval(load, 60_000);
-
-    // if wallet changes in another tab, reload
-    const onStorage = (e) => {
-      if (e.key === 'wallet') {
-        walletRef.current = e.newValue || '';
-        load();
+    async function load() {
+      setLoading(true);
+      try {
+        const data = await getLeaderboard({ signal: controller.signal });
+        if (!mountedRef.current) return;
+        const list = (data?.leaders || data || []).map(normalizeUser);
+        setLeaders(list);
+        setError(null);
+      } catch (e) {
+        if (!mountedRef.current) return;
+        setError(e?.message || 'Failed to load leaderboard');
+      } finally {
+        if (mountedRef.current) setLoading(false);
       }
-    };
-    window.addEventListener('storage', onStorage);
+    }
+
+    load();
+    timerRef.current = setInterval(load, REFRESH_MS);
 
     return () => {
-      clearInterval(t);
-      window.removeEventListener('storage', onStorage);
+      mountedRef.current = false;
+      controller.abort();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
   if (loading) return <div className="section">Loading leaderboard…</div>;
-  if (error) return <div className="section">Error: {error}</div>;
-  if (!rows.length) return <div className="section">No explorers yet.</div>;
+  if (!loading && error) return <div className="section">Error: {error}</div>;
+  if (!leaders.length) return <div className="section">No explorers yet.</div>;
 
-  const podium = rows.slice(0, 3);
-  const rest = rows.slice(3);
+  const podium = leaders.slice(0, 3);
+  const rest = leaders.slice(3);
 
   const Bar = ({ pct = 0 }) => (
     <div className="bar-outer">
-      <div className="bar-inner" style={{ width: `${Math.round(clamp01(pct) * 100)}%` }} />
+      <div className="bar-inner" style={{ width: `${clampProgress(pct)}%` }} />
     </div>
   );
 
@@ -83,7 +67,7 @@ export default function Leaderboard() {
         {podium.map((u, i) => (
           <div key={u.wallet || i} className={`card glass podium-${i+1} ${walletRef.current===u.wallet ? 'me' : ''}`}>
             <div className="corner-rank">#{i+1}</div>
-            <div className="big-wallet">{abbrevWallet(u.wallet)}</div>
+            <div className="big-wallet">{abbreviateWallet(u.wallet)}</div>
             <div className="chips">
               <span className="chip">{u.tier || 'Free'}</span>
               <span className="chip">{u.levelName}</span>
@@ -102,7 +86,7 @@ export default function Leaderboard() {
           return (
             <div key={u.wallet || rank} className={`row glass ${isMe ? 'me' : ''}`}>
               <div className="rank">#{rank}</div>
-              <div className="wallet mono">{abbrevWallet(u.wallet)}</div>
+              <div className="wallet mono">{abbreviateWallet(u.wallet)}</div>
               <div className="badges">
                 <span className="chip">{u.tier || 'Free'}</span>
                 <span className="chip">{u.levelName}</span>
