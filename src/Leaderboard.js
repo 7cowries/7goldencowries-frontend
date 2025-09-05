@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Leaderboard.css';
-
-const API = process.env.REACT_APP_API_URL;
+import { getLeaderboard } from './utils/api';
 
 const lore = {
   "Shellborn": "Born from tide and shell — a humble beginning.",
@@ -15,12 +14,18 @@ const lore = {
 
 const Leaderboard = () => {
   const [leaders, setLeaders] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API}/leaderboard`)
-      .then(res => res.json())
-      .then(data => setLeaders(data.top || []))
-      .catch(console.error);
+    let mounted = true;
+    getLeaderboard()
+      .then((data) => mounted && setLeaders(data.top || []))
+      .catch((e) => {
+        if (mounted) setError(e.message || 'Failed to load leaderboard');
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -28,7 +33,9 @@ const Leaderboard = () => {
       <h1>🏆 Cowrie Leaderboard</h1>
       <p className="subtitle">Top explorers across the Seven Isles</p>
 
-      {leaders.length === 0 ? (
+      {error ? (
+        <p className="error">{error}</p>
+      ) : leaders.length === 0 ? (
         <p className="loading">Loading leaderboard...</p>
       ) : (
         <div className="leaderboard-list">
@@ -39,7 +46,7 @@ const Leaderboard = () => {
                 <img
                   src={`/images/badges/level-${user.name.toLowerCase().replace(/\s+/g, '-')}.png`}
                   alt={user.name}
-                  onError={(e) => e.target.src = '/images/badges/unranked.png'}
+                  onError={(e) => (e.target.src = '/images/badges/unranked.png')}
                   className="user-badge"
                 />
                 <div className="user-meta">
