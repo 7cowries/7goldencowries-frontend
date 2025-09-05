@@ -24,6 +24,14 @@ export function withSignal(ms = 15000) {
 const _cache = new Map();
 const CACHE_TTL = 60000;
 
+function userKey(key) {
+  const w =
+    typeof window !== "undefined" && window.localStorage
+      ? window.localStorage.getItem("wallet")
+      : null;
+  return w ? `${key}:${w}` : key;
+}
+
 function cacheGet(key) {
   const hit = _cache.get(key);
   if (!hit) return null;
@@ -36,6 +44,10 @@ function cacheGet(key) {
 
 function cacheSet(key, value) {
   _cache.set(key, { t: Date.now(), v: value });
+}
+
+export function clearUserCache() {
+  ["quests", "me"].forEach((k) => _cache.delete(userKey(k)));
 }
 
 export async function jsonFetch(path, opts = {}) {
@@ -68,10 +80,11 @@ export function getJSON(path, opts) {
 }
 
 export function getQuests({ signal } = {}) {
-  const cached = cacheGet("quests");
+  const key = userKey("quests");
+  const cached = cacheGet(key);
   if (cached) return Promise.resolve(cached);
   return jsonFetch("/api/quests", { signal }).then((data) => {
-    cacheSet("quests", data);
+    cacheSet(key, data);
     return data;
   });
 }
@@ -105,10 +118,11 @@ export function getLeaderboard({ signal } = {}) {
  * @returns {Promise<MeResponse>}
  */
 export async function getMe({ signal } = {}) {
-  const cached = cacheGet("me");
+  const key = userKey("me");
+  const cached = cacheGet(key);
   if (cached) return Promise.resolve(cached);
   return jsonFetch("/api/users/me", { signal }).then((data) => {
-    cacheSet("me", data);
+    cacheSet(key, data);
     return data;
   });
 }
@@ -118,11 +132,17 @@ export async function postJSON(path, body, opts = {}) {
 }
 
 export function claimQuest(id, opts = {}) {
-  return postJSON("/api/quests/claim", { questId: id }, opts);
+  return postJSON("/api/quests/claim", { questId: id }, opts).then((res) => {
+    clearUserCache();
+    return res;
+  });
 }
 
 export function bindWallet(wallet, opts = {}) {
-  return postJSON("/api/session/bind-wallet", { wallet }, opts);
+  return postJSON("/api/session/bind-wallet", { wallet }, opts).then((res) => {
+    clearUserCache();
+    return res;
+  });
 }
 
 export function getSubscription(opts = {}) {
@@ -168,6 +188,7 @@ export const api = {
   startDiscord,
   startTwitter,
   claimQuest,
+  clearUserCache,
   getReferralInfo,
   createReferral,
   applyReferral,
