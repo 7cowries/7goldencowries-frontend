@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getQuests, claimQuest } from '../lib/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
@@ -9,28 +9,31 @@ export default function Quests() {
   const [error, setError] = useState('');
   const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
-  const wallet = localStorage.getItem('wallet') || '';
+  const walletRef = useRef('');
+
+  const loadQuests = async () => {
+    try {
+      const q = await getQuests(walletRef.current);
+      setQuests(q.quests || q || []);
+    } catch (e) {
+      setError(e.message || 'Failed to load quests');
+    }
+  };
 
   useEffect(() => {
+    walletRef.current = localStorage.getItem('wallet') || '';
     (async () => {
-      try {
-        const q = await getQuests(wallet);
-        setQuests(q.quests || q || []);
-      } catch (e) {
-        setError(e.message || 'Failed to load quests');
-      } finally {
-        setLoading(false);
-      }
+      await loadQuests();
+      setLoading(false);
     })();
-  }, [wallet]);
+  }, []);
 
   const handleClaim = async (id) => {
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      const res = await claimQuest(wallet, id);
+      const res = await claimQuest(walletRef.current, id);
       setToast(res?.alreadyClaimed ? 'Already claimed' : 'Quest claimed');
-      const q = await getQuests(wallet);
-      setQuests(q.quests || q || []);
+      await loadQuests();
     } catch (e) {
       setToast(e.message || 'Failed to claim');
     } finally {
