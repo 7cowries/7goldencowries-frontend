@@ -5,47 +5,31 @@ import ProfileWidget from '../components/ProfileWidget';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    async function load() {
+    (async () => {
       try {
-        const wallet = localStorage.getItem('wallet') || '';
-        const q = await getQuests(wallet);
+        const q = await getQuests();
         setQuests(q.quests || q || []);
       } catch (e) {
-        setError(e.message || 'Failed to load quests');
-      } finally {
-        setLoading(false);
+        setToast(e.message || 'Failed to load quests');
+        setTimeout(() => setToast(''), 3000);
       }
-    }
-    load();
+    })();
   }, []);
 
   const handleClaim = async (id) => {
-    const wallet = localStorage.getItem('wallet') || '';
-    setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      const res = await claimQuest(wallet, id);
-      if (res?.alreadyClaimed) {
-        setToast('Already claimed');
-      } else {
-        setToast('Quest claimed');
-        await getMe(wallet);
-      }
+      const res = await claimQuest(id);
+      setToast(res?.alreadyClaimed ? 'Already claimed' : 'Quest claimed');
+      await getMe();
     } catch (e) {
       setToast(e.message || 'Failed to claim');
     } finally {
-      setClaiming((c) => ({ ...c, [id]: false }));
       setTimeout(() => setToast(''), 3000);
     }
   };
-
-  if (loading) return <p>Loading quests...</p>;
-  if (error) return <p>Error: {error}</p>;
 
   return (
     <div style={{ padding: 16 }}>
@@ -54,18 +38,12 @@ export default function Quests() {
       <ul>
         {quests.map((q) => (
           <li key={q.id} style={{ marginBottom: 8 }}>
-            <span>{q.title || q.id}</span>
-            {q.alreadyClaimed || q.claimed ? (
-              <span style={{ marginLeft: 8 }}>Claimed</span>
-            ) : (
-              <button
-                onClick={() => handleClaim(q.id)}
-                disabled={claiming[q.id]}
-                style={{ marginLeft: 8 }}
-              >
-                {claiming[q.id] ? 'Claiming...' : 'Claim'}
-              </button>
-            )}
+            <strong>{q.title || q.id}</strong>{' '}
+            <em>{q.type}</em>{' '}
+            <span style={{ marginLeft: 8 }}>+{q.xp} XP</span>
+            <button onClick={() => handleClaim(q.id)} style={{ marginLeft: 8 }}>
+              Claim
+            </button>
           </li>
         ))}
       </ul>
@@ -73,3 +51,4 @@ export default function Quests() {
     </div>
   );
 }
+
