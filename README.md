@@ -2,15 +2,25 @@
 
 Minimal React app for the 7GoldenCowries launch.
 
-## Configuration
+## Setup
 
-Set the backend URL before starting the app:
-
-```
-REACT_APP_API_URL=https://sevengoldencowries-backend.onrender.com
-```
+1. Install dependencies: `npm install`
+2. Copy `.env.example` to `.env` and set `REACT_APP_API_URL`.
+3. Start development server: `npm start`
 
 TonConnect manifest is served from the same origin at `/tonconnect-manifest.json`. `www` permanently (308) redirects to the apex domain.
+
+## API
+
+The frontend talks to the backend REST API:
+
+- `GET /api/users/:wallet` – fetch profile (`xp`, `levelName`, `progress`)
+- `POST /api/quests/claim` – claim quest; returns `{ alreadyClaimed: boolean }`
+- `GET /api/meta/progression` – XP progression metadata
+
+### Deprecation
+
+Legacy endpoints `/quests` and `/complete` are deprecated and will be removed after launch. Use `/api/quests` and `/api/quests/claim` instead.
 
 ## Vercel
 

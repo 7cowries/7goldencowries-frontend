@@ -20,6 +20,24 @@ export function withSignal(ms = 15000) {
   };
 }
 
+// simple in-memory cache with 60s TTL
+const _cache = new Map();
+const CACHE_TTL = 60000;
+
+function cacheGet(key) {
+  const hit = _cache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.t > CACHE_TTL) {
+    _cache.delete(key);
+    return null;
+  }
+  return hit.v;
+}
+
+function cacheSet(key, value) {
+  _cache.set(key, { t: Date.now(), v: value });
+}
+
 export async function jsonFetch(path, opts = {}) {
   const controller = opts.signal ? null : new AbortController();
   const id = controller ? setTimeout(() => controller.abort(), opts.timeout || 15000) : null;
@@ -50,11 +68,21 @@ export function getJSON(path, opts) {
 }
 
 export function getQuests({ signal } = {}) {
-  return jsonFetch("/api/quests", { signal });
+  const cached = cacheGet("quests");
+  if (cached) return Promise.resolve(cached);
+  return jsonFetch("/api/quests", { signal }).then((data) => {
+    cacheSet("quests", data);
+    return data;
+  });
 }
 
 export function getLeaderboard({ signal } = {}) {
-  return jsonFetch("/api/leaderboard", { signal });
+  const cached = cacheGet("leaderboard");
+  if (cached) return Promise.resolve(cached);
+  return jsonFetch("/api/leaderboard", { signal }).then((data) => {
+    cacheSet("leaderboard", data);
+    return data;
+  });
 }
 
 /**
@@ -77,7 +105,12 @@ export function getLeaderboard({ signal } = {}) {
  * @returns {Promise<MeResponse>}
  */
 export async function getMe({ signal } = {}) {
-  return jsonFetch("/api/users/me", { signal });
+  const cached = cacheGet("me");
+  if (cached) return Promise.resolve(cached);
+  return jsonFetch("/api/users/me", { signal }).then((data) => {
+    cacheSet("me", data);
+    return data;
+  });
 }
 
 export async function postJSON(path, body, opts = {}) {

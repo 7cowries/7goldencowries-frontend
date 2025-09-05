@@ -64,12 +64,16 @@ export default function Quests() {
     if (claiming[id]) return; // guard duplicate clicks
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      await claimQuest(id);
-      setToast('Quest claimed');
+      const res = await claimQuest(id);
+      if (res?.alreadyClaimed) {
+        setToast('Already claimed');
+      } else {
+        setToast('Quest claimed');
+      }
       await sync();
       window.dispatchEvent(new Event('profile-updated'));
     } catch (e) {
-      setToast(e.message || 'Failed to claim');
+      setToast(e.message || 'Failed to claim quest');
     } finally {
       setClaiming((c) => ({ ...c, [id]: false }));
       setTimeout(() => setToast(''), 3000);
