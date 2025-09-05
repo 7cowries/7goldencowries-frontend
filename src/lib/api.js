@@ -25,3 +25,4 @@ export const getMe = (wallet) => apiFetch('/api/users/me', { wallet });
 export const getQuests = (wallet) => apiFetch('/api/quests', { wallet });
 export const claimQuest = (wallet, questId) =>
   apiFetch('/api/quests/claim', { method: 'POST', wallet, body: { questId } });
+export const getLeaderboard = () => apiFetch('/api/leaderboard');
