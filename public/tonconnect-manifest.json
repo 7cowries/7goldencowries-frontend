@@ -1,7 +1,7 @@
 {
-  "url": "https://www.7goldencowries.com",
-  "name": "7goldencowries",
-  "iconUrl": "https://7cowries.github.io/7goldencowries-connect/icon.png",
-  "termsOfUseUrl": "https://7cowries.github.io/7goldencowries-connect/terms.html",
-  "privacyPolicyUrl": "https://7cowries.github.io/7goldencowries-connect/privacy.html"
+  "url": "https://7goldencowries.com",
+  "name": "7GoldenCowries",
+  "iconUrl": "/tonconnect-icon.svg",
+  "termsOfUseUrl": "https://7goldencowries.com/terms",
+  "privacyPolicyUrl": "https://7goldencowries.com/privacy"
 }

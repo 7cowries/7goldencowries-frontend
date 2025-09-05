@@ -10,6 +10,8 @@ Set the backend URL before starting the app:
 REACT_APP_API_URL=https://sevengoldencowries-backend.onrender.com
 ```
 
+TonConnect manifest is served from the same origin at `/tonconnect-manifest.json`. `www` permanently (308) redirects to the apex domain.
+
 ## Vercel
 
 Deploy on Vercel with custom domains:
