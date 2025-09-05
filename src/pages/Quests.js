@@ -9,11 +9,11 @@ export default function Quests() {
   const [error, setError] = useState('');
   const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
+  const wallet = localStorage.getItem('wallet') || '';
 
   useEffect(() => {
     (async () => {
       try {
-        const wallet = localStorage.getItem('wallet') || '';
         const q = await getQuests(wallet);
         setQuests(q.quests || q || []);
       } catch (e) {
@@ -22,24 +22,15 @@ export default function Quests() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [wallet]);
 
   const handleClaim = async (id) => {
-    const wallet = localStorage.getItem('wallet') || '';
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
       const res = await claimQuest(wallet, id);
-      if (res?.alreadyClaimed) {
-        setToast('Already claimed');
-      } else {
-        setToast('Quest claimed');
-      }
-      // refresh list if backend marks claimed
-      try {
-        const q = await getQuests(wallet);
-        setQuests(q.quests || q || []);
-      } catch {}
-      // optionally refresh profile via ProfileWidget’s own load on mount
+      setToast(res?.alreadyClaimed ? 'Already claimed' : 'Quest claimed');
+      const q = await getQuests(wallet);
+      setQuests(q.quests || q || []);
     } catch (e) {
       setToast(e.message || 'Failed to claim');
     } finally {

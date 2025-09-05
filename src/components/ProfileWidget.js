@@ -24,17 +24,15 @@ export default function ProfileWidget() {
   if (error) return <div>Error: {error}</div>;
   if (!me) return null;
 
-  const pct = Math.min(100, Math.round((me.levelProgress || 0) * 100));
-
   return (
     <div style={{ marginBottom: 16 }}>
-      <div>Level {me.levelName}</div>
-      <div>{me.xp} XP</div>
-      <div>Next: {me.nextXP}</div>
+      <div>
+        Level {me.levelName}, {me.xp} XP, Next: {me.nextXP}
+      </div>
       <div style={{ background: '#eee', height: 8, borderRadius: 4 }}>
         <div
           style={{
-            width: `${pct}%`,
+            width: `${Math.round((me.levelProgress || 0) * 100)}%`,
             background: '#4caf50',
             height: '100%',
             borderRadius: 4,
