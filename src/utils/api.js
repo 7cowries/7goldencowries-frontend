@@ -57,7 +57,26 @@ export function getLeaderboard({ signal } = {}) {
   return jsonFetch("/api/leaderboard", { signal });
 }
 
-export function getMe({ signal } = {}) {
+/**
+ * Shape returned from GET /api/users/me.
+ * @typedef {Object} MeResponse
+ * @property {string} wallet
+ * @property {number} xp
+ * @property {string} level
+ * @property {number} levelProgress
+ * @property {Object} socials
+ * @property {{connected:boolean, username:(string|null)}} socials.telegram
+ * @property {{connected:boolean, username:(string|null), id:(string|null)}} socials.twitter
+ * @property {{connected:boolean, username:(string|null), id:(string|null)}} socials.discord
+ */
+
+/**
+ * Fetch the current user's profile.
+ * @param {Object} [opts]
+ * @param {AbortSignal} [opts.signal]
+ * @returns {Promise<MeResponse>}
+ */
+export async function getMe({ signal } = {}) {
   return jsonFetch("/api/users/me", { signal });
 }
 

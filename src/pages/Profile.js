@@ -11,7 +11,8 @@ import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT 
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
 
 // Telegram embed constants
-const TG_BOT_NAME = process.env.REACT_APP_TG_BOT_NAME || "GOLDENCOWRIEBOT";
+const TG_BOT_NAME =
+  process.env.REACT_APP_TELEGRAM_BOT_NAME || "GOLDENCOWRIEBOT";
 const TG_VERIFY_URL = API_URLS.telegramEmbedAuth;
 
 const perksMap = {
