@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getQuests, claimQuest } from '../lib/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
+import './Quests.css';
+import '../App.css';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -9,6 +11,7 @@ export default function Quests() {
   const [error, setError] = useState('');
   const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
   const walletRef = useRef('');
 
   const loadQuests = async () => {
@@ -25,11 +28,7 @@ export default function Quests() {
       walletRef.current = localStorage.getItem('wallet') || '';
       await loadQuests();
     };
-
-    // initial load
     syncWallet().finally(() => setLoading(false));
-
-    // refresh if wallet changes (even in another tab)
     const onStorage = (e) => {
       if (e.key === 'wallet') syncWallet();
     };
@@ -51,34 +50,110 @@ export default function Quests() {
     }
   };
 
+  const shownQuests =
+    activeTab === 'all'
+      ? quests
+      : quests.filter((q) => (q.type || '').toLowerCase() === activeTab);
+
   if (loading) return <p>Loading quests...</p>;
   if (error) return <p>Error: {error}</p>;
 
   return (
-    <div style={{ padding: 16 }}>
-      <ProfileWidget />
-      <h1>Quests</h1>
-      <ul>
-        {quests.map((q) => (
-          <li key={q.id} style={{ marginBottom: 8 }}>
-            <strong>{q.title || q.id}</strong>{' '}
-            <em>{q.type}</em>{' '}
-            <span style={{ marginLeft: 8 }}>+{q.xp} XP</span>
-            {q.alreadyClaimed || q.claimed ? (
-              <span style={{ marginLeft: 8 }}>Claimed</span>
-            ) : (
+    <div className="page">
+      <video autoPlay loop muted playsInline className="bg-video">
+        <source src="/videos/sea-goddess.mp4" type="video/mp4" />
+      </video>
+      <div className="veil" />
+
+      <div className="q-container">
+        <div className="glass profile-strip">
+          <ProfileWidget />
+        </div>
+
+        <div className="glass-strong q-header">
+          <div className="q-title">
+            <span className="emoji">📜</span>
+            <h1>Quests</h1>
+          </div>
+          <p className="subtitle">Complete tasks. Earn XP. Level up.</p>
+          <div className="tabs">
+            {['all','daily','social','partner','insider','onchain'].map((type) => (
               <button
-                onClick={() => handleClaim(q.id)}
-                disabled={!!claiming[q.id]}
-                style={{ marginLeft: 8 }}
+                key={type}
+                className={`tab ${activeTab === type ? 'active' : ''}`}
+                onClick={() => setActiveTab(type)}
               >
-                {claiming[q.id] ? 'Claiming...' : 'Claim'}
+                {type === 'all' && 'All Quests'}
+                {type === 'daily' && '📅 Daily'}
+                {type === 'social' && '🌐 Social'}
+                {type === 'partner' && '🤝 Partner'}
+                {type === 'insider' && '🧠 Insider'}
+                {type === 'onchain' && '🧾 Onchain'}
               </button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <Toast message={toast} />
+            ))}
+          </div>
+        </div>
+
+        <div className="q-list">
+          {shownQuests.length === 0 ? (
+            <div className="glass quest-card">
+              <p className="quest-title">No quests yet for this category.</p>
+            </div>
+          ) : (
+            shownQuests.map((q) => (
+              <div key={q.id} className="glass quest-card">
+                <div className="q-row">
+                  <span className={`chip ${q.type}`}>
+                    {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
+                  </span>
+                  <span className="xp-badge">+{q.xp} XP</span>
+                </div>
+                <p className="quest-title">{q.title || q.id}</p>
+                {q.url ? (
+                  <div className="muted mono" style={{ wordBreak: 'break-all' }}>
+                    {q.url}
+                  </div>
+                ) : null}
+                <div className="actions">
+                  {q.alreadyClaimed || q.claimed ? (
+                    <button className="btn success" disabled>
+                      Claimed
+                    </button>
+                  ) : q.url ? (
+                    <>
+                      <a
+                        className="btn primary"
+                        href={q.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Visit
+                      </a>
+                      <button
+                        className="btn ghost"
+                        onClick={() => handleClaim(q.id)}
+                        disabled={!!claiming[q.id]}
+                      >
+                        {claiming[q.id] ? 'Claiming...' : 'Claim'}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn primary"
+                      onClick={() => handleClaim(q.id)}
+                      disabled={!!claiming[q.id]}
+                    >
+                      {claiming[q.id] ? 'Claiming...' : 'Claim'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <Toast message={toast} />
+      </div>
     </div>
   );
 }
