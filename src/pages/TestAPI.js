@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api, getQuests, getLeaderboard, getMe, getReferralInfo } from "../utils/api";
+import { api, getQuests, getLeaderboard, getMe } from "../utils/api";
 export default function TestAPI() {
   const [log, setLog] = useState([]);
   const add = (s) => setLog((x) => [...x, s]);
@@ -23,12 +23,6 @@ export default function TestAPI() {
       add("✓ /api/users/me OK");
     } catch (e) {
       add(`✗ /api/users/me: ${e.message}`);
-    }
-    try {
-      await getReferralInfo();
-      add("✓ /api/referral/me OK");
-    } catch (e) {
-      add(`✗ /api/referral/me: ${e.message}`);
     }
   }
   return (

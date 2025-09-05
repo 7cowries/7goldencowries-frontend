@@ -66,7 +66,7 @@ export default function Quests() {
     try {
       await claimQuest(id);
       setToast('Quest claimed');
-      await loadQuests();
+      await sync();
       window.dispatchEvent(new Event('profile-updated'));
     } catch (e) {
       setToast(e.message || 'Failed to claim');

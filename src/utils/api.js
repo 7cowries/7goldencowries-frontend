@@ -12,7 +12,7 @@ export function withSignal(ms = 15000) {
   };
 }
 
-async function jsonFetch(path, opts = {}) {
+export async function jsonFetch(path, opts = {}) {
   const controller = opts.signal ? null : new AbortController();
   const id = controller ? setTimeout(() => controller.abort(), opts.timeout || 15000) : null;
   try {
@@ -24,7 +24,10 @@ async function jsonFetch(path, opts = {}) {
       ...opts,
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
+      let text = await res.text().catch(() => "");
+      try {
+        text = JSON.stringify(JSON.parse(text));
+      } catch {}
       throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
     }
     if (res.status === 204) return null;
@@ -56,6 +59,10 @@ export async function postJSON(path, body, opts = {}) {
 
 export function claimQuest(id, opts = {}) {
   return postJSON("/api/quests/claim", { questId: id }, opts);
+}
+
+export function bindWallet(wallet, opts = {}) {
+  return postJSON("/api/session/bind-wallet", { wallet }, opts);
 }
 
 export function getSubscription(opts = {}) {
@@ -95,6 +102,7 @@ export const api = {
   getQuests,
   getLeaderboard,
   getMe,
+  bindWallet,
   getSubscription,
   startTelegram,
   startDiscord,
