@@ -1,35 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { getQuests, claimQuest, getMe } from '../lib/api';
+import { getQuests, claimQuest } from '../lib/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
 
   useEffect(() => {
     (async () => {
       try {
-        const q = await getQuests();
+        const wallet = localStorage.getItem('wallet') || '';
+        const q = await getQuests(wallet);
         setQuests(q.quests || q || []);
       } catch (e) {
-        setToast(e.message || 'Failed to load quests');
-        setTimeout(() => setToast(''), 3000);
+        setError(e.message || 'Failed to load quests');
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
   const handleClaim = async (id) => {
+    const wallet = localStorage.getItem('wallet') || '';
+    setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      const res = await claimQuest(id);
-      setToast(res?.alreadyClaimed ? 'Already claimed' : 'Quest claimed');
-      await getMe();
+      const res = await claimQuest(wallet, id);
+      if (res?.alreadyClaimed) {
+        setToast('Already claimed');
+      } else {
+        setToast('Quest claimed');
+      }
+      // refresh list if backend marks claimed
+      try {
+        const q = await getQuests(wallet);
+        setQuests(q.quests || q || []);
+      } catch {}
+      // optionally refresh profile via ProfileWidget’s own load on mount
     } catch (e) {
       setToast(e.message || 'Failed to claim');
     } finally {
+      setClaiming((c) => ({ ...c, [id]: false }));
       setTimeout(() => setToast(''), 3000);
     }
   };
+
+  if (loading) return <p>Loading quests...</p>;
+  if (error) return <p>Error: {error}</p>;
 
   return (
     <div style={{ padding: 16 }}>
@@ -41,9 +61,17 @@ export default function Quests() {
             <strong>{q.title || q.id}</strong>{' '}
             <em>{q.type}</em>{' '}
             <span style={{ marginLeft: 8 }}>+{q.xp} XP</span>
-            <button onClick={() => handleClaim(q.id)} style={{ marginLeft: 8 }}>
-              Claim
-            </button>
+            {q.alreadyClaimed || q.claimed ? (
+              <span style={{ marginLeft: 8 }}>Claimed</span>
+            ) : (
+              <button
+                onClick={() => handleClaim(q.id)}
+                disabled={!!claiming[q.id]}
+                style={{ marginLeft: 8 }}
+              >
+                {claiming[q.id] ? 'Claiming...' : 'Claim'}
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -51,4 +79,3 @@ export default function Quests() {
     </div>
   );
 }
-
