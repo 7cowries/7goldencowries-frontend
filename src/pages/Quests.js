@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getQuests, postJSON } from '../utils/api';
+import { getQuests, claimQuest } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import './Quests.css';
@@ -61,11 +61,13 @@ export default function Quests() {
   }, []);
 
   const handleClaim = async (id) => {
+    if (claiming[id]) return; // guard duplicate clicks
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      await postJSON('/api/quests/claim', { questId: id });
+      await claimQuest(id);
       setToast('Quest claimed');
       await loadQuests();
+      window.dispatchEvent(new Event('profile-updated'));
     } catch (e) {
       setToast(e.message || 'Failed to claim');
     } finally {
