@@ -3,19 +3,35 @@ export const API_BASE =
   process.env.REACT_APP_API_URL ||
   "";
 
+export function withSignal(ms = 15000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return {
+    signal: controller.signal,
+    cancel: () => clearTimeout(id),
+  };
+}
+
 async function jsonFetch(path, opts = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: opts.method || "GET",
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-    ...opts,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
+  const controller = opts.signal ? null : new AbortController();
+  const id = controller ? setTimeout(() => controller.abort(), opts.timeout || 15000) : null;
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: opts.method || "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      signal: opts.signal || (controller && controller.signal),
+      ...opts,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  } finally {
+    if (id) clearTimeout(id);
   }
-  if (res.status === 204) return null;
-  return res.json();
 }
 
 export function getJSON(path, opts) {
@@ -38,12 +54,59 @@ export async function postJSON(path, body, opts = {}) {
   return jsonFetch(path, { method: "POST", body: JSON.stringify(body ?? {}), ...opts });
 }
 
+export function claimQuest(id, opts = {}) {
+  return postJSON("/api/quests/claim", { questId: id }, opts);
+}
+
+export function getSubscription(opts = {}) {
+  return getJSON("/api/subscription", opts);
+}
+
+export function startTelegram(opts = {}) {
+  return postJSON("/api/auth/telegram/start", {}, opts);
+}
+
+export function startDiscord(opts = {}) {
+  return postJSON("/api/auth/discord/start", {}, opts);
+}
+
+export function startTwitter(opts = {}) {
+  return postJSON("/api/auth/twitter/start", {}, opts);
+}
+
+export function getReferralInfo(opts = {}) {
+  return getJSON("/api/referral/me", opts);
+}
+
+export function createReferral(opts = {}) {
+  return postJSON("/api/referral/create", {}, opts);
+}
+
+export function applyReferral(code, opts = {}) {
+  return postJSON("/api/referral/apply", { code }, opts);
+}
+
+export function getReferralsList(opts = {}) {
+  return getJSON("/api/referral/list", opts);
+}
+
 export const api = {
   base: API_BASE,
   getQuests,
   getLeaderboard,
+  getMe,
+  getSubscription,
+  startTelegram,
+  startDiscord,
+  startTwitter,
+  claimQuest,
+  getReferralInfo,
+  createReferral,
+  applyReferral,
+  getReferralsList,
   postJSON,
   get: getJSON,
   getJSON,
   post: postJSON,
+  withSignal,
 };

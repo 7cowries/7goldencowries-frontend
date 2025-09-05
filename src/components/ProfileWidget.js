@@ -1,29 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { getMe } from '../utils/api';
+import { clampProgress } from '../lib/format';
 
 export default function ProfileWidget() {
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState(null);
   const [error, setError] = useState('');
 
+  async function load() {
+    try {
+      const data = await getMe();
+      setMe(data);
+      setError('');
+    } catch (e) {
+      setError(e.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await getMe();
-        setMe(data);
-      } catch (e) {
-        setError(e.message || 'Failed to load profile');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    load();
+    const onUpdate = () => load();
+    window.addEventListener('profile-updated', onUpdate);
+    return () => window.removeEventListener('profile-updated', onUpdate);
   }, []);
 
   if (loading) return <div>Loading profile...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!me) return null;
 
-  const progressPct = Math.min(100, Math.round((me.levelProgress || 0) * 100));
+  const progressPct = clampProgress((me.levelProgress || 0) * 100);
 
   return (
     <div style={{ marginBottom: 16 }}>
