@@ -1,44 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { getMe, getProgression } from '../lib/api';
+import { getMe } from '../lib/api';
 
 export default function ProfileWidget() {
-  const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState(null);
   const [error, setError] = useState('');
-  const [progress, setProgress] = useState(null);
 
   useEffect(() => {
-    async function load() {
+    (async () => {
       try {
         const wallet = localStorage.getItem('wallet') || '';
-        let me = await getMe(wallet);
-        let prog = me?.progress;
-        if (!prog) {
-          const p = await getProgression();
-          prog = p;
-        }
-        setProgress({
-          levelName: prog.levelName || prog.level || '',
-          xp: prog.xp ?? prog.currentXP ?? me?.xp ?? 0,
-          next: prog.next || prog.nextThreshold || prog.nextXP || 0,
-        });
+        const data = await getMe(wallet);
+        setMe(data);
       } catch (e) {
         setError(e.message || 'Failed to load');
-      } finally {
-        setLoading(false);
       }
-    }
-    load();
+    })();
   }, []);
 
-  if (loading) return <div>Loading profile...</div>;
   if (error) return <div>Error: {error}</div>;
-  if (!progress) return null;
-  const pct = progress.next ? Math.min(100, (progress.xp / progress.next) * 100) : 0;
+  if (!me) return <div>Loading profile...</div>;
+
+  const pct = Math.min(100, Math.round((me.levelProgress || 0) * 100));
+
   return (
     <div style={{ marginBottom: 16 }}>
-      <div>
-        Level {progress.levelName} — {progress.xp} / {progress.next}
-      </div>
+      <div>Level {me.levelName}</div>
+      <div>{me.xp} XP</div>
+      <div>Next: {me.nextXP}</div>
       <div style={{ background: '#eee', height: 8, borderRadius: 4 }}>
         <div
           style={{
