@@ -19,8 +19,8 @@ export default function TestAPI() {
       add(`✗ /api/leaderboard: ${e.message}`);
     }
     try {
-      await getMe();
-      add("✓ /api/users/me OK");
+      const me = await getMe();
+      add(`✓ /api/users/me: ${JSON.stringify(me.socials || {})}`);
     } catch (e) {
       add(`✗ /api/users/me: ${e.message}`);
     }

@@ -3,6 +3,14 @@ export const API_BASE =
   process.env.REACT_APP_API_URL ||
   "";
 
+// Prebuilt URLs for starting OAuth or embedding auth widgets
+export const API_URLS = {
+  twitterStart: `${API_BASE}/auth/twitter`,
+  discordStart: `${API_BASE}/auth/discord`,
+  // Used by the Telegram login widget (data-auth-url)
+  telegramEmbedAuth: `${API_BASE}/auth/telegram/callback`,
+};
+
 export function withSignal(ms = 15000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), ms);

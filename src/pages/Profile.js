@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { API_BASE, getMe, getJSON } from "../utils/api";
+import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 
@@ -12,7 +12,7 @@ const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
 
 // Telegram embed constants
 const TG_BOT_NAME = process.env.REACT_APP_TG_BOT_NAME || "GOLDENCOWRIEBOT";
-const TG_VERIFY_URL = "https://www.7goldencowries.com/auth/telegram/verify";
+const TG_VERIFY_URL = API_URLS.telegramEmbedAuth;
 
 const perksMap = {
   Shellborn: "Welcome badge + access to basic quests",
@@ -105,6 +105,13 @@ export default function Profile() {
   // Busy flags for unlink/resync
   const [busy, setBusy] = useState({ twitter: false, telegram: false, discord: false });
 
+  // Disable connect buttons while starting OAuth flows
+  const [connecting, setConnecting] = useState({
+    twitter: false,
+    telegram: false,
+    discord: false,
+  });
+
   // Prefer TonConnect address; persist for later visits
   useEffect(() => {
     if (tonWallet) {
@@ -129,31 +136,35 @@ export default function Profile() {
   }, [level.name]);
 
   const applyProfile = useCallback(
-    (pObj) => {
-      const p = pObj?.profile || {};
-      const links = p?.links || {};
+    (me) => {
+      setXp(me.xp ?? 0);
+      setTier(me.tier || me.subscriptionTier || "Free");
 
-      setXp(p.xp ?? 0);
-      setTier(p.tier || p.subscriptionTier || "Free");
-
-      const lvlName = p.levelName || p.level || "Shellborn";
+      const lvlName = me.level || "Shellborn";
       setLevel({
         name: lvlName,
-        symbol: p.levelSymbol || "🐚",
-        progress: p.levelProgress ?? 0,
-        nextXP: p.nextXP ?? 10000,
+        symbol: "🐚",
+        progress: me.levelProgress ?? 0,
+        nextXP: me.nextXP ?? 10000,
       });
       setPerk(perksMap[lvlName] || "");
 
-      setTwitter(stripAt(links.twitter || p.twitterHandle || ""));
-      setTelegram(stripAt(links.telegram || p.telegramHandle || ""));
-      setDiscord(String(links.discord || p.discordHandle || ""));
-      setDiscordGuildMember(!!p.discordGuildMember);
+      const socials = me.socials || {};
+      setTwitter(
+        socials.twitter?.connected ? stripAt(socials.twitter.username) : ""
+      );
+      setTelegram(
+        socials.telegram?.connected ? stripAt(socials.telegram.username) : ""
+      );
+      setDiscord(
+        socials.discord?.connected ? String(socials.discord.username) : ""
+      );
+      setDiscordGuildMember(false);
 
-      const hist = Array.isArray(pObj?.history) ? pObj.history : [];
+      const hist = Array.isArray(me?.history) ? me.history : [];
       setHistory(hist);
 
-      if (p.wallet && !address) setAddress(p.wallet);
+      if (me.wallet && !address) setAddress(me.wallet);
     },
     [address]
   );
@@ -163,29 +174,26 @@ export default function Profile() {
     setLoading(true);
     try {
       const me = await getMe();
-      if (me?.authed) {
-        applyProfile(me);
-      } else if (address) {
-        const legacy = await getJSON(`/api/profile?wallet=${encodeURIComponent(address)}`);
-        applyProfile(legacy);
-      } else {
-        setHistory([]);
-        setTwitter("");
-        setTelegram("");
-        setDiscord("");
-        setDiscordGuildMember(false);
-        setXp(0);
-        setTier("Free");
-        setLevel({ name: "Shellborn", symbol: "🐚", progress: 0, nextXP: 10000 });
-      }
+      applyProfile(me);
     } catch (e) {
       console.error(e);
+      const msg = String(e?.message || e);
+      if (msg.includes("Missing wallet") && (address || tonWallet)) {
+        try {
+          await ensureWalletBound(address || tonWallet);
+          const me2 = await getMe();
+          applyProfile(me2);
+          return;
+        } catch (err) {
+          console.error(err);
+        }
+      }
       setError("Failed to load profile.");
       setHistory([]);
     } finally {
       setLoading(false);
     }
-  }, [applyProfile, address]);
+  }, [applyProfile, address, tonWallet]);
 
   useEffect(() => {
     loadMe();
@@ -198,30 +206,30 @@ export default function Profile() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [loadMe]);
 
-  // Toast + brief polling when returning with ?linked=
+  // Toast + brief polling when returning with ?connected=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const linked = params.get("linked");
+    const connected = params.get("connected");
     const gm = params.get("guildMember");
-    if (!linked) return;
+    if (!connected) return;
 
     const pretty =
-      linked === "twitter"
+      connected === "twitter"
         ? "X (Twitter)"
-        : linked === "discord"
+        : connected === "discord"
         ? "Discord"
-        : linked === "telegram"
+        : connected === "telegram"
         ? "Telegram"
-        : linked;
+        : connected;
 
     let msg = `Connected ${pretty} ✅`;
-    if (linked === "discord" && gm) {
+    if (connected === "discord" && gm) {
       msg += gm === "true" ? " — server member 🎉" : " — please join our server";
     }
     setToast(msg);
 
     // Clean URL
-    params.delete("linked");
+    params.delete("connected");
     params.delete("guildMember");
     const newUrl =
       window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
@@ -248,36 +256,30 @@ export default function Profile() {
   // Start Twitter OAuth on backend (session is set there)
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
-    window.location.href = `${API_BASE}/auth/twitter?state=${state}`;
+    setConnecting((c) => ({ ...c, twitter: true }));
+    window.location.href = API_URLS.twitterStart;
   };
 
   // Change "Connect Telegram" to scroll to the embedded widget (since that works)
   const connectTelegram = () => {
     if (!address) return alert("Connect wallet first");
+    setConnecting((c) => ({ ...c, telegram: true }));
     const el = document.getElementById("tg-login-container");
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       setToast("Use the blue Telegram button below to connect ✅");
       setTimeout(() => setToast(""), 4000);
+      setConnecting((c) => ({ ...c, telegram: false }));
     } else {
       // Fallback (rare): open hosted flow
       window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
     }
   };
 
-  const connectDiscord = async () => {
+  const connectDiscord = () => {
     if (!address) return alert("Connect wallet first");
-    try {
-      // preferred: dynamic login URL from backend
-      const resp = await getJSON(`/api/discord/login?state=${encodeURIComponent(state)}`);
-      if (resp?.url) {
-        window.location.href = resp.url;
-        return;
-      }
-    } catch {
-      // ignore and fall back
-    }
-    window.location.href = `${API_BASE}/auth/discord?state=${state}`;
+    setConnecting((c) => ({ ...c, discord: true }));
+    window.location.href = API_URLS.discordStart;
   };
 
   // === Social unlink/resync actions ===
@@ -432,7 +434,13 @@ export default function Profile() {
                   <>
                     <span className="not-connected">❌ Not Connected</span>
                     <div className="social-actions">
-                      <button className="mini" onClick={connectTwitter}>Connect</button>
+                      <button
+                        className="mini"
+                        onClick={connectTwitter}
+                        disabled={connecting.twitter}
+                      >
+                        Connect
+                      </button>
                     </div>
                   </>
                 )}
@@ -472,7 +480,13 @@ export default function Profile() {
                   <>
                     <span className="not-connected">❌ Not Connected</span>
                     <div className="social-actions">
-                      <button className="mini" onClick={connectTelegram}>Connect</button>
+                      <button
+                        className="mini"
+                        onClick={connectTelegram}
+                        disabled={connecting.telegram}
+                      >
+                        Connect
+                      </button>
                     </div>
                   </>
                 )}
@@ -524,7 +538,13 @@ export default function Profile() {
                   <>
                     <span className="not-connected">❌ Not Connected</span>
                     <div className="social-actions">
-                      <button className="mini" onClick={connectDiscord}>Connect</button>
+                      <button
+                        className="mini"
+                        onClick={connectDiscord}
+                        disabled={connecting.discord}
+                      >
+                        Connect
+                      </button>
                     </div>
                   </>
                 )}
@@ -540,13 +560,25 @@ export default function Profile() {
             <ConnectButtons onLinked={() => loadMe()} />
 
             <div className="connect-buttons" style={{ marginTop: 12 }}>
-              <button className="connect-btn" onClick={connectTwitter}>
+              <button
+                className="connect-btn"
+                onClick={connectTwitter}
+                disabled={connecting.twitter}
+              >
                 🐦 Connect X (Twitter)
               </button>
-              <button className="connect-btn" onClick={connectTelegram}>
+              <button
+                className="connect-btn"
+                onClick={connectTelegram}
+                disabled={connecting.telegram}
+              >
                 📣 Connect Telegram
               </button>
-              <button className="connect-btn" onClick={connectDiscord}>
+              <button
+                className="connect-btn"
+                onClick={connectDiscord}
+                disabled={connecting.discord}
+              >
                 🎮 Connect Discord
               </button>
             </div>
