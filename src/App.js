@@ -15,6 +15,8 @@ import {
   attachGlobalClickSFX,
 } from "./utils/sounds";
 
+const manifestUrl = "/tonconnect-manifest.json";
+
 /* -----------------------------
    Lazy-loaded pages (code split)
 ----------------------------- */
@@ -75,9 +77,7 @@ const App = () => {
   }, []);
 
   return (
-    <TonConnectUIProvider
-      manifestUrl="https://7cowries.github.io/7goldencowries-connect/tonconnect-manifest.json"
-    >
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
       <ErrorBoundary>
         <Router>
           <AmbientLayers />

@@ -24,13 +24,15 @@ export default function Quests() {
   };
 
   useEffect(() => {
-    const syncWallet = async () => {
+    const sync = async () => {
       walletRef.current = localStorage.getItem('wallet') || '';
       await loadQuests();
+      setLoading(false);
     };
-    syncWallet().finally(() => setLoading(false));
+    sync();
+
     const onStorage = (e) => {
-      if (e.key === 'wallet') syncWallet();
+      if (e.key === 'wallet') sync();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

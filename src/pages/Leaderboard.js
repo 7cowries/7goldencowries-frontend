@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { clamp01, abbrevWallet, normalizeUser } from '../lib/format';
+codex/polish-leaderboard-layout-and-functionality-eo3z5p
 import { getLeaderboard } from '../lib/api';
 
 async function fetchLeaderboard() {
@@ -9,6 +10,21 @@ async function fetchLeaderboard() {
     const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
     if (list.length) return list.map(normalizeUser);
   } catch {}
+  
+
+async function fetchLeaderboard() {
+  const tryUrls = ['/api/leaderboard', '/api/leaderboard/top'];
+  for (const u of tryUrls) {
+    try {
+      const r = await fetch(u, { credentials: 'include' });
+      if (!r.ok) continue;
+      const data = await r.json();
+      // Accept {users:[...]} or direct array
+      const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+      if (list.length) return list.map(normalizeUser);
+    } catch {}
+  }
+ main
   return [];
 }
 
