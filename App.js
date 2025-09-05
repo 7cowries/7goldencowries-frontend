@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { TonConnectButton, TonConnectUIProvider } from '@tonconnect/ui-react';
+import WalletInput from './components/WalletInput';
 import Quests from './pages/Quests';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
@@ -27,6 +28,7 @@ function App() {
               <Link to="/isles">🌊Isles</Link>
             </nav>
             <TonConnectButton className="ton-connect" />
+            <WalletInput />
           </header>
 
           <Routes>
