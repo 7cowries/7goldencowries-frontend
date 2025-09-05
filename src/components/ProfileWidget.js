@@ -24,24 +24,15 @@ export default function ProfileWidget() {
   if (error) return <div>Error: {error}</div>;
   if (!me) return null;
 
-  const pct = Math.min(100, Math.max(0, Math.round((me.levelProgress ?? 0) * 100)));
-  const bandStart = 10000, bandEnd = 25000;
-  const bandPct = Math.min(
-    100,
-    Math.max(0, Math.round(((me.xp - bandStart) / (bandEnd - bandStart)) * 100))
-  );
+  // Use backend levelProgress when present (0..1). For banner visuals you can overlay your 10k→25k band.
+  const progressPct = Math.min(100, Math.round((me.levelProgress || 0) * 100));
 
   return (
-    <div>
+    <div style={{ marginBottom: 16 }}>
       <div>Level {me.levelName}, {me.xp} XP, Next: {me.nextXP}</div>
       <div style={{ background: '#eee', height: 8, borderRadius: 4 }}>
         <div
-          style={{ width: `${pct}%`, background: '#4caf50', height: '100%', borderRadius: 4 }}
-        />
-      </div>
-      <div style={{ background: '#eee', height: 4, borderRadius: 4, marginTop: 4 }}>
-        <div
-          style={{ width: `${bandPct}%`, background: '#2196f3', height: '100%', borderRadius: 4 }}
+          style={{ width: `${progressPct}%`, background: '#4caf50', height: '100%', borderRadius: 4 }}
         />
       </div>
     </div>
