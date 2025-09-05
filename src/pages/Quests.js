@@ -21,11 +21,20 @@ export default function Quests() {
   };
 
   useEffect(() => {
-    walletRef.current = localStorage.getItem('wallet') || '';
-    (async () => {
+    const syncWallet = async () => {
+      walletRef.current = localStorage.getItem('wallet') || '';
       await loadQuests();
-      setLoading(false);
-    })();
+    };
+
+    // initial load
+    syncWallet().finally(() => setLoading(false));
+
+    // refresh if wallet changes (even in another tab)
+    const onStorage = (e) => {
+      if (e.key === 'wallet') syncWallet();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const handleClaim = async (id) => {
