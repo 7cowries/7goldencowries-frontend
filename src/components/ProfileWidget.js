@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getMe } from '../lib/api';
+import { getMe } from '../utils/api';
 
 export default function ProfileWidget() {
   const [loading, setLoading] = useState(true);
@@ -9,8 +9,7 @@ export default function ProfileWidget() {
   useEffect(() => {
     (async () => {
       try {
-        const wallet = localStorage.getItem('wallet') || '';
-        const data = await getMe(wallet);
+        const data = await getMe();
         setMe(data);
       } catch (e) {
         setError(e.message || 'Failed to load profile');
@@ -24,7 +23,6 @@ export default function ProfileWidget() {
   if (error) return <div>Error: {error}</div>;
   if (!me) return null;
 
-  // Use backend levelProgress when present (0..1). For banner visuals you can overlay your 10k→25k band.
   const progressPct = Math.min(100, Math.round((me.levelProgress || 0) * 100));
 
   return (

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { getQuests, claimQuest } from '../lib/api';
+import React, { useEffect, useState, useRef } from 'react';
+import { getQuests, postJSON } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import './Quests.css';
@@ -7,32 +7,54 @@ import '../App.css';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
+  const [completed, setCompleted] = useState([]);
+  const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const walletRef = useRef('');
-
-  const loadQuests = async () => {
-    try {
-      const q = await getQuests(walletRef.current);
-      setQuests(q.quests || q || []);
-    } catch (e) {
-      setError(e.message || 'Failed to load quests');
-    }
-  };
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const sync = async () => {
-      walletRef.current = localStorage.getItem('wallet') || '';
-      await loadQuests();
-      setLoading(false);
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
     };
-    sync();
+  }, []);
 
+  async function loadQuests(signal) {
+    const data = await getQuests({ signal });
+    if (!mountedRef.current) return;
+    setQuests(data?.quests ?? []);
+    setCompleted(data?.completed ?? []);
+    setXp(data?.xp ?? 0);
+  }
+
+  async function sync() {
+    setLoading(true);
+    const controller = new AbortController();
+    try {
+      await loadQuests(controller.signal);
+      if (mountedRef.current) setError(null);
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setError(e?.message || 'Failed to load quests. Please try again.');
+      console.error('[Quests] load error:', e);
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    walletRef.current = localStorage.getItem('wallet') || '';
+    sync();
     const onStorage = (e) => {
-      if (e.key === 'wallet') sync();
+      if (e.key === 'wallet') {
+        walletRef.current = e.newValue || '';
+        sync();
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -41,8 +63,8 @@ export default function Quests() {
   const handleClaim = async (id) => {
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      const res = await claimQuest(walletRef.current, id);
-      setToast(res?.alreadyClaimed ? 'Already claimed' : 'Quest claimed');
+      await postJSON('/api/quests/claim', { questId: id });
+      setToast('Quest claimed');
       await loadQuests();
     } catch (e) {
       setToast(e.message || 'Failed to claim');
@@ -57,8 +79,13 @@ export default function Quests() {
       ? quests
       : quests.filter((q) => (q.type || '').toLowerCase() === activeTab);
 
-  if (loading) return <p>Loading quests...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (loading) return <div className="loading">Loading quests…</div>;
+  if (!loading && error)
+    return (
+      <div className="error">
+        {error} <button onClick={sync}>Retry</button>
+      </div>
+    );
 
   return (
     <div className="page">

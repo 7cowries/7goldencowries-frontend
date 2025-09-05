@@ -1,10 +1,15 @@
-export const clamp01 = (n) => Math.max(0, Math.min(1, Number(n) || 0));
-export const abbrevWallet = (w='') => (w.length > 10 ? `${w.slice(0,4)}…${w.slice(-4)}` : w);
+export const clampProgress = (n) => Math.max(0, Math.min(100, Number(n) || 0));
+export const abbreviateWallet = (w = '') =>
+  w && w.length > 10 ? `${w.slice(0,6)}…${w.slice(-4)}` : (w || '');
 export function normalizeUser(raw = {}) {
-  const wallet = String(raw.wallet || raw.address || raw.id || '');
-  const xp = Number(raw.xp ?? raw.points ?? 0);
-  const tier = raw.tier || raw.subscriptionTier || 'Free';
-  const levelName = raw.levelName || raw.level || 'Unranked';
-  const progress = raw.levelProgress ?? raw.progress ?? raw.pct ?? 0;
-  return { wallet, xp, tier, levelName, progress: clamp01(progress) };
+  return {
+    wallet: String(raw.wallet || raw.address || raw.id || ''),
+    xp: Number(raw.xp ?? raw.points ?? 0),
+    tier: raw.tier || raw.subscriptionTier || 'Free',
+    levelName: raw.levelName || raw.level || 'Unranked',
+    progress: clampProgress(raw.levelProgress ?? raw.progress ?? raw.pct ?? 0),
+  };
 }
+// legacy aliases
+export const clamp01 = (n) => clampProgress(n) / 100;
+export const abbrevWallet = abbreviateWallet;
