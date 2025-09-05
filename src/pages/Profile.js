@@ -3,7 +3,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { API_BASE, getMe, getJSON, postJSON } from "../utils/api";
+import { API_BASE, getMe, getJSON } from "../utils/api";
+import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 
 // Optional: invite link shown if user linked Discord but isn't in the server
@@ -119,8 +120,7 @@ export default function Profile() {
 
   // Bind wallet to backend session (helps /api/users/me)
   useEffect(() => {
-    if (!tonWallet) return;
-    postJSON("/api/session/bind-wallet", { wallet: tonWallet }).catch(() => {});
+    ensureWalletBound(tonWallet);
   }, [tonWallet]);
 
   const badgeSrc = useMemo(() => {

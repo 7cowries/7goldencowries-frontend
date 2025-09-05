@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getLeaderboard } from '../utils/api';
-import { normalizeUser, abbreviateWallet, clampProgress } from '../lib/format';
+import { abbreviateWallet } from '../lib/format';
 
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState([]);
@@ -11,30 +11,38 @@ export default function Leaderboard() {
   const timerRef = useRef(null);
   const REFRESH_MS = 60000;
 
+  const load = async (signal) => {
+    setLoading(true);
+    try {
+      const data = await getLeaderboard({ signal });
+      if (!mountedRef.current) return;
+      const raw = data?.leaders ?? data ?? [];
+      const list = Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+      const rows = list.map((u) => ({
+        ...u,
+        progress: (() => {
+          const p = Number(u.levelProgress ?? u.progress ?? 0);
+          const pct = p <= 1 ? p * 100 : p;
+          const clamped = Math.max(0, Math.min(100, pct));
+          return clamped;
+        })(),
+      }));
+      setLeaders(rows);
+      setError(null);
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setError(e?.message || 'Failed to load leaderboard');
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     walletRef.current = localStorage.getItem('wallet') || '';
     mountedRef.current = true;
     const controller = new AbortController();
-
-    async function load() {
-      setLoading(true);
-      try {
-        const data = await getLeaderboard({ signal: controller.signal });
-        if (!mountedRef.current) return;
-        const list = (data?.leaders || data || []).map(normalizeUser);
-        setLeaders(list);
-        setError(null);
-      } catch (e) {
-        if (!mountedRef.current) return;
-        setError(e?.message || 'Failed to load leaderboard');
-      } finally {
-        if (mountedRef.current) setLoading(false);
-      }
-    }
-
-    load();
-    timerRef.current = setInterval(load, REFRESH_MS);
-
+    load(controller.signal);
+    timerRef.current = setInterval(() => load(controller.signal), REFRESH_MS);
     return () => {
       mountedRef.current = false;
       controller.abort();
@@ -43,15 +51,19 @@ export default function Leaderboard() {
   }, []);
 
   if (loading) return <div className="section">Loading leaderboard…</div>;
-  if (!loading && error) return <div className="section">Error: {error}</div>;
-  if (!leaders.length) return <div className="section">No explorers yet.</div>;
+  if (!loading && error)
+    return (
+      <div className="section error">
+        {error} <button onClick={() => load()}>Retry</button>
+      </div>
+    );
 
   const podium = leaders.slice(0, 3);
   const rest = leaders.slice(3);
 
   const Bar = ({ pct = 0 }) => (
     <div className="bar-outer">
-      <div className="bar-inner" style={{ width: `${clampProgress(pct)}%` }} />
+      <div className="bar-inner" style={{ width: `${pct}%` }} />
     </div>
   );
 
@@ -80,24 +92,28 @@ export default function Leaderboard() {
 
       {/* Rest */}
       <div className="list">
-        {rest.map((u, idx) => {
-          const rank = idx + 4;
-          const isMe = walletRef.current === u.wallet;
-          return (
-            <div key={u.wallet || rank} className={`row glass ${isMe ? 'me' : ''}`}>
-              <div className="rank">#{rank}</div>
-              <div className="wallet mono">{abbreviateWallet(u.wallet)}</div>
-              <div className="badges">
-                <span className="chip">{u.tier || 'Free'}</span>
-                <span className="chip">{u.levelName}</span>
+        {leaders.length === 0 ? (
+          <div className="muted">No entries yet.</div>
+        ) : (
+          rest.map((u, idx) => {
+            const rank = idx + 4;
+            const isMe = walletRef.current === u.wallet;
+            return (
+              <div key={u.wallet || rank} className={`row glass ${isMe ? 'me' : ''}`}>
+                <div className="rank">#{rank}</div>
+                <div className="wallet mono">{abbreviateWallet(u.wallet)}</div>
+                <div className="badges">
+                  <span className="chip">{u.tier || 'Free'}</span>
+                  <span className="chip">{u.levelName}</span>
+                </div>
+                <div className="xp mono">{u.xp} XP</div>
+                <div className="grow">
+                  <Bar pct={u.progress} />
+                </div>
               </div>
-              <div className="xp mono">{u.xp} XP</div>
-              <div className="grow">
-                <Bar pct={u.progress} />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
