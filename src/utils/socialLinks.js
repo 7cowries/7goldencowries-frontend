@@ -7,8 +7,7 @@ import { api } from "./api";
  * @param {'twitter'|'telegram'|'discord'} provider
  */
 export async function unlinkSocial(provider) {
-  const { data } = await api.post(`/api/social/${provider}/unlink`);
-  return data; // { ok: true } or { error }
+  return api.post(`/api/social/${provider}/unlink`); // { ok: true } or { error }
 }
 
 /**
@@ -17,6 +16,5 @@ export async function unlinkSocial(provider) {
  * @param {'twitter'|'telegram'|'discord'} provider
  */
 export async function resyncSocial(provider) {
-  const { data } = await api.post(`/api/social/${provider}/resync`);
-  return data; // { ok: true, handle: '...' } or { error }
+  return api.post(`/api/social/${provider}/resync`); // { ok: true, handle: '...' }
 }

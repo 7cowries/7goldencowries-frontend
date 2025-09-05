@@ -20,7 +20,13 @@ export default function TestAPI() {
     }
     try {
       const me = await getMe();
-      add(`✓ /api/users/me: ${JSON.stringify(me.socials || {})}`);
+      const s = me.socials || {};
+      const summary = [
+        `telegram=${s.telegram?.connected ? s.telegram.username : "off"}`,
+        `twitter=${s.twitter?.connected ? s.twitter.username : "off"}`,
+        `discord=${s.discord?.connected ? s.discord.username : "off"}`,
+      ].join(", ");
+      add(`✓ /api/users/me: ${summary}`);
     } catch (e) {
       add(`✗ /api/users/me: ${e.message}`);
     }
