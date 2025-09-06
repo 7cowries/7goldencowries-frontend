@@ -242,7 +242,7 @@ export default function Quests() {
                           Submit proof
                         </button>
                       )}
-                      {q.url && typeof q.proofStatus === 'undefined' && (
+                      {q.url && (
                         <a
                           className="btn primary"
                           href={q.url}
