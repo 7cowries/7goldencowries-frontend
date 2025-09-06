@@ -1,5 +1,6 @@
 const express = require('express');
 const { createRouter } = require('./src/routes/quests');
+const fs = require('fs');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
 
@@ -11,7 +12,32 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-app.get('/referrals/:code', (req, res) => {
+app.get('/api/health/db', (req, res) => {
+  const file = process.env.SQLITE_FILE || '';
+  if (!file) {
+    return res.status(500).json({ ok: false, error: 'No database configured' });
+  }
+  try {
+    if (!fs.existsSync(file)) throw new Error('Database file missing');
+    try {
+      const Database = require('better-sqlite3');
+      const db = new Database(file, { readonly: true });
+      db.prepare('SELECT 1').get();
+      db.close();
+    } catch (e) {
+      if (e.code === 'MODULE_NOT_FOUND') {
+        console.warn('better-sqlite3 not installed; skipping query check');
+      } else {
+        throw e;
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get(['/ref/:code', '/referrals/:code'], (req, res) => {
   const { code } = req.params;
   const url = `${FRONTEND_URL}/?ref=${encodeURIComponent(code)}`;
   res.redirect(302, url);
