@@ -138,8 +138,8 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
-export function submitQuestProof(id, url, opts = {}) {
-  return postJSON("/api/quests/submit-proof", { questId: id, url }, opts).then(
+export function submitQuestProof(id, wallet, url, opts = {}) {
+  return postJSON("/api/proofs", { quest_id: id, wallet, url }, opts).then(
     (res) => {
       clearUserCache();
       return res;
