@@ -122,7 +122,12 @@ export default function ProofModal({ quest, wallet, onClose, onVerified }) {
             <p className="muted" style={{ marginTop: 8 }}>Verifying…</p>
           )}
           <div className="actions" style={{ marginTop: 16 }}>
-            <button className="btn ghost" onClick={onClose} disabled={submitting || verifying}>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={onClose}
+              disabled={submitting || verifying}
+            >
               Cancel
             </button>
             <button
