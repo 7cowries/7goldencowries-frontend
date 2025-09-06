@@ -120,6 +120,7 @@ export default function Profile() {
       localStorage.setItem("wallet", tonWallet);
       localStorage.setItem("walletAddress", tonWallet);
       localStorage.setItem("ton_wallet", tonWallet);
+      window.dispatchEvent(new CustomEvent('wallet:changed'));
     } else if (!address) {
       setAddress(lsCandidates[0] || "");
     }

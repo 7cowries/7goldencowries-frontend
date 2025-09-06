@@ -138,13 +138,11 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
-export function submitQuestProof(id, wallet, vendor, url, opts = {}) {
-  return postJSON(`/api/quests/${id}/proofs`, { wallet, vendor, url }, opts).then(
-    (res) => {
-      clearUserCache();
-      return res;
-    }
-  );
+export function submitQuestProof(id, url, opts = {}) {
+  return postJSON(`/api/quests/${id}/proofs`, { url }, opts).then((res) => {
+    clearUserCache();
+    return res;
+  });
 }
 
 export function bindWallet(wallet, opts = {}) {

@@ -11,7 +11,11 @@ export default function WalletProvider({ children }) {
 
   // keep localStorage in sync
   useEffect(() => {
-    if (wallet) localStorage.setItem("walletAddress", wallet);
+    if (wallet) {
+      localStorage.setItem("walletAddress", wallet);
+      localStorage.setItem("wallet", wallet);
+      window.dispatchEvent(new CustomEvent('wallet:changed'));
+    }
   }, [wallet]);
 
   // update wallet when TonConnect provides one
