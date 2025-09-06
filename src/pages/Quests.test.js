@@ -52,7 +52,7 @@ describe('Quests page claiming', () => {
     expect(screen.getByText(/\+50 XP/)).toBeInTheDocument();
   });
 
-  test('shows Visit button when quest has a URL', async () => {
+  test('shows Start button when quest has a URL', async () => {
     getQuests.mockResolvedValueOnce({
       quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', proofStatus: 'pending' }],
       completed: [],
@@ -68,8 +68,8 @@ describe('Quests page claiming', () => {
 
     render(<Quests />);
 
-    const visitBtn = await screen.findByText('Visit');
-    expect(visitBtn).toHaveAttribute('href', 'https://example.com');
+    const startBtn = await screen.findByText('Start');
+    expect(startBtn).toHaveAttribute('href', 'https://example.com');
   });
 });
 

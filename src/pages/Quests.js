@@ -3,6 +3,7 @@ import { getQuests, claimQuest, getMe } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import ProofModal from '../components/ProofModal';
+import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
 
@@ -53,14 +54,21 @@ export default function Quests() {
   useEffect(() => {
     walletRef.current = localStorage.getItem('wallet') || '';
     sync();
+    const onWalletChanged = () => {
+      walletRef.current = localStorage.getItem('wallet') || '';
+      sync();
+    };
     const onStorage = (e) => {
       if (e.key === 'wallet') {
-        walletRef.current = e.newValue || '';
-        sync();
+        onWalletChanged();
       }
     };
+    window.addEventListener('wallet-changed', onWalletChanged);
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('wallet-changed', onWalletChanged);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -176,98 +184,16 @@ export default function Quests() {
               <p className="quest-title">No quests yet for this category.</p>
             </div>
           ) : (
-            shownQuests.map((q) => (
-              <div key={q.id} className="glass quest-card">
-                <div className="q-row">
-                  {q.type === 'link' ? (
-                    q.url ? (
-                      <a
-                        href={q.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`chip ${q.type}`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Link
-                      </a>
-                    ) : (
-                      <span className={`chip ${q.type}`}>Link</span>
-                    )
-                  ) : (
-                    <span className={`chip ${q.type}`}>
-                      {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
-                    </span>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {typeof q.proofStatus === 'string' && (
-                      <span className={`chip ${q.proofStatus}`}>{
-                        q.proofStatus.charAt(0).toUpperCase() + q.proofStatus.slice(1)
-                      }</span>
-                    )}
-                    <span className="xp-badge">+{q.xp} XP</span>
-                  </div>
-                </div>
-                <p className="quest-title">
-                  {q.url ? (
-                    <a
-                      href={q.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {q.title || q.id}
-                    </a>
-                  ) : (
-                    q.title || q.id
-                  )}
-                </p>
-                {q.url ? (
-                  <div className="muted mono" style={{ wordBreak: 'break-all' }}>
-                    {q.url}
-                  </div>
-                ) : null}
-                <div className="actions">
-                  {q.alreadyClaimed || q.claimed ? (
-                    <button className="btn success" disabled>
-                      Claimed
-                    </button>
-                  ) : (
-                    <>
-                      {typeof q.proofStatus !== 'undefined' && (
-                        <button
-                          className="btn primary"
-                          onClick={() => handleProof(q)}
-                          disabled={!!claiming[q.id]}
-                        >
-                          Submit proof
-                        </button>
-                      )}
-                      {q.url && (
-                        <a
-                          className="btn primary"
-                          href={q.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Visit
-                        </a>
-                      )}
-                      <button
-                        className="btn ghost"
-                        onClick={() => handleClaim(q.id)}
-                        disabled={
-                          !!claiming[q.id] ||
-                          (typeof q.proofStatus !== 'undefined' && q.proofStatus !== 'verified')
-                        }
-                      >
-                        {claiming[q.id] ? 'Claiming...' : 'Claim'}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
+              shownQuests.map((q) => (
+                <QuestCard
+                  key={q.id}
+                  quest={q}
+                  onClaim={handleClaim}
+                  onProof={handleProof}
+                  claiming={!!claiming[q.id]}
+                />
+                ))
+            )}
         </div>
 
         <Toast message={toast} />
