@@ -104,6 +104,8 @@ export default function Quests() {
 
   const handleClaim = async (id) => {
     if (claiming[id]) return; // guard duplicate clicks
+    // refresh wallet in case it changed since mount
+    walletRef.current = localStorage.getItem('wallet') || '';
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
       const res = await claimQuest(walletRef.current, id);
