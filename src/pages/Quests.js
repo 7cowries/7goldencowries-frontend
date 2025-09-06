@@ -18,7 +18,6 @@ export default function Quests() {
   const [activeTab, setActiveTab] = useState('all');
   const [me, setMe] = useState(null);
   const [proofQuest, setProofQuest] = useState(null);
-  const walletRef = useRef('');
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -31,12 +30,13 @@ export default function Quests() {
   async function loadQuests(signal) {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
+    const wallet = localStorage.getItem('wallet') || '';
     let list = data?.quests ?? [];
     list = await Promise.all(
       list.map(async (q) => {
         if (isProofRequired(q) && typeof q.proofStatus === 'undefined') {
           try {
-            const ps = await getProofStatus(walletRef.current, q.id, { signal });
+            const ps = await getProofStatus(wallet, q.id, { signal });
             return { ...q, proofStatus: ps?.status, proofReason: ps?.reason };
           } catch {
             return q;
@@ -77,16 +77,17 @@ export default function Quests() {
   }
 
   useEffect(() => {
-    walletRef.current = localStorage.getItem('wallet') || '';
     sync();
     const onStorage = (e) => {
-      if (e.key === 'wallet') {
-        walletRef.current = e.newValue || '';
-        sync();
-      }
+      if (e.key === 'wallet') sync();
     };
+    const onWallet = () => sync();
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('wallet-updated', onWallet);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('wallet-updated', onWallet);
+    };
   }, []);
 
   useEffect(() => {
@@ -106,7 +107,8 @@ export default function Quests() {
     if (claiming[id]) return; // guard duplicate clicks
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      const res = await claimQuest(walletRef.current, id);
+      const wallet = localStorage.getItem('wallet') || '';
+      const res = await claimQuest(wallet, id);
       if (res?.alreadyClaimed) {
         setToast('Already claimed');
       } else {
@@ -271,7 +273,7 @@ export default function Quests() {
         {proofQuest && (
           <ProofModal
             quest={proofQuest}
-            wallet={walletRef.current}
+            wallet={localStorage.getItem('wallet') || ''}
             onClose={() => setProofQuest(null)}
             onVerified={onProofVerified}
           />
