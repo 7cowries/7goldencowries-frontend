@@ -164,6 +164,9 @@
 .chip.partner { color: #ffe9a6; }
 .chip.insider { color: #f7c2ff; }
 .chip.onchain { color: #cbd4ff; }
+.chip.pending { color: #ffe9a6; border-color: rgba(255, 216, 106, 0.35); background: rgba(255, 216, 106, 0.13); }
+.chip.verified { color: #8affcb; border-color: rgba(23, 160, 120, 0.45); background: rgba(23, 160, 120, 0.18); }
+.chip.rejected { color: #ff9a9a; border-color: rgba(255, 80, 80, 0.45); background: rgba(255, 80, 80, 0.18); }
 
 .xp-badge {
   font-size: 12px;

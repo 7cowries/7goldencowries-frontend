@@ -138,6 +138,15 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
+export function submitQuestProof(id, url, opts = {}) {
+  return postJSON("/api/quests/submit-proof", { questId: id, url }, opts).then(
+    (res) => {
+      clearUserCache();
+      return res;
+    }
+  );
+}
+
 export function bindWallet(wallet, opts = {}) {
   return postJSON("/api/session/bind-wallet", { wallet }, opts).then((res) => {
     clearUserCache();
@@ -188,6 +197,7 @@ export const api = {
   startDiscord,
   startTwitter,
   claimQuest,
+  submitQuestProof,
   clearUserCache,
   getReferralInfo,
   createReferral,
