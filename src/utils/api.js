@@ -132,14 +132,14 @@ export async function postJSON(path, body, opts = {}) {
 }
 
 export function claimQuest(id, opts = {}) {
-  return postJSON("/api/quests/claim", { questId: id }, opts).then((res) => {
+  return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => {
     clearUserCache();
     return res;
   });
 }
 
-export function submitQuestProof(id, wallet, url, opts = {}) {
-  return postJSON("/api/proofs", { quest_id: id, wallet, url }, opts).then(
+export function submitQuestProof(id, wallet, vendor, url, opts = {}) {
+  return postJSON(`/api/quests/${id}/proofs`, { wallet, vendor, url }, opts).then(
     (res) => {
       clearUserCache();
       return res;
