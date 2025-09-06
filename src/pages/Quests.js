@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getQuests, claimQuest } from '../utils/api';
+import { getQuests, claimQuest, getMe } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
+import ProofModal from '../components/ProofModal';
 import './Quests.css';
 import '../App.css';
 
@@ -14,6 +15,8 @@ export default function Quests() {
   const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [me, setMe] = useState(null);
+  const [proofQuest, setProofQuest] = useState(null);
   const walletRef = useRef('');
   const mountedRef = useRef(true);
 
@@ -60,6 +63,19 @@ export default function Quests() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  useEffect(() => {
+    async function loadMe() {
+      try {
+        const data = await getMe();
+        setMe(data);
+      } catch {}
+    }
+    loadMe();
+    const onProfile = () => loadMe();
+    window.addEventListener('profile-updated', onProfile);
+    return () => window.removeEventListener('profile-updated', onProfile);
+  }, []);
+
   const handleClaim = async (id) => {
     if (claiming[id]) return; // guard duplicate clicks
     setClaiming((c) => ({ ...c, [id]: true }));
@@ -84,6 +100,22 @@ export default function Quests() {
     activeTab === 'all'
       ? quests
       : quests.filter((q) => (q.type || '').toLowerCase() === activeTab);
+
+  const handleProof = (q) => {
+    if (!me?.socials?.twitter?.connected) {
+      setToast('Connect Twitter first');
+      setTimeout(() => setToast(''), 3000);
+      return;
+    }
+    setProofQuest(q);
+  };
+
+  const onProofSubmitted = () => {
+    setToast('Proof submitted');
+    setTimeout(() => setToast(''), 3000);
+    sync();
+    window.dispatchEvent(new Event('profile-updated'));
+  };
 
   if (loading) return <div className="loading">Loading quests…</div>;
   if (!loading && error)
@@ -141,7 +173,14 @@ export default function Quests() {
                   <span className={`chip ${q.type}`}>
                     {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
                   </span>
-                  <span className="xp-badge">+{q.xp} XP</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {typeof q.proofStatus === 'string' && (
+                      <span className={`chip ${q.proofStatus}`}>{
+                        q.proofStatus.charAt(0).toUpperCase() + q.proofStatus.slice(1)
+                      }</span>
+                    )}
+                    <span className="xp-badge">+{q.xp} XP</span>
+                  </div>
                 </div>
                 <p className="quest-title">{q.title || q.id}</p>
                 {q.url ? (
@@ -154,32 +193,38 @@ export default function Quests() {
                     <button className="btn success" disabled>
                       Claimed
                     </button>
-                  ) : q.url ? (
+                  ) : (
                     <>
-                      <a
-                        className="btn primary"
-                        href={q.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Visit
-                      </a>
+                      {typeof q.proofStatus !== 'undefined' && (
+                        <button
+                          className="btn primary"
+                          onClick={() => handleProof(q)}
+                          disabled={!!claiming[q.id] || !me?.socials?.twitter?.connected}
+                        >
+                          Submit proof
+                        </button>
+                      )}
+                      {q.url && typeof q.proofStatus === 'undefined' && (
+                        <a
+                          className="btn primary"
+                          href={q.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Visit
+                        </a>
+                      )}
                       <button
                         className="btn ghost"
                         onClick={() => handleClaim(q.id)}
-                        disabled={!!claiming[q.id]}
+                        disabled={
+                          !!claiming[q.id] ||
+                          (typeof q.proofStatus !== 'undefined' && q.proofStatus !== 'verified')
+                        }
                       >
                         {claiming[q.id] ? 'Claiming...' : 'Claim'}
                       </button>
                     </>
-                  ) : (
-                    <button
-                      className="btn primary"
-                      onClick={() => handleClaim(q.id)}
-                      disabled={!!claiming[q.id]}
-                    >
-                      {claiming[q.id] ? 'Claiming...' : 'Claim'}
-                    </button>
                   )}
                 </div>
               </div>
@@ -188,6 +233,13 @@ export default function Quests() {
         </div>
 
         <Toast message={toast} />
+        {proofQuest && (
+          <ProofModal
+            quest={proofQuest}
+            onClose={() => setProofQuest(null)}
+            onSuccess={onProofSubmitted}
+          />
+        )}
       </div>
     </div>
   );
