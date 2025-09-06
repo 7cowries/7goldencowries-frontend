@@ -20,6 +20,13 @@ export function withSignal(ms = 15000) {
   };
 }
 
+export async function fetchJson(url, options = {}) {
+  const res = await fetch(url, { credentials: 'include', cache: 'no-store', ...(options || {}) });
+  if  (res.status === 304) return null;
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.status === 204 ? null : await res.json();
+}
+
 // simple in-memory cache with 60s TTL
 const _cache = new Map();
 const CACHE_TTL = 60000;
@@ -54,22 +61,12 @@ export async function jsonFetch(path, opts = {}) {
   const controller = opts.signal ? null : new AbortController();
   const id = controller ? setTimeout(() => controller.abort(), opts.timeout || 15000) : null;
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: opts.method || "GET",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    return await fetchJson(`${API_BASE}${path}`, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
       signal: opts.signal || (controller && controller.signal),
       ...opts,
     });
-    if (!res.ok) {
-      let text = await res.text().catch(() => "");
-      try {
-        text = JSON.stringify(JSON.parse(text));
-      } catch {}
-      throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
-    }
-    if (res.status === 204) return null;
-    return res.json();
   } finally {
     if (id) clearTimeout(id);
   }
@@ -122,7 +119,7 @@ export async function getMe({ signal } = {}) {
   const cached = cacheGet(key);
   if (cached) return Promise.resolve(cached);
   return jsonFetch("/api/users/me", { signal }).then((data) => {
-    cacheSet(key, data);
+    if (data) cacheSet(key, data);
     return data;
   });
 }
