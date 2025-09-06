@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { API_BASE, API_URLS, getMe } from "../utils/api";
+import { API_BASE, API_URLS, fetchJson } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 
@@ -102,6 +102,7 @@ export default function Profile() {
   const [perk, setPerk] = useState("");
   const [history, setHistory] = useState([]);
   const [toast, setToast] = useState("");
+  const [hasProfile, setHasProfile] = useState(false);
 
   // Busy flags for unlink/resync
   const [busy, setBusy] = useState({ twitter: false, telegram: false, discord: false });
@@ -185,30 +186,32 @@ export default function Profile() {
       setHistory(hist);
 
       if (me.wallet && !address) setAddress(me.wallet);
+      setHasProfile(true);
     },
     [address]
   );
 
   const loadMe = useCallback(async () => {
-    setError("");
+    setError('');
     setLoading(true);
     try {
-      const me = await getMe();
-      applyProfile(me);
+      await ensureWalletBound(address || tonWallet);
+      const me = await fetchJson('/api/users/me');
+      if (me) applyProfile(me);
     } catch (e) {
       console.error(e);
       const msg = String(e?.message || e);
-      if (msg.includes("Missing wallet") && (address || tonWallet)) {
+      if (msg.includes('Missing wallet') && (address || tonWallet)) {
         try {
           await ensureWalletBound(address || tonWallet);
-          const me2 = await getMe();
-          applyProfile(me2);
+          const me2 = await fetchJson('/api/users/me');
+          if (me2) applyProfile(me2);
           return;
         } catch (err) {
           console.error(err);
         }
       }
-      setError("Failed to load profile.");
+      setError('Failed to load profile.');
       setHistory([]);
     } finally {
       setLoading(false);
@@ -349,7 +352,7 @@ export default function Profile() {
 
       <h1 className="section-title">🌊 Explorer Profile</h1>
 
-      {!address ? (
+      {(!address || !hasProfile) ? (
         <p>🔌 Connect your TON wallet to view your profile.</p>
       ) : (
         <>
