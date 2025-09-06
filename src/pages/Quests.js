@@ -84,9 +84,15 @@ export default function Quests() {
       if (res?.alreadyClaimed) {
         setToast('Already claimed');
       } else {
-        setToast('Quest claimed');
+        setToast(`Quest claimed! +${res?.xp ?? 0} XP`);
       }
-      await sync();
+      const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
+      if (mountedRef.current) {
+        setMe(meData);
+        setQuests(questsData?.quests ?? []);
+        setCompleted(questsData?.completed ?? []);
+        setXp(questsData?.xp ?? 0);
+      }
       window.dispatchEvent(new Event('profile-updated'));
     } catch (e) {
       setToast(e.message || 'Failed to claim quest');
