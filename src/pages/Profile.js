@@ -132,6 +132,24 @@ export default function Profile() {
     ensureWalletBound(tonWallet);
   }, [tonWallet]);
 
+  // Keep address in sync across tabs when wallet changes
+  useEffect(() => {
+    const update = () => {
+      const w = localStorage.getItem('wallet') || '';
+      setAddress((a) => (a !== w ? w : a));
+      loadMe();
+    };
+    const onStorage = (e) => {
+      if (e.key === 'wallet') update();
+    };
+    window.addEventListener('wallet:changed', update);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('wallet:changed', update);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [loadMe]);
+
   const badgeSrc = useMemo(() => {
     const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
     return `/images/badges/level-${slug}.png`;
@@ -565,23 +583,23 @@ export default function Profile() {
               <button
                 className="connect-btn"
                 onClick={connectTwitter}
-                disabled={connecting.twitter}
+                disabled={connecting.twitter || !!twitter}
               >
-                🐦 Connect X (Twitter)
+                {twitter ? '✅ X (Twitter)' : '🐦 Connect X (Twitter)'}
               </button>
               <button
                 className="connect-btn"
                 onClick={connectTelegram}
-                disabled={connecting.telegram}
+                disabled={connecting.telegram || !!telegram}
               >
-                📣 Connect Telegram
+                {telegram ? '✅ Telegram' : '📣 Connect Telegram'}
               </button>
               <button
                 className="connect-btn"
                 onClick={connectDiscord}
-                disabled={connecting.discord}
+                disabled={connecting.discord || !!discord}
               >
-                🎮 Connect Discord
+                {discord ? '✅ Discord' : '🎮 Connect Discord'}
               </button>
             </div>
 

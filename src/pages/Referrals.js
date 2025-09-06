@@ -5,6 +5,7 @@ import "../App.css";
 
 import { playClick } from "../utils/sounds";
 import { getReferralCode, getReferralStats } from "../utils/referrals";
+import { getReferralInfo } from "../utils/api";
 
 function Toast({ msg, type = "info", onClose }) {
   if (!msg) return null;
@@ -43,8 +44,12 @@ export default function Referrals() {
   async function load() {
     setLoading(true);
     try {
-      const stats = await getReferralStats(); // { code, referees: [...] }
-      if (stats?.code) setCode(stats.code);
+      const [info, stats] = await Promise.all([
+        getReferralInfo().catch(() => null),
+        getReferralStats().catch(() => null),
+      ]);
+      if (info?.referral_code) setCode(info.referral_code);
+      else if (stats?.code) setCode(stats.code);
       else {
         const c = await getReferralCode();
         if (c) setCode(c);
