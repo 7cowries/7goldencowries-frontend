@@ -51,5 +51,25 @@ describe('Quests page claiming', () => {
     expect(await screen.findByText('Claimed')).toBeDisabled();
     expect(screen.getByText(/\+50 XP/)).toBeInTheDocument();
   });
+
+  test('shows Visit button when quest has a URL', async () => {
+    getQuests.mockResolvedValueOnce({
+      quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', proofStatus: 'pending' }],
+      completed: [],
+      xp: 0,
+    });
+    getMe.mockResolvedValueOnce({
+      wallet: 'w',
+      xp: 0,
+      level: '1',
+      levelProgress: 0,
+      socials: {},
+    });
+
+    render(<Quests />);
+
+    const visitBtn = await screen.findByText('Visit');
+    expect(visitBtn).toHaveAttribute('href', 'https://example.com');
+  });
 });
 
