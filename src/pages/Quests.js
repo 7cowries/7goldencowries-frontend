@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getQuests, claimQuest, getMe } from '../utils/api';
+import { getQuests, claimQuest, getProfile, getProofStatus } from '../utils/api';
+import { isProofRequired } from '../utils/proof';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import ProofModal from '../components/ProofModal';
@@ -30,7 +31,32 @@ export default function Quests() {
   async function loadQuests(signal) {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
-    setQuests(data?.quests ?? []);
+    let list = data?.quests ?? [];
+    list = await Promise.all(
+      list.map(async (q) => {
+        if (isProofRequired(q) && typeof q.proofStatus === 'undefined') {
+          try {
+            const ps = await getProofStatus(walletRef.current, q.id, { signal });
+            return { ...q, proofStatus: ps?.status, proofReason: ps?.reason };
+          } catch {
+            return q;
+          }
+        }
+        return q;
+      })
+    );
+    list.sort((a, b) => {
+      const aActive = a.active ? 1 : 0;
+      const bActive = b.active ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      const aSort = a.sort ?? 0;
+      const bSort = b.sort ?? 0;
+      if (aSort !== bSort) return aSort - bSort;
+      const aId = String(a.id || '');
+      const bId = String(b.id || '');
+      return aId.localeCompare(bId);
+    });
+    setQuests(list);
     setCompleted(data?.completed ?? []);
     setXp(data?.xp ?? 0);
   }
@@ -64,14 +90,14 @@ export default function Quests() {
   }, []);
 
   useEffect(() => {
-    async function loadMe() {
+    async function loadProfile() {
       try {
-        const data = await getMe();
+        const data = await getProfile();
         setMe(data);
       } catch {}
     }
-    loadMe();
-    const onProfile = () => loadMe();
+    loadProfile();
+    const onProfile = () => loadProfile();
     window.addEventListener('profile-updated', onProfile);
     return () => window.removeEventListener('profile-updated', onProfile);
   }, []);
@@ -80,7 +106,7 @@ export default function Quests() {
     if (claiming[id]) return; // guard duplicate clicks
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
-      const res = await claimQuest(id);
+      const res = await claimQuest(walletRef.current, id);
       if (res?.alreadyClaimed) {
         setToast('Already claimed');
       } else {
@@ -89,7 +115,12 @@ export default function Quests() {
       await sync();
       window.dispatchEvent(new Event('profile-updated'));
     } catch (e) {
-      setToast(e.message || 'Failed to claim quest');
+      if (e.status === 403 && /Submit a valid proof first/i.test(e.message)) {
+        const q = quests.find((x) => x.id === id);
+        if (q) setProofQuest(q);
+      } else {
+        setToast(e.message || 'Failed to claim quest');
+      }
     } finally {
       setClaiming((c) => ({ ...c, [id]: false }));
       setTimeout(() => setToast(''), 3000);
@@ -110,8 +141,8 @@ export default function Quests() {
     setProofQuest(q);
   };
 
-  const onProofSubmitted = () => {
-    setToast('Proof submitted');
+  const onProofVerified = () => {
+    setToast('Proof verified');
     setTimeout(() => setToast(''), 3000);
     sync();
     window.dispatchEvent(new Event('profile-updated'));
@@ -174,10 +205,14 @@ export default function Quests() {
                     {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {typeof q.proofStatus === 'string' && (
+                    {typeof q.proofStatus === 'string' ? (
                       <span className={`chip ${q.proofStatus}`}>{
                         q.proofStatus.charAt(0).toUpperCase() + q.proofStatus.slice(1)
                       }</span>
+                    ) : (
+                      isProofRequired(q) && (
+                        <span className="chip proof-required">Proof required</span>
+                      )
                     )}
                     <span className="xp-badge">+{q.xp} XP</span>
                   </div>
@@ -195,7 +230,7 @@ export default function Quests() {
                     </button>
                   ) : (
                     <>
-                      {typeof q.proofStatus !== 'undefined' && (
+                      {isProofRequired(q) && (
                         <button
                           className="btn primary"
                           onClick={() => handleProof(q)}
@@ -204,7 +239,7 @@ export default function Quests() {
                           Submit proof
                         </button>
                       )}
-                      {q.url && typeof q.proofStatus === 'undefined' && (
+                      {q.url && !isProofRequired(q) && (
                         <a
                           className="btn primary"
                           href={q.url}
@@ -219,7 +254,7 @@ export default function Quests() {
                         onClick={() => handleClaim(q.id)}
                         disabled={
                           !!claiming[q.id] ||
-                          (typeof q.proofStatus !== 'undefined' && q.proofStatus !== 'verified')
+                          (isProofRequired(q) && q.proofStatus !== 'verified')
                         }
                       >
                         {claiming[q.id] ? 'Claiming...' : 'Claim'}
@@ -236,8 +271,9 @@ export default function Quests() {
         {proofQuest && (
           <ProofModal
             quest={proofQuest}
+            wallet={walletRef.current}
             onClose={() => setProofQuest(null)}
-            onSuccess={onProofSubmitted}
+            onVerified={onProofVerified}
           />
         )}
       </div>

@@ -397,7 +397,10 @@ export default function Profile() {
 
           {/* Connected Accounts */}
           <section className="card glass" style={{ marginTop: 16 }}>
-            <h3>Connected Accounts</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Connected Accounts</h3>
+              <button className="mini" onClick={() => loadMe()}>Refresh</button>
+            </div>
             {error && <p style={{ color: "#ff7a7a" }}>{error}</p>}
 
             <div className="social-status-list">
@@ -415,6 +418,13 @@ export default function Profile() {
                       ✅ @{stripAt(twitter)}
                     </a>
                     <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectTwitter}
+                        disabled={connecting.twitter}
+                      >
+                        Connect
+                      </button>
                       <button
                         className="mini"
                         disabled={busy.twitter}
@@ -461,6 +471,13 @@ export default function Profile() {
                       ✅ @{stripAt(telegram)}
                     </a>
                     <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectTelegram}
+                        disabled={connecting.telegram}
+                      >
+                        Connect
+                      </button>
                       <button
                         className="mini"
                         disabled={busy.telegram}
@@ -519,6 +536,13 @@ export default function Profile() {
                       )}
                     </span>
                     <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectDiscord}
+                        disabled={connecting.discord}
+                      >
+                        Connect
+                      </button>
                       <button
                         className="mini"
                         disabled={busy.discord}

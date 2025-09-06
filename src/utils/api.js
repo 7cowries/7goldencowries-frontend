@@ -64,9 +64,14 @@ export async function jsonFetch(path, opts = {}) {
     if (!res.ok) {
       let text = await res.text().catch(() => "");
       try {
-        text = JSON.stringify(JSON.parse(text));
-      } catch {}
-      throw new Error(`HTTP ${res.status} ${res.statusText} – ${text}`);
+        text = JSON.parse(text);
+      } catch {
+        // leave as string
+      }
+      const msg = typeof text === "string" ? text : JSON.stringify(text);
+      const err = new Error(`HTTP ${res.status} ${res.statusText} – ${msg}`);
+      err.status = res.status;
+      throw err;
     }
     if (res.status === 204) return null;
     return res.json();
@@ -131,20 +136,30 @@ export async function postJSON(path, body, opts = {}) {
   return jsonFetch(path, { method: "POST", body: JSON.stringify(body ?? {}), ...opts });
 }
 
-export function claimQuest(id, opts = {}) {
-  return postJSON("/api/quests/claim", { questId: id }, opts).then((res) => {
+export function claimQuest(wallet, questId, opts = {}) {
+  return postJSON("/api/quests/claim", { wallet, questId }, opts).then((res) => {
     clearUserCache();
     return res;
   });
 }
 
-export function submitQuestProof(id, url, opts = {}) {
-  return postJSON("/api/quests/submit-proof", { questId: id, url }, opts).then(
+export function submitProof(wallet, questId, url, opts = {}) {
+  return postJSON("/api/quests/submit-proof", { wallet, questId, url }, opts).then(
     (res) => {
       clearUserCache();
       return res;
     }
   );
+}
+
+export function getProofStatus(wallet, questId, opts = {}) {
+  const params = new URLSearchParams({ wallet: wallet || "", questId });
+  return getJSON(`/api/quests/proof-status?${params.toString()}`, opts);
+}
+
+export function getProfile(wallet, opts = {}) {
+  // wallet param reserved for future use; current endpoint uses session
+  return getMe(opts);
 }
 
 export function bindWallet(wallet, opts = {}) {
@@ -197,7 +212,9 @@ export const api = {
   startDiscord,
   startTwitter,
   claimQuest,
-  submitQuestProof,
+  submitProof,
+  getProofStatus,
+  getProfile,
   clearUserCache,
   getReferralInfo,
   createReferral,
