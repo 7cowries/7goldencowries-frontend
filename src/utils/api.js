@@ -135,8 +135,8 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
-export function submitQuestProof(id, url, opts = {}) {
-  return postJSON(`/api/quests/${id}/proofs`, { url }, opts).then((res) => {
+export function submitProof(id, body, opts = {}) {
+  return postJSON(`/api/quests/${id}/proofs`, body, opts).then((res) => {
     clearUserCache();
     return res;
   });
@@ -192,7 +192,7 @@ export const api = {
   startDiscord,
   startTwitter,
   claimQuest,
-  submitQuestProof,
+  submitProof,
   clearUserCache,
   getReferralInfo,
   createReferral,

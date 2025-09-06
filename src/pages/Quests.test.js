@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Quests from './Quests';
-import { getQuests, claimQuest, getMe, submitQuestProof } from '../utils/api';
+import { getQuests, claimQuest, getMe, submitProof } from '../utils/api';
 
 jest.mock('../utils/api');
 
@@ -13,7 +13,7 @@ describe('Quests page claiming', () => {
 
   test('claiming a quest refreshes data and shows awarded XP', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, completed: true }],
+      quests: [{ id: 1, xp: 10, active: 1, requirement: 'none' }],
       completed: [],
       xp: 0,
     });
@@ -38,7 +38,7 @@ describe('Quests page claiming', () => {
       socials: {},
     });
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, alreadyClaimed: true }],
+      quests: [{ id: 1, xp: 10, active: 1, completed: true }],
       completed: [1],
       xp: 50,
     });
@@ -98,14 +98,14 @@ describe('Quests page claiming', () => {
     const proofBtn = await screen.findByText('Submit proof');
     await userEvent.click(proofBtn);
 
-    const input = screen.getByPlaceholderText('https://x.com/username/status/1234567890');
+    const input = screen.getByPlaceholderText('Paste link here');
     await userEvent.type(input, 'https://example.com');
 
-    submitQuestProof.mockResolvedValueOnce({ ok: true });
+    submitProof.mockResolvedValueOnce({ ok: true, proof: { status: 'approved' } });
     const submitBtn = screen.getByText('Submit');
     await userEvent.click(submitBtn);
 
-    await waitFor(() => expect(submitQuestProof).toHaveBeenCalled());
+    await waitFor(() => expect(submitProof).toHaveBeenCalled());
 
     const claimBtn = await screen.findByText('Claim');
     expect(claimBtn).not.toBeDisabled();

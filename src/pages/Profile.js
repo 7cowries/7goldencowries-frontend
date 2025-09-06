@@ -98,6 +98,7 @@ export default function Profile() {
   const [telegram, setTelegram] = useState("");
   const [discord, setDiscord] = useState("");
   const [discordGuildMember, setDiscordGuildMember] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
   const [perk, setPerk] = useState("");
   const [history, setHistory] = useState([]);
@@ -121,7 +122,9 @@ export default function Profile() {
       localStorage.setItem("wallet", tonWallet);
       localStorage.setItem("walletAddress", tonWallet);
       localStorage.setItem("ton_wallet", tonWallet);
-      window.dispatchEvent(new CustomEvent('wallet:changed'));
+      window.dispatchEvent(
+        new CustomEvent('wallet:changed', { detail: { wallet: tonWallet } })
+      );
     } else if (!address) {
       setAddress(lsCandidates[0] || "");
     }
@@ -135,8 +138,8 @@ export default function Profile() {
 
   // Keep address in sync across tabs when wallet changes
   useEffect(() => {
-    const update = () => {
-      const w = localStorage.getItem('wallet') || '';
+    const update = (e) => {
+      const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       setAddress((a) => (a !== w ? w : a));
       loadMe();
     };
@@ -181,6 +184,7 @@ export default function Profile() {
         socials.discord?.connected ? String(socials.discord.username) : ""
       );
       setDiscordGuildMember(false);
+      setReferralCode(me.referral_code || me.referralCode || '');
 
       const hist = Array.isArray(me?.history) ? me.history : [];
       setHistory(hist);
@@ -620,6 +624,29 @@ export default function Profile() {
               </a>
               .
             </p>
+          </section>
+
+          {/* Referral Code */}
+          <section className="card glass" style={{ marginTop: 16 }}>
+            <h3>Referral</h3>
+            {referralCode ? (
+              <p>
+                Your code: <code>{referralCode}</code>{' '}
+                <button
+                  className="mini"
+                  onClick={() => {
+                    const link = `https://7goldencowries.com/ref/${referralCode}`;
+                    navigator.clipboard?.writeText(link);
+                    setToast('Referral link copied ✅');
+                    setTimeout(() => setToast(''), 1500);
+                  }}
+                >
+                  Copy Link
+                </button>
+              </p>
+            ) : (
+              <p>No referral code yet.</p>
+            )}
           </section>
 
           {/* Quest History */}

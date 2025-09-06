@@ -10,8 +10,9 @@ export default function WalletInput() {
 
   const onChange = (e) => setValue(e.target.value);
   const onBlur = () => {
-    localStorage.setItem('wallet', value.trim());
-    window.dispatchEvent(new CustomEvent('wallet:changed'));
+    const w = value.trim();
+    localStorage.setItem('wallet', w);
+    window.dispatchEvent(new CustomEvent('wallet:changed', { detail: { wallet: w } }));
   };
 
   return (

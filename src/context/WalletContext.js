@@ -14,7 +14,7 @@ export default function WalletProvider({ children }) {
     if (wallet) {
       localStorage.setItem("walletAddress", wallet);
       localStorage.setItem("wallet", wallet);
-      window.dispatchEvent(new CustomEvent('wallet:changed'));
+      window.dispatchEvent(new CustomEvent('wallet:changed', { detail: { wallet } }));
     }
   }, [wallet]);
 

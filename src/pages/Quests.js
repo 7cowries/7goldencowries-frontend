@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getQuests, claimQuest, getMe } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
-import ProofModal from '../components/ProofModal';
+import SubmitProofModal from '../components/SubmitProofModal';
 import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
@@ -54,8 +54,8 @@ export default function Quests() {
   useEffect(() => {
     walletRef.current = localStorage.getItem('wallet') || '';
     sync();
-    const onWalletChanged = () => {
-      walletRef.current = localStorage.getItem('wallet') || '';
+    const onWalletChanged = (e) => {
+      walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       sync();
     };
     const onStorage = (e) => {
@@ -96,7 +96,8 @@ export default function Quests() {
       if (res?.alreadyClaimed) {
         setToast('Already claimed');
       } else {
-        setToast(`Quest claimed! +${res?.xp ?? 0} XP`);
+        const award = res?.awardedXp ?? res?.xp ?? 0;
+        setToast(`Quest claimed! +${award} XP`);
       }
       const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
       if (mountedRef.current) {
@@ -127,18 +128,15 @@ export default function Quests() {
     setProofQuest(q);
   };
 
-  const onProofSubmitted = (quest) => {
+  const onProofSubmitted = (proof) => {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('proof_submitted', quest.id);
+      console.log('proof_submitted', proofQuest?.id, proof?.status);
     }
     setToast('Proof submitted');
     setQuests((qs) =>
       qs.map((qq) =>
-        qq.id === quest.id
-          ? {
-              ...qq,
-              proofStatus: quest.requirement === 'link' ? 'approved' : 'pending',
-            }
+        qq.id === (proofQuest?.id || proof?.quest_id)
+          ? { ...qq, proofStatus: proof?.status || 'pending' }
           : qq
       )
     );
@@ -216,10 +214,10 @@ export default function Quests() {
 
         <Toast message={toast} />
         {proofQuest && (
-          <ProofModal
+          <SubmitProofModal
             quest={proofQuest}
             onClose={() => setProofQuest(null)}
-            onSuccess={() => onProofSubmitted(proofQuest)}
+            onSuccess={onProofSubmitted}
             onError={onProofError}
           />
         )}
