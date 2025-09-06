@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Quests from './Quests';
-import { getQuests, claimQuest, getMe, submitQuestProof } from '../utils/api';
+import { getQuests, getMe } from '../utils/api';
 
 jest.mock('../utils/api');
 
@@ -9,9 +9,10 @@ describe('Quests page claiming', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    global.fetch = jest.fn();
   });
 
-  test('claiming a quest refreshes data and shows awarded XP', async () => {
+  test('claiming a quest refreshes data and disables button', async () => {
     getQuests.mockResolvedValueOnce({
       quests: [{ id: 1, xp: 10, active: 1, completed: true }],
       completed: [],
@@ -29,7 +30,7 @@ describe('Quests page claiming', () => {
 
     const claimBtn = await screen.findByText('Claim');
 
-    claimQuest.mockResolvedValue({ xp: 50 });
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     getMe.mockResolvedValueOnce({
       wallet: 'w',
       xp: 50,
@@ -49,7 +50,6 @@ describe('Quests page claiming', () => {
     await waitFor(() => expect(getQuests).toHaveBeenCalledTimes(2));
 
     expect(await screen.findByText('Claimed')).toBeDisabled();
-    expect(screen.getByText(/\+50 XP/)).toBeInTheDocument();
   });
 
   test('shows Go button when quest has a URL', async () => {
@@ -98,14 +98,14 @@ describe('Quests page claiming', () => {
     const proofBtn = await screen.findByText('Submit proof');
     await userEvent.click(proofBtn);
 
-    const input = screen.getByPlaceholderText('https://x.com/username/status/1234567890');
+    const input = screen.getByPlaceholderText('https://x.com/… or https://t.me/…');
     await userEvent.type(input, 'https://example.com');
 
-    submitQuestProof.mockResolvedValueOnce({ ok: true });
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'approved' }) });
     const submitBtn = screen.getByText('Submit');
     await userEvent.click(submitBtn);
 
-    await waitFor(() => expect(submitQuestProof).toHaveBeenCalled());
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
 
     const claimBtn = await screen.findByText('Claim');
     expect(claimBtn).not.toBeDisabled();
