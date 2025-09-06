@@ -62,11 +62,9 @@ describe('quests API', () => {
     app.use(express.json());
     app.use('/api/quests', createRouter(db));
     const res = await call(app, 'POST', '/api/quests/1/proofs', {
-      wallet: 'w',
-      vendor: 'twitter',
       url: 'u',
     });
     expect(res.status).toBe(200);
-    expect(proofs[0]).toEqual({ questId: 1, wallet: 'w', vendor: 'twitter', url: 'u' });
+    expect(proofs[0]).toEqual({ questId: 1, wallet: undefined, vendor: undefined, url: 'u' });
   });
 });

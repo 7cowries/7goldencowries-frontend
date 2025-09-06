@@ -1,7 +1,18 @@
 import React from 'react';
 
+const NEEDS_PROOF = new Set([
+  'twitter_follow',
+  'twitter_retweet',
+  'twitter_quote',
+  'telegram_join',
+  'discord_join',
+  'link',
+]);
+
 export default function QuestCard({ quest, onClaim, onProof, claiming }) {
   const q = quest;
+  const needsProof = NEEDS_PROOF.has(q.requirement);
+  const claimable = q.completed || q.proofStatus === 'approved';
   return (
     <div className="glass quest-card">
       <div className="q-row">
@@ -39,7 +50,12 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
             href={q.url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('quest_opened', q.id);
+              }
+              e.stopPropagation();
+            }}
           >
             {q.title || q.id}
           </a>
@@ -53,21 +69,22 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
         </div>
       ) : null}
       <div className="actions">
-        {q.url ? (
+        {q.url && (
           <a
             className="btn primary"
             href={q.url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('quest_opened', q.id);
+              }
+            }}
           >
-            Start
+            Go
           </a>
-        ) : (
-          <button className="btn primary" disabled title="Coming soon">
-            Start
-          </button>
         )}
-        {typeof q.proofStatus !== 'undefined' && (
+        {needsProof && (
           <button
             className="btn primary"
             onClick={() => onProof(q)}
@@ -84,10 +101,7 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
           <button
             className="btn ghost"
             onClick={() => onClaim(q.id)}
-            disabled={
-              claiming ||
-              (typeof q.proofStatus !== 'undefined' && q.proofStatus !== 'verified')
-            }
+            disabled={claiming || !claimable}
           >
             {claiming ? 'Claiming...' : 'Claim'}
           </button>

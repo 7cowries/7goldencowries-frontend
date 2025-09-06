@@ -63,10 +63,10 @@ export default function Quests() {
         onWalletChanged();
       }
     };
-    window.addEventListener('wallet-changed', onWalletChanged);
+    window.addEventListener('wallet:changed', onWalletChanged);
     window.addEventListener('storage', onStorage);
     return () => {
-      window.removeEventListener('wallet-changed', onWalletChanged);
+      window.removeEventListener('wallet:changed', onWalletChanged);
       window.removeEventListener('storage', onStorage);
     };
   }, []);
@@ -85,10 +85,14 @@ export default function Quests() {
   }, []);
 
   const handleClaim = async (id) => {
+    walletRef.current = localStorage.getItem('wallet') || '';
     if (claiming[id]) return; // guard duplicate clicks
     setClaiming((c) => ({ ...c, [id]: true }));
     try {
       const res = await claimQuest(id);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('claim_clicked', id, res);
+      }
       if (res?.alreadyClaimed) {
         setToast('Already claimed');
       } else {
@@ -119,11 +123,25 @@ export default function Quests() {
         );
 
   const handleProof = (q) => {
+    walletRef.current = localStorage.getItem('wallet') || '';
     setProofQuest(q);
   };
 
-  const onProofSubmitted = () => {
+  const onProofSubmitted = (quest) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('proof_submitted', quest.id);
+    }
     setToast('Proof submitted');
+    setQuests((qs) =>
+      qs.map((qq) =>
+        qq.id === quest.id
+          ? {
+              ...qq,
+              proofStatus: quest.requirement === 'link' ? 'approved' : 'pending',
+            }
+          : qq
+      )
+    );
     setTimeout(() => setToast(''), 3000);
     sync();
     window.dispatchEvent(new Event('profile-updated'));
@@ -201,9 +219,8 @@ export default function Quests() {
           <ProofModal
             quest={proofQuest}
             onClose={() => setProofQuest(null)}
-            onSuccess={onProofSubmitted}
+            onSuccess={() => onProofSubmitted(proofQuest)}
             onError={onProofError}
-            wallet={walletRef.current}
           />
         )}
       </div>
