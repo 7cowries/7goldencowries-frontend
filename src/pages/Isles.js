@@ -62,7 +62,7 @@ function useWallet() {
       localStorage.setItem("wallet", chosen);
       localStorage.setItem("ton_wallet", chosen);
       localStorage.setItem("walletAddress", chosen);
-      window.dispatchEvent(new CustomEvent('wallet:changed'));
+      window.dispatchEvent(new CustomEvent('wallet:changed', { detail: { wallet: chosen } }));
     }
     return chosen;
   }, []);

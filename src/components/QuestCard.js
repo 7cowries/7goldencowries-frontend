@@ -5,14 +5,17 @@ const NEEDS_PROOF = new Set([
   'twitter_retweet',
   'twitter_quote',
   'telegram_join',
+  'telegram_member',
   'discord_join',
+  'discord_member',
   'link',
 ]);
 
 export default function QuestCard({ quest, onClaim, onProof, claiming }) {
   const q = quest;
   const needsProof = NEEDS_PROOF.has(q.requirement);
-  const claimable = q.completed || q.proofStatus === 'approved';
+  const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
+  const claimable = !alreadyClaimed && (!needsProof || q.proofStatus === 'approved');
   return (
     <div className="glass quest-card">
       <div className="q-row">
@@ -36,11 +39,13 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
           </span>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {typeof q.proofStatus === 'string' && (
+          {alreadyClaimed ? (
+            <span className="chip completed">Completed</span>
+          ) : typeof q.proofStatus === 'string' ? (
             <span className={`chip ${q.proofStatus}`}>
               {q.proofStatus.charAt(0).toUpperCase() + q.proofStatus.slice(1)}
             </span>
-          )}
+          ) : null}
           <span className="xp-badge">+{q.xp} XP</span>
         </div>
       </div>
@@ -93,7 +98,7 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
             Submit proof
           </button>
         )}
-        {q.alreadyClaimed || q.claimed ? (
+        {alreadyClaimed ? (
           <button className="btn success" disabled>
             Claimed
           </button>
