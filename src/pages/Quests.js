@@ -98,8 +98,11 @@ export default function Quests() {
 
   const shownQuests =
     activeTab === 'all'
-      ? quests
-      : quests.filter((q) => (q.type || '').toLowerCase() === activeTab);
+      ? quests.filter((q) => q.active === 1)
+      : quests.filter(
+          (q) =>
+            (q.category || 'All').toLowerCase() === activeTab && q.active === 1
+        );
 
   const handleProof = (q) => {
     setProofQuest(q);
@@ -170,9 +173,25 @@ export default function Quests() {
             shownQuests.map((q) => (
               <div key={q.id} className="glass quest-card">
                 <div className="q-row">
-                  <span className={`chip ${q.type}`}>
-                    {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
-                  </span>
+                  {q.type === 'link' ? (
+                    q.url ? (
+                      <a
+                        href={q.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`chip ${q.type}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Link
+                      </a>
+                    ) : (
+                      <span className={`chip ${q.type}`}>Link</span>
+                    )
+                  ) : (
+                    <span className={`chip ${q.type}`}>
+                      {q.type?.charAt(0).toUpperCase() + q.type?.slice(1)}
+                    </span>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {typeof q.proofStatus === 'string' && (
                       <span className={`chip ${q.proofStatus}`}>{
@@ -182,7 +201,20 @@ export default function Quests() {
                     <span className="xp-badge">+{q.xp} XP</span>
                   </div>
                 </div>
-                <p className="quest-title">{q.title || q.id}</p>
+                <p className="quest-title">
+                  {q.url ? (
+                    <a
+                      href={q.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {q.title || q.id}
+                    </a>
+                  ) : (
+                    q.title || q.id
+                  )}
+                </p>
                 {q.url ? (
                   <div className="muted mono" style={{ wordBreak: 'break-all' }}>
                     {q.url}
