@@ -102,11 +102,6 @@ export default function Quests() {
       : quests.filter((q) => (q.type || '').toLowerCase() === activeTab);
 
   const handleProof = (q) => {
-    if (!me?.socials?.twitter?.connected) {
-      setToast('Connect Twitter first');
-      setTimeout(() => setToast(''), 3000);
-      return;
-    }
     setProofQuest(q);
   };
 
@@ -115,6 +110,11 @@ export default function Quests() {
     setTimeout(() => setToast(''), 3000);
     sync();
     window.dispatchEvent(new Event('profile-updated'));
+  };
+
+  const onProofError = (msg) => {
+    setToast(msg || 'Failed to submit proof');
+    setTimeout(() => setToast(''), 3000);
   };
 
   if (loading) return <div className="loading">Loading quests…</div>;
@@ -199,7 +199,7 @@ export default function Quests() {
                         <button
                           className="btn primary"
                           onClick={() => handleProof(q)}
-                          disabled={!!claiming[q.id] || !me?.socials?.twitter?.connected}
+                          disabled={!!claiming[q.id]}
                         >
                           Submit proof
                         </button>
@@ -238,6 +238,8 @@ export default function Quests() {
             quest={proofQuest}
             onClose={() => setProofQuest(null)}
             onSuccess={onProofSubmitted}
+            onError={onProofError}
+            wallet={walletRef.current}
           />
         )}
       </div>

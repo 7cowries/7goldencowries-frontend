@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { submitQuestProof } from '../utils/api';
 
-export default function ProofModal({ quest, onClose, onSuccess }) {
+export default function ProofModal({ quest, wallet, onClose, onSuccess, onError }) {
   const [url, setUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -15,11 +15,13 @@ export default function ProofModal({ quest, onClose, onSuccess }) {
     }
     setSubmitting(true);
     try {
-      const res = await submitQuestProof(quest.id, url);
+      const res = await submitQuestProof(quest.id, wallet, url);
       onSuccess && onSuccess(res);
       onClose();
     } catch (e) {
-      setError(e.message || 'Failed to submit proof');
+      const message = e.message || 'Failed to submit proof';
+      setError(message);
+      onError && onError(message);
     } finally {
       setSubmitting(false);
     }
