@@ -54,7 +54,7 @@ describe('Quests page claiming', () => {
 
   test('shows Go button when quest has a URL', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', requirement: 'link' }],
+      quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', requirement: 'none' }],
       completed: [],
       xp: 0,
     });
@@ -72,15 +72,15 @@ describe('Quests page claiming', () => {
     expect(goBtn).toHaveAttribute('href', 'https://example.com');
   });
 
-  test('submitting proof enables claim for link quest', async () => {
+  test('submitting proof enables claim for tweet link quest', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, requirement: 'link' }],
+      quests: [{ id: 1, xp: 10, active: 1, requirement: 'tweet_link' }],
       completed: [],
       xp: 0,
     });
     getQuests.mockResolvedValueOnce({
       quests: [
-        { id: 1, xp: 10, active: 1, requirement: 'link', proofStatus: 'approved' },
+        { id: 1, xp: 10, active: 1, requirement: 'tweet_link', proofStatus: 'approved' },
       ],
       completed: [],
       xp: 0,
@@ -98,8 +98,8 @@ describe('Quests page claiming', () => {
     const proofBtn = await screen.findByText('Submit proof');
     await userEvent.click(proofBtn);
 
-    const input = screen.getByPlaceholderText('Paste link here');
-    await userEvent.type(input, 'https://example.com');
+    const input = screen.getByPlaceholderText('Paste tweet link');
+    await userEvent.type(input, 'https://twitter.com/user/status/1');
 
     submitProof.mockResolvedValueOnce({ ok: true, proof: { status: 'approved' } });
     const submitBtn = screen.getByText('Submit');

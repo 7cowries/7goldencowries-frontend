@@ -1,14 +1,13 @@
 import React from 'react';
 
+// Quests that require an external proof before claiming. These map to the
+// `requirement` field returned by the backend API. Earlier versions of the app
+// used more granular requirement names (e.g. `twitter_follow`), but the new
+// contract standardises on these generic values.
 const NEEDS_PROOF = new Set([
-  'twitter_follow',
-  'twitter_retweet',
-  'twitter_quote',
-  'telegram_join',
-  'telegram_member',
-  'discord_join',
-  'discord_member',
-  'link',
+  'tweet_link',
+  'join_telegram',
+  'join_discord',
 ]);
 
 export default function QuestCard({ quest, onClaim, onProof, claiming }) {
