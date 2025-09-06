@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { submitProof } from '../utils/api';
+import { parseTweetId, isValidTweetUrl } from '../utils/validators';
 
 export default function SubmitProofModal({ quest, onClose, onSuccess, onError }) {
   const [url, setUrl] = useState('');
-  const [vendor, setVendor] = useState(() => {
-    const req = quest?.requirement || '';
-    if (req.includes('twitter')) return 'twitter';
-    if (req.includes('telegram')) return 'telegram';
-    if (req.includes('discord')) return 'discord';
-    return 'link';
-  });
+  const vendor = (() => {
+    switch (quest?.requirement) {
+      case 'tweet_link':
+        return 'twitter';
+      case 'join_telegram':
+        return 'telegram';
+      case 'join_discord':
+        return 'discord';
+      default:
+        return 'link';
+    }
+  })();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,9 +33,17 @@ export default function SubmitProofModal({ quest, onClose, onSuccess, onError })
       setError('URL required');
       return;
     }
+    if (vendor === 'twitter' && !isValidTweetUrl(url)) {
+      setError('Invalid tweet URL');
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await submitProof(quest.id, { url, vendor });
+      const body = { url, vendor };
+      if (vendor === 'twitter') {
+        body.tweet_id = parseTweetId(url);
+      }
+      const res = await submitProof(quest.id, body);
       onSuccess && onSuccess(res.proof);
       onClose();
     } catch (e) {
@@ -46,22 +60,6 @@ export default function SubmitProofModal({ quest, onClose, onSuccess, onError })
       <div className="glass-strong modal-box" onClick={(e) => e.stopPropagation()}>
         <h2 style={{ marginTop: 0 }}>Submit Proof</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <select
-            value={vendor}
-            onChange={(e) => setVendor(e.target.value)}
-            style={{
-              padding: '8px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(0,0,0,0.2)',
-              color: '#eaf2ff',
-            }}
-          >
-            <option value="twitter">Twitter/X</option>
-            <option value="telegram">Telegram</option>
-            <option value="discord">Discord</option>
-            <option value="link">Link</option>
-          </select>
           <input
             type="text"
             value={url}
