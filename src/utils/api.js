@@ -208,6 +208,10 @@ export function getReferralsList(opts = {}) {
   return getJSON("/api/referral/list", opts);
 }
 
+export function getReferralStatus(opts = {}) {
+  return getJSON("/api/referral/status", opts);
+}
+
 export const api = {
   base: API_BASE,
   getQuests,
@@ -225,6 +229,7 @@ export const api = {
   createReferral,
   applyReferral,
   getReferralsList,
+  getReferralStatus,
   postJSON,
   get: getJSON,
   getJSON,

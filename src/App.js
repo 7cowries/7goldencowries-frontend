@@ -14,6 +14,7 @@ import {
   soundIsEnabled,
   attachGlobalClickSFX,
 } from "./utils/sounds";
+import { API_BASE } from "./utils/api";
 
 const manifestUrl = "/tonconnect-manifest.json";
 
@@ -30,6 +31,7 @@ const Profile      = lazy(() => import("./pages/Profile"));
 const Isles        = lazy(() => import("./pages/Isles"));
 const NotFound     = lazy(() => import("./pages/NotFound"));  // fallback route
 const TestAPI      = lazy(() => import("./pages/TestAPI"));   // connectivity check
+const RefRedirect  = lazy(() => import("./pages/RefRedirect"));
 
 /* -----------------------------
    Ambient background layers
@@ -74,6 +76,11 @@ const App = () => {
       window.removeEventListener("pointerdown", arm);
       window.removeEventListener("keydown", arm);
     };
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      window.location.href = `${API_BASE}/ref/${encodeURIComponent(ref)}`;
+    }
   }, []);
 
   return (
@@ -90,6 +97,7 @@ const App = () => {
                   <Route path="/quests" element={<Quests />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/referral" element={<Referral />} />
+                  <Route path="/ref/:code" element={<RefRedirect />} />
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="/token-sale" element={<TokenSale />} />
                   <Route path="/profile" element={<Profile />} />

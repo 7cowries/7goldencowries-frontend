@@ -6,24 +6,25 @@ const crypto = require('crypto');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
 
+// Default profile returned when no wallet/session
 const DEFAULT_ME = {
-  anon: true,
   wallet: null,
   xp: 0,
-  level: 1,
-  levelSymbol: 'Shellborn',
+  level: 'Shellborn',
+  levelName: 'Shellborn',
+  levelSymbol: '🐚',
   nextXP: 100,
+  twitterHandle: null,
+  telegramId: null,
+  discordId: null,
   subscriptionTier: 'Free',
-  socials: {
-    twitterHandle: null,
-    telegramId: null,
-    discordId: null,
-    discordGuildMember: false,
-  },
-  referral_code: null,
+  questHistory: [],
 };
 
+// In‑memory stores for demo purposes
 const sessions = new Map();
+const users = new Map(); // wallet -> user profile
+const referralCodes = new Map(); // code -> wallet
 
 function parseCookies(req) {
   const hdr = req.headers.cookie || '';
@@ -48,11 +49,30 @@ function getSession(req, res) {
 
 const app = express();
 app.set('etag', false);
-app.use(cors({ origin: FRONTEND_URL || false }));
+
+// CORS configuration allowing production + local dev origins with credentials
+const allowedOrigins = [
+  FRONTEND_URL,
+  'https://7goldencowries.com',
+  'https://www.7goldencowries.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, uptime: process.uptime(), timestamp: Date.now() });
 });
 
 app.get('/api/health/db', (req, res) => {
@@ -80,10 +100,19 @@ app.get('/api/health/db', (req, res) => {
   }
 });
 
-app.get(['/ref/:code', '/referrals/:code'], (req, res) => {
+// Referral landing – validates code, sets cookie, redirects to frontend
+app.get('/ref/:code', (req, res) => {
   const { code } = req.params;
-  const url = `${FRONTEND_URL}/?ref=${encodeURIComponent(code)}`;
-  res.redirect(302, url);
+  const ownerWallet = referralCodes.get(code);
+  if (!ownerWallet) {
+    return res.status(404).send('Invalid referral code');
+  }
+  res.setHeader(
+    'Set-Cookie',
+    `referral_code=${encodeURIComponent(code)}; Max-Age=2592000; Path=/; HttpOnly; SameSite=None; Secure`
+  );
+  const dest = FRONTEND_URL || 'https://7goldencowries.com';
+  res.redirect(302, dest);
 });
 
 app.post('/api/session/bind-wallet', (req, res) => {
@@ -92,7 +121,37 @@ app.post('/api/session/bind-wallet', (req, res) => {
   if (typeof wallet !== 'string' || !wallet.trim()) {
     return res.status(400).json({ error: 'wallet required' });
   }
-  sess.wallet = wallet.trim();
+  const w = wallet.trim();
+  sess.wallet = w;
+
+  const cookies = parseCookies(req);
+  const code = cookies.referral_code;
+  let user = users.get(w);
+  if (!user) {
+    user = { ...DEFAULT_ME, wallet: w };
+    users.set(w, user);
+  }
+  sess.user = user;
+
+  if (code && !user.referrerWallet) {
+    const refWallet = referralCodes.get(code);
+    if (refWallet && refWallet !== w) {
+      user.referred_by = code;
+      user.referrerWallet = refWallet;
+      const refUser = users.get(refWallet) || { ...DEFAULT_ME, wallet: refWallet };
+      if (!refUser.referrals) refUser.referrals = new Set();
+      if (!refUser.referrals.has(w)) {
+        refUser.referrals.add(w);
+        refUser.xp = (refUser.xp || 0) + 50;
+        users.set(refWallet, refUser);
+      }
+    }
+    res.setHeader(
+      'Set-Cookie',
+      'referral_code=; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure'
+    );
+  }
+
   res.json({ ok: true });
 });
 
@@ -101,24 +160,34 @@ app.get('/api/users/me', (req, res) => {
   if (!sess.wallet) {
     return res.json(DEFAULT_ME);
   }
-  const data = sess.user || {};
-  if (!data.referral_code) {
-    data.referral_code =
-      data.referral_code || Math.random().toString(36).slice(2, 10);
+  let user = users.get(sess.wallet);
+  if (!user) {
+    user = { ...DEFAULT_ME, wallet: sess.wallet };
+    users.set(sess.wallet, user);
   }
-  sess.user = data;
-  const me = {
-    ...DEFAULT_ME,
-    anon: false,
-    wallet: sess.wallet,
-    ...data,
-    socials: {
-      ...DEFAULT_ME.socials,
-      ...(data.socials || {}),
-    },
-    referral_code: data.referral_code,
-  };
-  res.json(me);
+  if (!user.referral_code) {
+    user.referral_code = Math.random().toString(36).slice(2, 10);
+    referralCodes.set(user.referral_code, sess.wallet);
+  }
+  sess.user = user;
+  res.json({ ...DEFAULT_ME, ...user, wallet: sess.wallet });
+});
+
+// Referral status for current session
+app.get('/api/referral/status', (req, res) => {
+  const sess = getSession(req, res);
+  if (!sess.wallet) {
+    return res.json({ referral_code: null, referred_by: null, referrerWallet: null });
+  }
+  const user = users.get(sess.wallet) || {};
+  if (user.referral_code) {
+    referralCodes.set(user.referral_code, sess.wallet);
+  }
+  res.json({
+    referral_code: user.referral_code || null,
+    referred_by: user.referred_by || null,
+    referrerWallet: user.referrerWallet || null,
+  });
 });
 
 // Placeholder: attach additional routes here
