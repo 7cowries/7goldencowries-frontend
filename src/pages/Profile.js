@@ -161,38 +161,43 @@ export default function Profile() {
   }, [level.name]);
 
   const applyProfile = useCallback(
-    (meObj) => {
-      setMe(meObj);
-      if (!meObj || !meObj.wallet) {
+    (raw) => {
+      // Accept both { profile, history } shape and flat objects
+      const meObj = raw && raw.profile ? { ...raw.profile } : { ...(raw || {}) };
+      const hist =
+        (raw && Array.isArray(raw.history) && raw.history) ||
+        meObj.history ||
+        meObj.questHistory ||
+        [];
+
+      const merged = { ...DEFAULT_ME, ...meObj };
+      setMe(merged);
+      setHistory(hist);
+
+      if (!merged.wallet) {
         setHasProfile(false);
         return;
       }
-      setXp(meObj.xp ?? 0);
-      setTier(meObj.tier || meObj.subscriptionTier || "Free");
 
-      const lvlName = meObj.levelName || meObj.level || "Shellborn";
+      setXp(merged.xp ?? 0);
+      setTier(merged.tier || merged.subscriptionTier || "Free");
+
+      const lvlName = merged.levelName || merged.level || "Shellborn";
       setLevel({
         name: lvlName,
-        symbol: meObj.levelSymbol || "🐚",
-        progress: meObj.levelProgress ?? 0,
-        nextXP: meObj.nextXP ?? 100,
+        symbol: merged.levelSymbol || "🐚",
+        progress: merged.levelProgress ?? 0,
+        nextXP: merged.nextXP ?? 100,
       });
       setPerk(perksMap[lvlName] || "");
 
-      setTwitter(stripAt(meObj.twitterHandle));
-      setTelegram(stripAt(meObj.telegramId));
-      setDiscord(stripAt(meObj.discordId));
-      setDiscordGuildMember(false);
-      setReferralCode(meObj.referral_code || meObj.referralCode || "");
+      setTwitter(stripAt(merged.twitterHandle || merged.twitter));
+      setTelegram(stripAt(merged.telegramId || merged.telegram));
+      setDiscord(stripAt(merged.discordId || merged.discord));
+      setDiscordGuildMember(!!merged.discordGuildMember);
+      setReferralCode(merged.referral_code || merged.referralCode || "");
 
-      const hist = Array.isArray(meObj.questHistory)
-        ? meObj.questHistory
-        : Array.isArray(meObj.history)
-        ? meObj.history
-        : [];
-      setHistory(hist);
-
-      if (meObj.wallet && !address) setAddress(meObj.wallet);
+      if (merged.wallet && !address) setAddress(merged.wallet);
       setHasProfile(true);
     },
     [address]
@@ -203,11 +208,7 @@ export default function Profile() {
     setLoading(true);
     try {
       const apiMe = await getMe();
-      const merged = {
-        ...DEFAULT_ME,
-        ...(apiMe || {}),
-      };
-      applyProfile(merged);
+      applyProfile(apiMe);
     } catch (e) {
       console.error(e);
       setError('Failed to load profile.');
