@@ -7,6 +7,7 @@ import { API_BASE, API_URLS, fetchJson } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 import WalletConnect from "../components/WalletConnect";
+import ConnectButtons from "../components/ConnectButtons.jsx";
 
 // Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
@@ -26,8 +27,6 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
-// Keep placeholder to preserve layout; we now use explicit buttons below
-const ConnectButtons = () => null;
 
 const DEFAULT_ME = {
   wallet: null,
