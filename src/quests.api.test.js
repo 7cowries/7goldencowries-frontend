@@ -62,9 +62,47 @@ describe('quests API', () => {
     app.use(express.json());
     app.use('/api/quests', createRouter(db));
     const res = await call(app, 'POST', '/api/quests/1/proofs', {
-      url: 'u',
+      wallet: 'w',
+      vendor: 'link',
+      url: 'https://example.com',
     });
     expect(res.status).toBe(200);
-    expect(proofs[0]).toEqual({ questId: 1, wallet: undefined, vendor: undefined, url: 'u' });
+    expect(proofs[0]).toEqual({ questId: 1, wallet: 'w', vendor: 'link', url: 'https://example.com' });
+  });
+
+  test('POST /api/quests/:id/proofs rejects invalid url', async () => {
+    const db = {
+      prepare: (sql) => ({
+        get: () => ({ id: 1 }),
+        run: () => {},
+      }),
+    };
+    const app = express();
+    app.use(express.json());
+    app.use('/api/quests', createRouter(db));
+    const res = await call(app, 'POST', '/api/quests/1/proofs', {
+      wallet: 'w',
+      vendor: 'link',
+      url: 'not-a-url',
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('POST /api/quests/:id/proofs rejects unsupported vendor', async () => {
+    const db = {
+      prepare: (sql) => ({
+        get: () => ({ id: 1 }),
+        run: () => {},
+      }),
+    };
+    const app = express();
+    app.use(express.json());
+    app.use('/api/quests', createRouter(db));
+    const res = await call(app, 'POST', '/api/quests/1/proofs', {
+      wallet: 'w',
+      vendor: 'myspace',
+      url: 'https://example.com',
+    });
+    expect(res.status).toBe(400);
   });
 });
