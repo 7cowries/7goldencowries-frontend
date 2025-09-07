@@ -1,5 +1,5 @@
 const express = require('express');
-const { createRouter } = require('./src/routes/quests');
+const { createRouter } = require('./src/routes/quests.js');
 const fs = require('fs');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
