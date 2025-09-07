@@ -31,7 +31,10 @@ const ConnectButtons = () => null;
 const stripAt = (h) => String(h || "").replace(/^@/, "");
 function b64(s) {
   try {
-    return window.btoa(unescape(encodeURIComponent(s || "")));
+    const bytes = new TextEncoder().encode(s || "");
+    let binary = "";
+    bytes.forEach((b) => (binary += String.fromCharCode(b)));
+    return window.btoa(binary);
   } catch {
     return "";
   }
