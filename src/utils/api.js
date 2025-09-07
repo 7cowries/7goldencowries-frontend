@@ -3,6 +3,18 @@ export const API_BASE =
   process.env.REACT_APP_API_URL ||
   "";
 
+// Ensure the API base URL is configured. This avoids accidentally
+// pointing requests at the current origin which can be confusing in
+// development and misconfigured in production.  The value should be
+// supplied via `REACT_APP_API_URL` or injected into `window.__API_BASE`.
+// Throwing here makes the failure obvious during start‑up rather than at
+// the first network request.
+if (!API_BASE) {
+  throw new Error(
+    "REACT_APP_API_URL is required – set it in your environment or .env file"
+  );
+}
+
 // Prebuilt URLs for starting OAuth or embedding auth widgets
 export const API_URLS = {
   twitterStart: `${API_BASE}/auth/twitter`,
@@ -29,7 +41,11 @@ export async function fetchJson(url, options = {}) {
       ...(options || {}),
     });
   } catch (err) {
-    throw new Error(`Network error: ${err.message}`);
+    const msg = `Network error: ${err.message}`;
+    if (typeof window !== "undefined" && window.alert) {
+      window.alert(msg);
+    }
+    throw new Error(msg);
   }
 
   if (res.status === 304) return null;
@@ -47,6 +63,9 @@ export async function fetchJson(url, options = {}) {
       } catch (_) {
         /* ignore */
       }
+    }
+    if (typeof window !== "undefined" && window.alert) {
+      window.alert(msg);
     }
     throw new Error(msg);
   }
