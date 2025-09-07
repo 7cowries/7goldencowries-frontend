@@ -165,8 +165,9 @@ export async function getMe({ signal } = {}) {
   const cached = cacheGet(key);
   if (cached) return Promise.resolve(cached);
   return jsonFetch("/api/users/me", { signal }).then((data) => {
-    if (data) cacheSet(key, data);
-    return data;
+    const user = data && typeof data === 'object' && 'user' in data ? data.user : data;
+    if (user) cacheSet(key, user);
+    return user;
   });
 }
 

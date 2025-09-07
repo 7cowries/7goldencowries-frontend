@@ -9,7 +9,6 @@ import '../App.css';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [completed, setCompleted] = useState([]);
   const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +31,6 @@ export default function Quests() {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
     setQuests(data?.quests ?? []);
-    setCompleted(data?.completed ?? []);
     setXp(data?.xp ?? 0);
   }
 
@@ -103,7 +101,6 @@ export default function Quests() {
       if (mountedRef.current) {
         setMe(meData);
         setQuests(questsData?.quests ?? []);
-        setCompleted(questsData?.completed ?? []);
         setXp(questsData?.xp ?? 0);
       }
       window.dispatchEvent(new Event('profile-updated'));
@@ -128,15 +125,15 @@ export default function Quests() {
     setProofQuest(q);
   };
 
-  const onProofSubmitted = (proof) => {
+  const onProofSubmitted = (res) => {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('proof_submitted', proofQuest?.id, proof?.status);
+      console.log('proof_submitted', proofQuest?.id, res?.status);
     }
     setToast('Proof submitted');
     setQuests((qs) =>
       qs.map((qq) =>
-        qq.id === (proofQuest?.id || proof?.quest_id)
-          ? { ...qq, proofStatus: proof?.status || 'pending' }
+        qq.id === proofQuest?.id
+          ? { ...qq, proofStatus: res?.status || 'pending' }
           : qq
       )
     );

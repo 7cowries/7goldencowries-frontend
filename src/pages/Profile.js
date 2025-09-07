@@ -5,7 +5,6 @@ import "./Profile.css";
 import "../App.css";
 import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
-import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 import WalletConnect from "../components/WalletConnect";
 import ConnectButtons from "../components/ConnectButtons";
 
@@ -116,6 +115,9 @@ export default function Profile() {
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
   const [discord, setDiscord] = useState("");
+  const [twitterConnected, setTwitterConnected] = useState(false);
+  const [telegramConnected, setTelegramConnected] = useState(false);
+  const [discordConnected, setDiscordConnected] = useState(false);
   const [discordGuildMember, setDiscordGuildMember] = useState(false);
   const [referralCode, setReferralCode] = useState('');
 
@@ -123,9 +125,6 @@ export default function Profile() {
   const [history, setHistory] = useState([]);
   const [toast, setToast] = useState("");
   const [hasProfile, setHasProfile] = useState(false);
-
-  // Busy flags for unlink/resync
-  const [busy, setBusy] = useState({ twitter: false, telegram: false, discord: false });
 
   // Disable connect buttons while starting OAuth flows
   const [connecting, setConnecting] = useState({
@@ -191,9 +190,13 @@ export default function Profile() {
       });
       setPerk(perksMap[lvlName] || "");
 
-      setTwitter(stripAt(merged.twitterHandle || merged.twitter));
-      setTelegram(stripAt(merged.telegramId || merged.telegram));
-      setDiscord(stripAt(merged.discordId || merged.discord));
+      const socials = merged.socials || {};
+      setTwitter(stripAt(socials.twitter?.handle || merged.twitterHandle || merged.twitter));
+      setTelegram(stripAt(socials.telegram?.username || merged.telegramId || merged.telegram));
+      setDiscord(stripAt(socials.discord?.id || merged.discordId || merged.discord));
+      setTwitterConnected(!!socials.twitter?.connected);
+      setTelegramConnected(!!socials.telegram?.connected);
+      setDiscordConnected(!!socials.discord?.connected);
       setDiscordGuildMember(!!merged.discordGuildMember);
       setReferralCode(merged.referral_code || merged.referralCode || "");
 
@@ -334,28 +337,6 @@ export default function Profile() {
     window.location.href = `${API_URLS.discordStart}?state=${state}`;
   };
 
-  // === Social unlink/resync actions ===
-  const act = async (provider, fn) => {
-    setBusy((b) => ({ ...b, [provider]: true }));
-    try {
-      await fn(provider);
-      setToast(
-        fn === unlinkSocial
-          ? `Unlinked ${provider} ✅`
-          : `Resynced ${provider} ✅`
-      );
-      setTimeout(() => setToast(""), 2500);
-      await loadMe();
-    } catch (e) {
-      console.error(e);
-      setError(`Action failed for ${provider}.`);
-    } finally {
-      setBusy((b) => ({ ...b, [provider]: false }));
-    }
-  };
-  const doUnlink = (p) => act(p, unlinkSocial);
-  const doResync = (p) => act(p, resyncSocial);
-
   return (
     <div className="page profile">
       {/* toast */}
@@ -460,30 +441,23 @@ export default function Profile() {
               {/* Twitter / X */}
               <div className="social-status">
                 <span>X (Twitter):</span>
-                {twitter ? (
+                {twitterConnected ? (
                   <>
-                    <a
-                      className="connected"
-                      href={`https://x.com/${stripAt(twitter)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      ✅ @{stripAt(twitter)}
-                    </a>
+                    {twitter ? (
+                      <a
+                        className="connected"
+                        href={`https://x.com/${stripAt(twitter)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ✅ @{stripAt(twitter)}
+                      </a>
+                    ) : (
+                      <span className="connected">✅ Connected</span>
+                    )}
                     <div className="social-actions">
-                      <button
-                        className="mini"
-                        disabled={busy.twitter}
-                        onClick={() => doResync("twitter")}
-                      >
-                        {busy.twitter ? "Resync…" : "Resync"}
-                      </button>
-                      <button
-                        className="mini"
-                        disabled={busy.twitter}
-                        onClick={() => doUnlink("twitter")}
-                      >
-                        {busy.twitter ? "Unlink…" : "Unlink"}
+                      <button className="mini" disabled>
+                        Connected
                       </button>
                     </div>
                   </>
@@ -506,30 +480,23 @@ export default function Profile() {
               {/* Telegram */}
               <div className="social-status">
                 <span>Telegram:</span>
-                {telegram ? (
+                {telegramConnected ? (
                   <>
-                    <a
-                      className="connected"
-                      href={`https://t.me/${stripAt(telegram)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      ✅ @{stripAt(telegram)}
-                    </a>
+                    {telegram ? (
+                      <a
+                        className="connected"
+                        href={`https://t.me/${stripAt(telegram)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ✅ @{stripAt(telegram)}
+                      </a>
+                    ) : (
+                      <span className="connected">✅ Connected</span>
+                    )}
                     <div className="social-actions">
-                      <button
-                        className="mini"
-                        disabled={busy.telegram}
-                        onClick={() => doResync("telegram")}
-                      >
-                        {busy.telegram ? "Resync…" : "Resync"}
-                      </button>
-                      <button
-                        className="mini"
-                        disabled={busy.telegram}
-                        onClick={() => doUnlink("telegram")}
-                      >
-                        {busy.telegram ? "Unlink…" : "Unlink"}
+                      <button className="mini" disabled>
+                        Connected
                       </button>
                     </div>
                   </>
@@ -552,14 +519,16 @@ export default function Profile() {
               {/* Discord */}
               <div className="social-status">
                 <span>Discord:</span>
-                {discord ? (
+                {discordConnected ? (
                   <>
                     <span className="connected">
-                      ✅ {discord}{" "}
-                      <em style={{ opacity: 0.85 }}>
-                        {discordGuildMember ? "(Server Member)" : "(Not in server)"}
-                      </em>
-                      {!discordGuildMember && DISCORD_INVITE && (
+                      ✅ {discord || 'Connected'}{" "}
+                      {discord && (
+                        <em style={{ opacity: 0.85 }}>
+                          {discordGuildMember ? "(Server Member)" : "(Not in server)"}
+                        </em>
+                      )}
+                      {!discordGuildMember && DISCORD_INVITE && discord && (
                         <>
                           {" "}
                           <a
@@ -575,19 +544,8 @@ export default function Profile() {
                       )}
                     </span>
                     <div className="social-actions">
-                      <button
-                        className="mini"
-                        disabled={busy.discord}
-                        onClick={() => doResync("discord")}
-                      >
-                        {busy.discord ? "Resync…" : "Resync"}
-                      </button>
-                      <button
-                        className="mini"
-                        disabled={busy.discord}
-                        onClick={() => doUnlink("discord")}
-                      >
-                        {busy.discord ? "Unlink…" : "Unlink"}
+                      <button className="mini" disabled>
+                        Connected
                       </button>
                     </div>
                   </>
@@ -637,11 +595,12 @@ export default function Profile() {
             <h3>Referral</h3>
             {referralCode ? (
               <p>
-                Your code: <code>{referralCode}</code>{' '}
+                Share this link:{' '}
+                <code>{`${window.location.origin}/?ref=${referralCode}`}</code>{' '}
                 <button
                   className="mini"
                   onClick={() => {
-                    const link = `https://7goldencowries.com/ref/${referralCode}`;
+                    const link = `${window.location.origin}/?ref=${referralCode}`;
                     navigator.clipboard?.writeText(link);
                     setToast('Referral link copied ✅');
                     setTimeout(() => setToast(''), 1500);

@@ -1,18 +1,8 @@
 import React from 'react';
 
-// Quests that require an external proof before claiming. These map to the
-// `requirement` field returned by the backend API. Earlier versions of the app
-// used more granular requirement names (e.g. `twitter_follow`), but the new
-// contract standardises on these generic values.
-const NEEDS_PROOF = new Set([
-  'tweet_link',
-  'join_telegram',
-  'join_discord',
-]);
-
 export default function QuestCard({ quest, onClaim, onProof, claiming }) {
   const q = quest;
-  const needsProof = NEEDS_PROOF.has(q.requirement);
+  const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
   const claimable = !alreadyClaimed && (!needsProof || q.proofStatus === 'approved');
   return (
@@ -38,13 +28,11 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
           </span>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {alreadyClaimed ? (
-            <span className="chip completed">Completed</span>
-          ) : typeof q.proofStatus === 'string' ? (
-            <span className={`chip ${q.proofStatus}`}>
-              {q.proofStatus.charAt(0).toUpperCase() + q.proofStatus.slice(1)}
-            </span>
-          ) : null}
+        {alreadyClaimed ? (
+          <span className="chip completed">✅ Completed</span>
+        ) : q.proofStatus === 'pending' ? (
+          <span className="chip pending">🕒 Pending review</span>
+        ) : null}
           <span className="xp-badge">+{q.xp} XP</span>
         </div>
       </div>
@@ -106,6 +94,7 @@ export default function QuestCard({ quest, onClaim, onProof, claiming }) {
             className="btn ghost"
             onClick={() => onClaim(q.id)}
             disabled={claiming || !claimable}
+            title={!claimable && needsProof ? 'Submit proof first' : ''}
           >
             {claiming ? 'Claiming...' : 'Claim'}
           </button>

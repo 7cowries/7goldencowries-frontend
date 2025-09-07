@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { submitProof } from '../utils/api';
-import { parseTweetId, isValidTweetUrl } from '../utils/validators';
+import { isValidTweetUrl } from '../utils/validators';
 
 export default function SubmitProofModal({ quest, onClose, onSuccess, onError }) {
   const [url, setUrl] = useState('');
   const vendor = (() => {
     switch (quest?.requirement) {
+      case 'tweet':
       case 'tweet_link':
         return 'twitter';
+      case 'telegram':
       case 'join_telegram':
         return 'telegram';
+      case 'discord':
       case 'join_discord':
         return 'discord';
       default:
@@ -39,12 +42,8 @@ export default function SubmitProofModal({ quest, onClose, onSuccess, onError })
     }
     setSubmitting(true);
     try {
-      const body = { url, vendor };
-      if (vendor === 'twitter') {
-        body.tweet_id = parseTweetId(url);
-      }
-      const res = await submitProof(quest.id, body);
-      onSuccess && onSuccess(res.proof);
+      const res = await submitProof(quest.id, { url });
+      onSuccess && onSuccess(res);
       onClose();
     } catch (e) {
       const message = e.message || 'Failed to submit proof';
