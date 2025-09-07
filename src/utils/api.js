@@ -21,9 +21,36 @@ export function withSignal(ms = 15000) {
 }
 
 export async function fetchJson(url, options = {}) {
-  const res = await fetch(url, { credentials: 'include', cache: 'no-store', ...(options || {}) });
-  if  (res.status === 304) return null;
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  let res;
+  try {
+    res = await fetch(url, {
+      credentials: "include",
+      cache: "no-store",
+      ...(options || {}),
+    });
+  } catch (err) {
+    throw new Error(`Network error: ${err.message}`);
+  }
+
+  if (res.status === 304) return null;
+
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      const detail = data?.error ?? JSON.stringify(data);
+      if (detail && detail !== "{}") msg += `: ${detail}`;
+    } catch (_) {
+      try {
+        const text = await res.text();
+        if (text) msg += `: ${text}`;
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    throw new Error(msg);
+  }
+
   return res.status === 204 ? null : await res.json();
 }
 
