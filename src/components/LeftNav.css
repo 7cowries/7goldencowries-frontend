@@ -53,6 +53,8 @@
   z-index: 99;
   transform: translateX(0);
   transition: transform .25s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Drawer behavior on small screens */
@@ -107,6 +109,13 @@
 .nav-item.active{
   outline: 1px solid rgba(255,212,102,.25);
   box-shadow: 0 0 0 1px rgba(255,212,102,.08) inset, 0 8px 20px rgba(255,212,102,.12);
+}
+
+/* Wallet connect area at bottom */
+.nav-wallet{
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
 }
 
 /* Push main content so it doesn't sit under the fixed sidebar (desktop only) */

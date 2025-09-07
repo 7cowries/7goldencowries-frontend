@@ -2,6 +2,7 @@ import React from "react";
 import { Link, NavLink } from "react-router-dom";
 import "./LeftNav.css";
 import logo from "../assets/logo.svg";
+import WalletConnect from "./WalletConnect";
 
 export default function LeftNav() {
   return (
@@ -20,6 +21,10 @@ export default function LeftNav() {
         <NavLink to="/profile" className="nav-item"><span>🔗</span><span>Profile</span></NavLink>
         <NavLink to="/isles" className="nav-item"><span>🌱</span><span>Isles</span></NavLink>
       </nav>
+
+      <div className="nav-wallet">
+        <WalletConnect />
+      </div>
     </aside>
   );
 }
