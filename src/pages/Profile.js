@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
-import { API_BASE, API_URLS, fetchJson } from "../utils/api";
+import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 import WalletConnect from "../components/WalletConnect";
@@ -202,7 +202,7 @@ export default function Profile() {
     setError('');
     setLoading(true);
     try {
-      const apiMe = await fetchJson('/api/users/me');
+      const apiMe = await getMe();
       const merged = {
         ...DEFAULT_ME,
         ...(apiMe || {}),
@@ -308,7 +308,7 @@ export default function Profile() {
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
     setConnecting((c) => ({ ...c, twitter: true }));
-    window.location.href = API_URLS.twitterStart;
+    window.location.href = `${API_URLS.twitterStart}?state=${state}`;
   };
 
   // Change "Connect Telegram" to scroll to the embedded widget (since that works)
@@ -330,7 +330,7 @@ export default function Profile() {
   const connectDiscord = () => {
     if (!address) return alert("Connect wallet first");
     setConnecting((c) => ({ ...c, discord: true }));
-    window.location.href = API_URLS.discordStart;
+    window.location.href = `${API_URLS.discordStart}?state=${state}`;
   };
 
   // === Social unlink/resync actions ===
