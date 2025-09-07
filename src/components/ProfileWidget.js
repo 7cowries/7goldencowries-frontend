@@ -26,9 +26,9 @@ export default function ProfileWidget() {
     return () => window.removeEventListener('profile-updated', onUpdate);
   }, []);
 
-  if (loading) return <div>Loading profile...</div>;
+  if (loading) return <div style={{ height: 40 }} />;
   if (error) return <div>Error: {error}</div>;
-  if (!me) return null;
+  if (!me) return <div style={{ height: 40 }} />;
 
   const progressPct = clampProgress((me.levelProgress || 0) * 100);
 

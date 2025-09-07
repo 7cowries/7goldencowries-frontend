@@ -5,6 +5,7 @@ import App from "./App";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import WalletProvider from "./context/WalletContext";
 import './styles/polish.css';
+import { setupWalletSync } from './utils/init';
 
 // Prefer an env override; otherwise use the local manifest served from /public
 const manifestUrl =
@@ -12,6 +13,8 @@ const manifestUrl =
   `${window.location.origin}/tonconnect-manifest.json`;
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+
+setupWalletSync();
 
 root.render(
   <React.StrictMode>

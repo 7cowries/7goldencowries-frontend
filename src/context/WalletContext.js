@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { ensureWalletBound } from "../utils/walletBind";
+import { emitWalletChanged } from "../utils/events";
 
 // Context now also exposes a `disconnect` helper and potential error state.
 const WalletContext = createContext({
@@ -28,7 +29,7 @@ export default function WalletProvider({ children }) {
     if (wallet) {
       localStorage.setItem("walletAddress", wallet);
       localStorage.setItem("wallet", wallet);
-      window.dispatchEvent(new CustomEvent('wallet:changed', { detail: { wallet } }));
+      emitWalletChanged(wallet);
     }
   }, [wallet]);
 
@@ -56,7 +57,7 @@ export default function WalletProvider({ children }) {
     setWallet(null);
     localStorage.removeItem("walletAddress");
     localStorage.removeItem("wallet");
-    window.dispatchEvent(new CustomEvent("wallet:changed", { detail: { wallet: "" } }));
+    emitWalletChanged("");
   };
 
   // also read any TON address that other code may have saved
