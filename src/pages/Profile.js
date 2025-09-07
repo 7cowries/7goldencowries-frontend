@@ -30,19 +30,17 @@ const perksMap = {
 const ConnectButtons = () => null;
 
 const DEFAULT_ME = {
-  anon: true,
   wallet: null,
   xp: 0,
-  level: 1,
-  levelSymbol: "Shellborn",
+  level: "Shellborn",
+  levelName: "Shellborn",
+  levelSymbol: "🐚",
   nextXP: 100,
+  twitterHandle: null,
+  telegramId: null,
+  discordId: null,
   subscriptionTier: "Free",
-  socials: {
-    twitterHandle: null,
-    telegramId: null,
-    discordId: null,
-    discordGuildMember: false,
-  },
+  questHistory: [],
   referral_code: null,
 };
 
@@ -188,36 +186,33 @@ export default function Profile() {
   const applyProfile = useCallback(
     (meObj) => {
       setMe(meObj);
-      if (meObj.anon) {
+      if (!meObj || !meObj.wallet) {
         setHasProfile(false);
         return;
       }
       setXp(meObj.xp ?? 0);
       setTier(meObj.tier || meObj.subscriptionTier || "Free");
 
-      const lvlName = meObj.level || "Shellborn";
+      const lvlName = meObj.levelName || meObj.level || "Shellborn";
       setLevel({
         name: lvlName,
-        symbol: "🐚",
+        symbol: meObj.levelSymbol || "🐚",
         progress: meObj.levelProgress ?? 0,
-        nextXP: meObj.nextXP ?? 10000,
+        nextXP: meObj.nextXP ?? 100,
       });
       setPerk(perksMap[lvlName] || "");
 
-      const socials = meObj.socials || {};
-      setTwitter(
-        socials.twitter?.connected ? stripAt(socials.twitter.username) : ""
-      );
-      setTelegram(
-        socials.telegram?.connected ? stripAt(socials.telegram.username) : ""
-      );
-      setDiscord(
-        socials.discord?.connected ? String(socials.discord.username) : ""
-      );
+      setTwitter(stripAt(meObj.twitterHandle));
+      setTelegram(stripAt(meObj.telegramId));
+      setDiscord(stripAt(meObj.discordId));
       setDiscordGuildMember(false);
-      setReferralCode(meObj.referral_code || meObj.referralCode || '');
+      setReferralCode(meObj.referral_code || meObj.referralCode || "");
 
-      const hist = Array.isArray(meObj?.history) ? meObj.history : [];
+      const hist = Array.isArray(meObj.questHistory)
+        ? meObj.questHistory
+        : Array.isArray(meObj.history)
+        ? meObj.history
+        : [];
       setHistory(hist);
 
       if (meObj.wallet && !address) setAddress(meObj.wallet);
@@ -234,7 +229,6 @@ export default function Profile() {
       const merged = {
         ...DEFAULT_ME,
         ...(apiMe || {}),
-        socials: { ...DEFAULT_ME.socials, ...(apiMe?.socials || {}) },
       };
       applyProfile(merged);
     } catch (e) {
@@ -389,7 +383,7 @@ export default function Profile() {
 
       {loading ? (
         <div className="skeleton" style={{ height: 160, borderRadius: 16 }} />
-      ) : me.anon || !address || !hasProfile ? (
+      ) : !address || !hasProfile ? (
         <div style={{ textAlign: 'center' }}>
           <p>🔌 Connect your TON wallet to view your profile.</p>
           <WalletConnect />

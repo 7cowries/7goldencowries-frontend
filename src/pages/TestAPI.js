@@ -1,11 +1,17 @@
 import React, { useState } from "react";
-import { api, getQuests, getLeaderboard, getMe } from "../utils/api";
+import { api, getQuests, getLeaderboard, getMe, getJSON } from "../utils/api";
 export default function TestAPI() {
   const [log, setLog] = useState([]);
   const add = (s) => setLog((x) => [...x, s]);
   async function run() {
     setLog([]);
     add(`API_BASE = ${api.base || "(same-origin)"}`);
+    try {
+      const h = await getJSON("/api/health");
+      add(`✓ /api/health OK (${Math.round(h.uptime)}s)`);
+    } catch (e) {
+      add(`✗ /api/health: ${e.message}`);
+    }
     try {
       const q = await getQuests();
       add(`✓ /api/quests OK (${(q?.quests || []).length})`);
@@ -20,11 +26,10 @@ export default function TestAPI() {
     }
     try {
       const me = await getMe();
-      const s = me.socials || {};
       const summary = [
-        `telegram=${s.telegram?.connected ? s.telegram.username : "off"}`,
-        `twitter=${s.twitter?.connected ? s.twitter.username : "off"}`,
-        `discord=${s.discord?.connected ? s.discord.username : "off"}`,
+        `telegram=${me.telegramId || 'off'}`,
+        `twitter=${me.twitterHandle || 'off'}`,
+        `discord=${me.discordId || 'off'}`,
       ].join(", ");
       add(`✓ /api/users/me: ${summary}`);
     } catch (e) {
