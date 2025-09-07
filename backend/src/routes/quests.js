@@ -20,6 +20,28 @@ function createRouter(db, { awardQuest, clearUserCache } = {}) {
   router.post('/:id/proofs', (req, res) => {
     const id = Number(req.params.id);
     const { wallet, vendor, url } = req.body || {};
+
+    if (typeof wallet !== 'string' || !wallet.trim()) {
+      return res.status(400).json({ error: 'wallet required' });
+    }
+    if (typeof vendor !== 'string' || !vendor.trim()) {
+      return res.status(400).json({ error: 'vendor required' });
+    }
+    if (typeof url !== 'string' || !url.trim()) {
+      return res.status(400).json({ error: 'url required' });
+    }
+
+    const allowedVendors = new Set(['twitter', 'telegram', 'discord', 'link']);
+    if (!allowedVendors.has(vendor)) {
+      return res.status(400).json({ error: 'unsupported vendor' });
+    }
+
+    try {
+      new URL(url);
+    } catch {
+      return res.status(400).json({ error: 'invalid url' });
+    }
+
     const quest = db.prepare('SELECT id FROM quests WHERE id = ?').get(id);
     if (!quest) return res.status(404).json({ error: 'Quest not found' });
     db.prepare('INSERT INTO quest_proofs (quest_id, wallet, vendor, url, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)').run(id, wallet, vendor, url);
