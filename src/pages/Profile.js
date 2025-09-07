@@ -156,28 +156,6 @@ export default function Profile() {
     if (tonWallet) ensureWalletBound(tonWallet);
   }, [tonWallet]);
 
-  // Keep address in sync across tabs when wallet changes
-  useEffect(() => {
-    const update = (e) => {
-      const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
-      setAddress((a) => (a !== w ? w : a));
-      if (w) {
-        ensureWalletBound(w).finally(() => loadMe());
-      } else {
-        loadMe();
-      }
-    };
-    const onStorage = (e) => {
-      if (e.key === 'wallet') update();
-    };
-    window.addEventListener('wallet:changed', update);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener('wallet:changed', update);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, [loadMe]);
-
   const badgeSrc = useMemo(() => {
     const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
     return `/images/badges/level-${slug}.png`;
@@ -249,6 +227,28 @@ export default function Profile() {
     } else {
       loadMe();
     }
+  }, [loadMe]);
+
+  // Keep address in sync across tabs when wallet changes
+  useEffect(() => {
+    const update = (e) => {
+      const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
+      setAddress((a) => (a !== w ? w : a));
+      if (w) {
+        ensureWalletBound(w).finally(() => loadMe());
+      } else {
+        loadMe();
+      }
+    };
+    const onStorage = (e) => {
+      if (e.key === 'wallet') update();
+    };
+    window.addEventListener('wallet:changed', update);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('wallet:changed', update);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [loadMe]);
 
   // Reload after OAuth tab becomes visible again
