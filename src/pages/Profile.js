@@ -6,6 +6,7 @@ import "../App.css";
 import { API_BASE, API_URLS, fetchJson } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
+import WalletConnect from "../components/WalletConnect";
 
 // Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
@@ -27,6 +28,23 @@ const perksMap = {
 
 // Keep placeholder to preserve layout; we now use explicit buttons below
 const ConnectButtons = () => null;
+
+const DEFAULT_ME = {
+  anon: true,
+  wallet: null,
+  xp: 0,
+  level: 1,
+  levelSymbol: "Shellborn",
+  nextXP: 100,
+  subscriptionTier: "Free",
+  socials: {
+    twitterHandle: null,
+    telegramId: null,
+    discordId: null,
+    discordGuildMember: false,
+  },
+  referral_code: null,
+};
 
 const stripAt = (h) => String(h || "").replace(/^@/, "");
 function b64(s) {
@@ -87,6 +105,7 @@ export default function Profile() {
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [me, setMe] = useState(DEFAULT_ME);
 
   const [xp, setXp] = useState(0);
   const [tier, setTier] = useState("Free");
@@ -136,7 +155,7 @@ export default function Profile() {
 
   // Bind wallet to backend session (helps /api/users/me)
   useEffect(() => {
-    ensureWalletBound(tonWallet);
+    if (tonWallet) ensureWalletBound(tonWallet);
   }, [tonWallet]);
 
   // Keep address in sync across tabs when wallet changes
@@ -144,7 +163,11 @@ export default function Profile() {
     const update = (e) => {
       const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       setAddress((a) => (a !== w ? w : a));
-      loadMe();
+      if (w) {
+        ensureWalletBound(w).finally(() => loadMe());
+      } else {
+        loadMe();
+      }
     };
     const onStorage = (e) => {
       if (e.key === 'wallet') update();
@@ -163,20 +186,25 @@ export default function Profile() {
   }, [level.name]);
 
   const applyProfile = useCallback(
-    (me) => {
-      setXp(me.xp ?? 0);
-      setTier(me.tier || me.subscriptionTier || "Free");
+    (meObj) => {
+      setMe(meObj);
+      if (meObj.anon) {
+        setHasProfile(false);
+        return;
+      }
+      setXp(meObj.xp ?? 0);
+      setTier(meObj.tier || meObj.subscriptionTier || "Free");
 
-      const lvlName = me.level || "Shellborn";
+      const lvlName = meObj.level || "Shellborn";
       setLevel({
         name: lvlName,
         symbol: "🐚",
-        progress: me.levelProgress ?? 0,
-        nextXP: me.nextXP ?? 10000,
+        progress: meObj.levelProgress ?? 0,
+        nextXP: meObj.nextXP ?? 10000,
       });
       setPerk(perksMap[lvlName] || "");
 
-      const socials = me.socials || {};
+      const socials = meObj.socials || {};
       setTwitter(
         socials.twitter?.connected ? stripAt(socials.twitter.username) : ""
       );
@@ -187,12 +215,12 @@ export default function Profile() {
         socials.discord?.connected ? String(socials.discord.username) : ""
       );
       setDiscordGuildMember(false);
-      setReferralCode(me.referral_code || me.referralCode || '');
+      setReferralCode(meObj.referral_code || meObj.referralCode || '');
 
-      const hist = Array.isArray(me?.history) ? me.history : [];
+      const hist = Array.isArray(meObj?.history) ? meObj.history : [];
       setHistory(hist);
 
-      if (me.wallet && !address) setAddress(me.wallet);
+      if (meObj.wallet && !address) setAddress(meObj.wallet);
       setHasProfile(true);
     },
     [address]
@@ -202,31 +230,31 @@ export default function Profile() {
     setError('');
     setLoading(true);
     try {
-      await ensureWalletBound(address || tonWallet);
-      const me = await fetchJson('/api/users/me');
-      if (me) applyProfile(me);
+      const apiMe = await fetchJson('/api/users/me');
+      const merged = {
+        ...DEFAULT_ME,
+        ...(apiMe || {}),
+        socials: { ...DEFAULT_ME.socials, ...(apiMe?.socials || {}) },
+      };
+      applyProfile(merged);
     } catch (e) {
       console.error(e);
-      const msg = String(e?.message || e);
-      if (msg.includes('Missing wallet') && (address || tonWallet)) {
-        try {
-          await ensureWalletBound(address || tonWallet);
-          const me2 = await fetchJson('/api/users/me');
-          if (me2) applyProfile(me2);
-          return;
-        } catch (err) {
-          console.error(err);
-        }
-      }
       setError('Failed to load profile.');
       setHistory([]);
+      setMe(DEFAULT_ME);
+      setHasProfile(false);
     } finally {
       setLoading(false);
     }
-  }, [applyProfile, address, tonWallet]);
+  }, [applyProfile]);
 
   useEffect(() => {
-    loadMe();
+    const w = localStorage.getItem('wallet');
+    if (w) {
+      ensureWalletBound(w).finally(() => loadMe());
+    } else {
+      loadMe();
+    }
   }, [loadMe]);
 
   // Reload after OAuth tab becomes visible again
@@ -359,8 +387,13 @@ export default function Profile() {
 
       <h1 className="section-title">🌊 Explorer Profile</h1>
 
-      {(!address || !hasProfile) ? (
-        <p>🔌 Connect your TON wallet to view your profile.</p>
+      {loading ? (
+        <div className="skeleton" style={{ height: 160, borderRadius: 16 }} />
+      ) : me.anon || !address || !hasProfile ? (
+        <div style={{ textAlign: 'center' }}>
+          <p>🔌 Connect your TON wallet to view your profile.</p>
+          <WalletConnect />
+        </div>
       ) : (
         <>
           {/* Top card */}
@@ -396,13 +429,13 @@ export default function Profile() {
                 </button>
               </p>
               <p>
-                <strong>Subscription:</strong> {tier}
+                <strong>Subscription:</strong> {tier ?? 'Free'}
               </p>
               <p>
-                <strong>Level:</strong> {level.name} {level.symbol}
+                <strong>Level:</strong> {level.name ?? 'Shellborn'} {level.symbol ?? ''}
               </p>
               <p>
-                <strong>XP:</strong> {xp} / {level.nextXP ?? "∞"}
+                <strong>XP:</strong> {xp ?? 0} / {level.nextXP ?? "∞"}
               </p>
 
               <div className="xp-bar">
