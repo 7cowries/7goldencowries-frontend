@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const { createRouter } = require('./src/routes/quests.js');
 const fs = require('fs');
 
@@ -6,6 +7,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || '';
 
 const app = express();
 app.set('etag', false);
+app.use(cors({ origin: FRONTEND_URL || false }));
 app.use(express.json());
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
