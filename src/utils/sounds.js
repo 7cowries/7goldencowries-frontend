@@ -43,18 +43,36 @@ export function soundIsEnabled() {
 }
 
 /* ---------- Click / XP SFX ---------- */
+function createAudio(src, volume) {
+  if (typeof Audio === "undefined") return null;
+  try {
+    const a = new Audio(src);
+    a.volume = volume;
+    a.addEventListener("error", (e) => {
+      console.warn(`Failed to load audio: ${src}`, e);
+    });
+    // Preload immediately
+    a.load();
+    return a;
+  } catch (err) {
+    console.warn(`Audio init failed: ${src}`, err);
+    return null;
+  }
+}
+
+const clickAudio = createAudio("/audio/click.wav", 0.45);
+const xpAudio = createAudio("/audio/xp-chime.wav", 0.65);
+
 export function playClick() {
-  if (!isEnabled) return;
-  const a = new Audio("/audio/click.wav");
-  a.volume = 0.45;
-  safePlay(a);
+  if (!isEnabled || !clickAudio) return;
+  clickAudio.currentTime = 0;
+  safePlay(clickAudio);
 }
 
 export function playXP() {
-  if (!isEnabled) return;
-  const a = new Audio("/audio/xp-chime.wav");
-  a.volume = 0.65;
-  safePlay(a);
+  if (!isEnabled || !xpAudio) return;
+  xpAudio.currentTime = 0;
+  safePlay(xpAudio);
 }
 
 /* ---------- Global click SFX delegate ---------- */
