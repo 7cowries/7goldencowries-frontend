@@ -1,45 +1,55 @@
-// src/components/ConnectButtons.js
 import React from "react";
-import { api, API_BASE } from "../utils/api";
-import { getSavedWallet } from "../utils/wallet";
+import "./ConnectButtons.css";
 
-export default function ConnectButtons({ onLinked }) {
-  const go = (url) => (window.location.href = url);
-  const b64 = (s) => {
-    const bytes = new TextEncoder().encode(s || "");
-    let binary = "";
-    bytes.forEach((b) => (binary += String.fromCharCode(b)));
-    return window.btoa(binary);
+// Backend base (Render). Set this in Vercel env: REACT_APP_API_URL=https://sevengoldencowries-backend.onrender.com
+const API_BASE = process.env.REACT_APP_API_URL || "";
+
+function b64(s) {
+  try { return btoa(s); } catch { return ""; }
+}
+
+export default function ConnectButtons({ address = "", className = "" }) {
+  const hasWallet = !!address;
+
+  const go = (path) => {
+    if (!hasWallet) return alert("Connect your wallet first");
+    const state = b64(address);
+    const sep = path.includes("?") ? "&" : "?";
+    window.location.href = `${API_BASE}${path}${sep}state=${state}`;
   };
 
-  async function connectTwitter() {
-    const w = getSavedWallet();
-    if (!w) return alert("Connect your wallet first.");
-    go(`${API_BASE}/auth/twitter?state=${b64(w)}`);
-  }
+  const connectTwitter = () => go("/auth/twitter");
+  const connectTelegram = () => go("/auth/telegram/start");
+  const connectDiscord = () => go("/auth/discord");
 
-  async function connectTelegram() {
-    const w = getSavedWallet();
-    if (!w) return alert("Connect your wallet first.");
-    go(`${API_BASE}/auth/telegram/start?state=${b64(w)}`);
-  }
+  const disabled = !hasWallet || !API_BASE;
 
-  async function connectDiscord() {
-    const w = getSavedWallet();
-    if (!w) return alert("Connect your wallet first.");
-    try {
-      const { url } = await api("/api/discord/login?state=" + encodeURIComponent(b64(w)));
-      go(url);
-    } catch {
-      go(`${API_BASE}/auth/discord?state=${b64(w)}`);
-    }
-  }
+  const Btn = ({ onClick, children, title }) => (
+    <button
+      type="button"
+      className="connect-btn"
+      title={title || ""}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        opacity: disabled ? 0.6 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      {children}
+    </button>
+  );
 
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <button onClick={connectTwitter}>🐦 Connect X (Twitter)</button>
-      <button onClick={connectTelegram}>📣 Connect Telegram</button>
-      <button onClick={connectDiscord}>🎮 Connect Discord</button>
+    <div className={`connect-buttons ${className}`}>
+      <Btn onClick={connectTwitter} title="Link your X (Twitter) account">🐦 Connect X (Twitter)</Btn>
+      <Btn onClick={connectTelegram} title="Start the Telegram bot and link">📣 Connect Telegram</Btn>
+      <Btn onClick={connectDiscord} title="Authorize via Discord OAuth">🎮 Connect Discord</Btn>
+      {!API_BASE && (
+        <p style={{marginTop:8,fontSize:12,opacity:.8}}>
+          Set <code>REACT_APP_API_URL</code> in Vercel to enable these links.
+        </p>
+      )}
     </div>
   );
 }

@@ -613,7 +613,7 @@ export default function Profile() {
             <h3>Link New Accounts</h3>
             <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-            <ConnectButtons onLinked={() => loadMe()} />
+            <ConnectButtons address={address} onLinked={() => loadMe()} />
 
             {/* Embedded Telegram button (preferred) */}
             <p className="muted" style={{ marginTop: 8 }}>
