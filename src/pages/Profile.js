@@ -7,6 +7,7 @@ import { API_BASE, API_URLS, fetchJson } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { unlinkSocial, resyncSocial } from "../utils/socialLinks"; // ✅ RIGHT IMPORT
 import WalletConnect from "../components/WalletConnect";
+import ConnectButtons from "../components/ConnectButtons";
 
 // Optional: invite link shown if user linked Discord but isn't in the server
 const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
@@ -26,8 +27,6 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
-// Keep placeholder to preserve layout; we now use explicit buttons below
-const ConnectButtons = () => null;
 
 const DEFAULT_ME = {
   wallet: null,
@@ -615,30 +614,6 @@ export default function Profile() {
             <p className="muted">Link your socials to unlock quests and show badges.</p>
 
             <ConnectButtons onLinked={() => loadMe()} />
-
-            <div className="connect-buttons" style={{ marginTop: 12 }}>
-              <button
-                className="connect-btn"
-                onClick={connectTwitter}
-                disabled={connecting.twitter || !!twitter}
-              >
-                {twitter ? '✅ X (Twitter)' : '🐦 Connect X (Twitter)'}
-              </button>
-              <button
-                className="connect-btn"
-                onClick={connectTelegram}
-                disabled={connecting.telegram || !!telegram}
-              >
-                {telegram ? '✅ Telegram' : '📣 Connect Telegram'}
-              </button>
-              <button
-                className="connect-btn"
-                onClick={connectDiscord}
-                disabled={connecting.discord || !!discord}
-              >
-                {discord ? '✅ Discord' : '🎮 Connect Discord'}
-              </button>
-            </div>
 
             {/* Embedded Telegram button (preferred) */}
             <p className="muted" style={{ marginTop: 8 }}>
