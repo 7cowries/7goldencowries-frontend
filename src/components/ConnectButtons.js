@@ -5,7 +5,12 @@ import { getSavedWallet } from "../utils/wallet";
 
 export default function ConnectButtons({ onLinked }) {
   const go = (url) => (window.location.href = url);
-  const b64 = (s) => window.btoa(unescape(encodeURIComponent(s || "")));
+  const b64 = (s) => {
+    const bytes = new TextEncoder().encode(s || "");
+    let binary = "";
+    bytes.forEach((b) => (binary += String.fromCharCode(b)));
+    return window.btoa(binary);
+  };
 
   async function connectTwitter() {
     const w = getSavedWallet();
