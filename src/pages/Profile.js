@@ -8,9 +8,6 @@ import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
 import ConnectButtons from "../components/ConnectButtons";
 
-// Optional: invite link shown if user linked Discord but isn't in the server
-const DISCORD_INVITE = process.env.REACT_APP_DISCORD_INVITE || "";
-
 // Telegram embed constants
 const TG_BOT_NAME =
   process.env.REACT_APP_TELEGRAM_BOT_NAME || "GOLDENCOWRIEBOT";
@@ -42,7 +39,6 @@ const DEFAULT_ME = {
   referral_code: null,
 };
 
-const stripAt = (h) => String(h || "").replace(/^@/, "");
 function b64(s) {
   try {
     const bytes = new TextEncoder().encode(s || "");
@@ -111,17 +107,16 @@ export default function Profile() {
     nextXP: 10000,
   });
 
-  const [discordGuildMember, setDiscordGuildMember] = useState(false);
   const [referralCode, setReferralCode] = useState('');
 
-  // Prefer me.socials but gracefully fall back to legacy top-level fields
+  // read from me.socials always
   const socials = me?.socials || { twitter: {}, telegram: {}, discord: {} };
-  const twitter = stripAt(socials?.twitter?.handle || me?.twitterHandle || me?.twitter || '');
-  const telegram = stripAt(socials?.telegram?.username || me?.telegramId || me?.telegram || '');
-  const discord = stripAt(socials?.discord?.id || me?.discordId || me?.discord || '');
-  const twitterConnected = !!(socials?.twitter?.connected || me?.twitterHandle || me?.twitter);
-  const telegramConnected = !!(socials?.telegram?.connected || me?.telegramId || me?.telegram);
-  const discordConnected = !!(socials?.discord?.connected || me?.discordId || me?.discord);
+  const twitterConnected = !!socials?.twitter?.connected;
+  const telegramConnected = !!socials?.telegram?.connected;
+  const discordConnected = !!socials?.discord?.connected;
+  const twitter = socials?.twitter?.handle || '';
+  const telegram = socials?.telegram?.username || '';
+  const discord = socials?.discord?.id || '';
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
@@ -189,7 +184,6 @@ export default function Profile() {
       });
       setPerk(perksMap[lvlName] || "");
 
-      setDiscordGuildMember(!!merged.discordGuildMember);
       setReferralCode(merged.referral_code || merged.referralCode || "");
 
       if (merged.wallet && !address) setAddress(merged.wallet);
@@ -444,38 +438,13 @@ export default function Profile() {
               <div className="social-status">
                 <span>X (Twitter):</span>
                 {twitterConnected ? (
-                  <>
-                    {twitter ? (
-                      <a
-                        className="connected"
-                        href={`https://x.com/${stripAt(twitter)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        ✅ @{stripAt(twitter)}
-                      </a>
-                    ) : (
-                      <span className="connected">✅ Connected</span>
-                    )}
-                    <div className="social-actions">
-                      <button className="mini" disabled>
-                        Connected
-                      </button>
-                    </div>
-                  </>
+                  twitter ? (
+                    <a className="connected" href={`https://x.com/${twitter.replace(/^@/, '')}`} target="_blank" rel="noreferrer">✅ @{twitter.replace(/^@/,'')}</a>
+                  ) : (
+                    <span className="connected">✅ Connected</span>
+                  )
                 ) : (
-                  <>
-                    <span className="not-connected">❌ Not Connected</span>
-                    <div className="social-actions">
-                      <button
-                        className="mini"
-                        onClick={connectTwitter}
-                        disabled={connecting.twitter}
-                      >
-                        Connect
-                      </button>
-                    </div>
-                  </>
+                  <div className="social-actions"><button className="mini" onClick={connectTwitter} disabled={connecting.twitter}>Connect</button></div>
                 )}
               </div>
 
@@ -483,38 +452,13 @@ export default function Profile() {
               <div className="social-status">
                 <span>Telegram:</span>
                 {telegramConnected ? (
-                  <>
-                    {telegram ? (
-                      <a
-                        className="connected"
-                        href={`https://t.me/${stripAt(telegram)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        ✅ @{stripAt(telegram)}
-                      </a>
-                    ) : (
-                      <span className="connected">✅ Connected</span>
-                    )}
-                    <div className="social-actions">
-                      <button className="mini" disabled>
-                        Connected
-                      </button>
-                    </div>
-                  </>
+                  telegram ? (
+                    <a className="connected" href={`https://t.me/${telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer">✅ @{telegram.replace(/^@/,'')}</a>
+                  ) : (
+                    <span className="connected">✅ Connected</span>
+                  )
                 ) : (
-                  <>
-                    <span className="not-connected">❌ Not Connected</span>
-                    <div className="social-actions">
-                      <button
-                        className="mini"
-                        onClick={connectTelegram}
-                        disabled={connecting.telegram}
-                      >
-                        Connect
-                      </button>
-                    </div>
-                  </>
+                  <div className="social-actions"><button className="mini" onClick={connectTelegram} disabled={connecting.telegram}>Connect</button></div>
                 )}
               </div>
 
@@ -522,48 +466,13 @@ export default function Profile() {
               <div className="social-status">
                 <span>Discord:</span>
                 {discordConnected ? (
-                  <>
-                    <span className="connected">
-                      ✅ {discord || 'Connected'}{" "}
-                      {discord && (
-                        <em style={{ opacity: 0.85 }}>
-                          {discordGuildMember ? "(Server Member)" : "(Not in server)"}
-                        </em>
-                      )}
-                      {!discordGuildMember && DISCORD_INVITE && discord && (
-                        <>
-                          {" "}
-                          <a
-                            href={DISCORD_INVITE}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-link"
-                            style={{ marginLeft: 6 }}
-                          >
-                            Join
-                          </a>
-                        </>
-                      )}
-                    </span>
-                    <div className="social-actions">
-                      <button className="mini" disabled>
-                        Connected
-                      </button>
-                    </div>
-                  </>
+                  discord ? (
+                    <a className="connected" href={`https://discord.com/users/${discord}`} target="_blank" rel="noreferrer">✅ {discord}</a>
+                  ) : (
+                    <span className="connected">✅ Connected</span>
+                  )
                 ) : (
-                  <>
-                    <span className="not-connected">❌ Not Connected</span>
-                    <div className="social-actions">
-                      <button
-                        className="mini"
-                        onClick={connectDiscord}
-                        disabled={connecting.discord}
-                      >
-                        Connect
-                      </button>
-                    </div>
-                  </>
+                  <div className="social-actions"><button className="mini" onClick={connectDiscord} disabled={connecting.discord}>Connect</button></div>
                 )}
               </div>
           </div>
@@ -573,23 +482,20 @@ export default function Profile() {
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>📜 Quest History</h3>
             {loading && <p>Loading…</p>}
-            {!loading && (!(me?.questHistory) || me.questHistory.length === 0) ? (
+            {!loading && (!me?.questHistory || me.questHistory.length === 0) ? (
               <p>No quests completed yet.</p>
             ) : (
               <ul>
                 {(me.questHistory || [])
                   .slice()
-                  .sort(
-                    (a, b) =>
-                      new Date(b.completed_at || b.created_at || b.timestamp || 0) -
-                      new Date(a.completed_at || a.created_at || a.timestamp || 0)
-                  )
+                  .sort((a, b) => new Date(b.completed_at || b.created_at || b.timestamp) - new Date(a.completed_at || a.created_at || a.timestamp))
                   .map((q, i) => {
                     const when = q.completed_at || q.created_at || q.timestamp;
                     const ts = when ? new Date(when) : null;
                     return (
-                      <li key={i}>
-                        {q.title || `Quest ${q.questId || q.quest_id || ''}`} — {q.xp ?? 0} XP{ts ? ` • ${ts.toLocaleString()}` : ''}
+                      <li key={q.questId || i}>
+                        <strong>{q.title || `Quest ${q.questId}`}</strong> — {q.xp ?? 0} XP
+                        {ts ? <span className="timestamp"> • {ts.toLocaleDateString()}</span> : null}
                       </li>
                     );
                   })}
@@ -597,28 +503,30 @@ export default function Profile() {
             )}
           </section>
 
-          {/* Link New Accounts */}
-          <section className="card glass" style={{ marginTop: 16 }}>
-            <h3>Link New Accounts</h3>
-            <p className="muted">Link your socials to unlock quests and show badges.</p>
+          {/* Optional: hide “Link New Accounts” block entirely when all three are connected */}
+          {!(twitterConnected && telegramConnected && discordConnected) && (
+            <section className="card glass" style={{ marginTop: 16 }}>
+              <h3>Link New Accounts</h3>
+              <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-            <ConnectButtons address={address} onLinked={() => loadMe()} />
+              <ConnectButtons address={address} onLinked={() => loadMe()} />
 
-            {/* Embedded Telegram button (preferred) */}
-            <p className="muted" style={{ marginTop: 8 }}>
-              Having trouble with the popup? Use the embedded Telegram button below:
-            </p>
-            <TelegramLoginWidget wallet={address} />
+              {/* Embedded Telegram button (preferred) */}
+              <p className="muted" style={{ marginTop: 8 }}>
+                Having trouble with the popup? Use the embedded Telegram button below:
+              </p>
+              <TelegramLoginWidget wallet={address} />
 
-            {/* Tiny fallback link to hosted flow, just in case */}
-            <p className="muted" style={{ marginTop: 8 }}>
-              If the button doesn’t render,{" "}
-              <a href={`${API_BASE}/auth/telegram/start?state=${encodeURIComponent(b64(address || ""))}`}>
-                open Telegram login
-              </a>
-              .
-            </p>
-          </section>
+              {/* Tiny fallback link to hosted flow, just in case */}
+              <p className="muted" style={{ marginTop: 8 }}>
+                If the button doesn’t render,{" "}
+                <a href={`${API_BASE}/auth/telegram/start?state=${encodeURIComponent(b64(address || ""))}`}>
+                  open Telegram login
+                </a>
+                .
+              </p>
+            </section>
+          )}
 
           {/* Referral Code */}
           <section className="card glass" style={{ marginTop: 16 }}>

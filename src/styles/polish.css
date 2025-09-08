@@ -192,3 +192,23 @@ body {
   border-color: rgba(135, 206, 250, 0.9);
   box-shadow: 0 0 0 2px rgba(135, 206, 250, 0.25);
 }
+
+/* Slightly stronger veil for readability */
+.veil {
+  background: linear-gradient(180deg, rgba(3,10,24,0.55), rgba(3,10,24,0.35));
+  backdrop-filter: blur(2px) brightness(0.95);
+}
+
+/* Quest cards: small, legible URL line */
+.small-url {
+  word-break: break-all;
+  opacity: .8;
+  font-size: 12px;
+  margin-top: -6px;
+}
+
+/* Improve contrast of chips/buttons over bright art */
+.chip, .btn, .xp-badge {
+  backdrop-filter: saturate(110%) blur(2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}
