@@ -447,13 +447,34 @@ export default function Profile() {
               <div className="social-status">
                 <span>X (Twitter):</span>
                 {twitterConnected ? (
-                  twitter ? (
-                    <a className="connected" href={`https://x.com/${twitter}`} target="_blank" rel="noreferrer">✅ @{twitter}</a>
-                  ) : (
-                    <span className="connected">✅ Connected</span>
-                  )
+                  <>
+                    {twitter ? (
+                      <a
+                        className="connected"
+                        href={`https://x.com/${twitter}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ✅ @{twitter}
+                      </a>
+                    ) : (
+                      <span className="connected">✅ Connected</span>
+                    )}
+                    {/* hide connect button when connected */}
+                  </>
                 ) : (
-                  <div className="social-actions"><button className="mini" onClick={connectTwitter} disabled={connecting.twitter}>Connect</button></div>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectTwitter}
+                        disabled={connecting.twitter}
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -461,13 +482,34 @@ export default function Profile() {
               <div className="social-status">
                 <span>Telegram:</span>
                 {telegramConnected ? (
-                  telegram ? (
-                    <a className="connected" href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer">✅ @{telegram}</a>
-                  ) : (
-                    <span className="connected">✅ Connected</span>
-                  )
+                  <>
+                    {telegram ? (
+                      <a
+                        className="connected"
+                        href={`https://t.me/${telegram}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ✅ @{telegram}
+                      </a>
+                    ) : (
+                      <span className="connected">✅ Connected</span>
+                    )}
+                    {/* hide connect button when connected */}
+                  </>
                 ) : (
-                  <div className="social-actions"><button className="mini" onClick={connectTelegram} disabled={connecting.telegram}>Connect</button></div>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectTelegram}
+                        disabled={connecting.telegram}
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -475,35 +517,60 @@ export default function Profile() {
               <div className="social-status">
                 <span>Discord:</span>
                 {discordConnected ? (
-                  discord ? (
-                    <a className="connected" href={`https://discord.com/users/${discord}`} target="_blank" rel="noreferrer">✅ {discord}</a>
-                  ) : (
-                    <span className="connected">✅ Connected</span>
-                  )
+                  <>
+                    {discord ? (
+                      <a
+                        className="connected"
+                        href={`https://discord.com/users/${discord}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ✅ {discord}
+                      </a>
+                    ) : (
+                      <span className="connected">✅ Connected</span>
+                    )}
+                    {/* hide connect button when connected */}
+                  </>
                 ) : (
-                  <div className="social-actions"><button className="mini" onClick={connectDiscord} disabled={connecting.discord}>Connect</button></div>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectDiscord}
+                        disabled={connecting.discord}
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
-          </div>
-        </section>
+            </div>
+          </section>
 
           {/* Quest History */}
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>📜 Quest History</h3>
             {loading && <p>Loading…</p>}
-            {!loading && (!me?.questHistory || me.questHistory.length === 0) ? (
+            {!loading && (!Array.isArray(me?.questHistory) || me.questHistory.length === 0) ? (
               <p>No quests completed yet.</p>
             ) : (
               <ul>
                 {(me.questHistory || [])
                   .slice()
-                  .sort((a, b) => new Date(b.completed_at || b.created_at || b.timestamp) - new Date(a.completed_at || a.created_at || a.timestamp))
+                  .sort(
+                    (a, b) =>
+                      new Date(b.completed_at || b.created_at || b.timestamp || 0) -
+                      new Date(a.completed_at || a.created_at || a.timestamp || 0)
+                  )
                   .map((q, i) => {
                     const when = q.completed_at || q.created_at || q.timestamp;
                     const ts = when ? new Date(when) : null;
                     return (
-                      <li key={q.questId || i}>
-                        <strong>{q.title || `Quest ${q.questId}`}</strong> — {q.xp ?? 0} XP
+                      <li key={q.id || i}>
+                        {q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ''}`} — {q.xp ?? q.delta ?? 0} XP
                         {ts ? <span className="timestamp"> • {ts.toLocaleDateString()}</span> : null}
                       </li>
                     );
