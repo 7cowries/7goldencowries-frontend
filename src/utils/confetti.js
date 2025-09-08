@@ -1,4 +1,7 @@
+import { getEffectsOff } from '../store/effects';
+
 export function burstConfetti({ count = 120, duration = 1600 } = {}) {
+  if (typeof window === 'undefined' || getEffectsOff()) return;
   const end = Date.now() + duration;
   const tick = () => {
     const p = document.createElement('div');
