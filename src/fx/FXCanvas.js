@@ -7,13 +7,13 @@ export default function FXCanvas({ paused=false }) {
     const c = ref.current; if (!c) return;
     const ctx = c.getContext('2d');
     const parts = Array.from({length: 28}).map(() => ({
-      x: Math.random()*innerWidth*dpr,
-      y: Math.random()*innerHeight*dpr,
+      x: Math.random()*window.innerWidth*dpr,
+      y: Math.random()*window.innerHeight*dpr,
       r: (6+Math.random()*14)*dpr,
       s: (0.15+Math.random()*0.6)*dpr,
       h: 180 + Math.random()*180, a: 0.20+Math.random()*0.25
     }));
-    const resize = () => { c.width = innerWidth*dpr; c.height = innerHeight*dpr; };
+    const resize = () => { c.width = window.innerWidth*dpr; c.height = window.innerHeight*dpr; };
     resize(); window.addEventListener('resize', resize);
 
     const draw = () => {
