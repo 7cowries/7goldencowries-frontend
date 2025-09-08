@@ -1,12 +1,13 @@
-import { ensureWalletBound } from './walletBind';
-import { getMe, getQuests } from './api';
+import { bindWallet, getMe, getQuests } from './api';
 
 export function setupWalletSync() {
   async function sync() {
-    const w = typeof localStorage !== 'undefined' ? localStorage.getItem('wallet') : null;
+    const ls = typeof localStorage !== 'undefined' ? localStorage.getItem('wallet') : null;
+    const tc = typeof window !== 'undefined' && window.tonconnect?.account?.address;
+    const w = ls || tc || null;
     if (w) {
       try {
-        await ensureWalletBound(w);
+        await bindWallet(w);
       } catch (e) {
         console.error('[init] bind failed', e);
       }

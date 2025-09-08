@@ -178,6 +178,9 @@ export async function postJSON(path, body, opts = {}) {
 export function claimQuest(id, opts = {}) {
   return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => {
     clearUserCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profile-updated'));
+    }
     return res;
   });
 }
@@ -185,6 +188,9 @@ export function claimQuest(id, opts = {}) {
 export function submitProof(id, body, opts = {}) {
   return postJSON(`/api/quests/${id}/proofs`, body, opts).then((res) => {
     clearUserCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profile-updated'));
+    }
     return res;
   });
 }

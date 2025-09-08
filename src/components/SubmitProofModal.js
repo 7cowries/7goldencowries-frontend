@@ -7,12 +7,12 @@ export default function SubmitProofModal({ quest, onClose, onSuccess, onError })
   const vendor = (() => {
     switch (quest?.requirement) {
       case 'tweet':
+      case 'retweet':
+      case 'quote':
       case 'tweet_link':
         return 'twitter';
-      case 'telegram':
       case 'join_telegram':
         return 'telegram';
-      case 'discord':
       case 'join_discord':
         return 'discord';
       default:
@@ -25,9 +25,9 @@ export default function SubmitProofModal({ quest, onClose, onSuccess, onError })
   if (!quest) return null;
 
   const placeholders = {
-    twitter: 'Paste tweet link',
-    telegram: 'Paste Telegram post link',
-    discord: 'Paste Discord message link',
+    twitter: 'Paste tweet/retweet/quote link',
+    telegram: 'Paste Telegram message/channel link',
+    discord: 'Paste Discord invite/message link',
     link: 'Paste link here',
   };
 

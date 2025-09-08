@@ -125,7 +125,7 @@ export default function Quests() {
     setProofQuest(q);
   };
 
-  const onProofSubmitted = (res) => {
+  const onProofSubmitted = async (res) => {
     if (process.env.NODE_ENV !== 'production') {
       console.log('proof_submitted', proofQuest?.id, res?.status);
     }
@@ -137,8 +137,15 @@ export default function Quests() {
           : qq
       )
     );
+    try {
+      const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
+      if (mountedRef.current) {
+        setMe(meData);
+        setQuests(questsData?.quests ?? []);
+        setXp(questsData?.xp ?? 0);
+      }
+    } catch {}
     setTimeout(() => setToast(''), 3000);
-    sync();
     window.dispatchEvent(new Event('profile-updated'));
   };
 

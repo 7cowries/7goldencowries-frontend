@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useTonWallet } from '@tonconnect/ui-react';
 import { getMe } from '../utils/api';
 import './Referral.css';
 import '../App.css'; // Import layout classes
@@ -7,19 +6,16 @@ import '../App.css'; // Import layout classes
 const API = process.env.REACT_APP_API_URL;
 
 const Referral = () => {
-  const wallet = useTonWallet();
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [referrals, setReferrals] = useState([]);
 
   const referralLink = referralCode
-    ? `${window.location.origin}/ref/${referralCode}`
+    ? `${window.location.origin}/?ref=${referralCode}`
     : '';
 
-  // Retrieve referral code once wallet is connected
+  // Retrieve referral code on mount
   useEffect(() => {
-    if (!wallet?.account?.address) return;
-
     (async () => {
       try {
         const me = await getMe();
@@ -31,7 +27,7 @@ const Referral = () => {
         console.error('Referral getMe error:', err);
       }
     })();
-  }, [wallet]);
+  }, []);
 
   // Fetch referrals list for this code
   useEffect(() => {
@@ -39,7 +35,7 @@ const Referral = () => {
 
     fetch(`${API}/referrals/${referralCode}`)
       .then(res => res.json())
-      .then(data => setReferrals(data.referrals || []))
+      .then(data => setReferrals(data.entries || data.referrals || []))
       .catch(err =>
         console.error(
           'Referral fetch error:',
@@ -89,9 +85,13 @@ const Referral = () => {
                 <ul>
                   {referrals.map((r, i) => (
                     <li key={i}>
-                      {r.address} <span className={r.completed ? 'ref-status-complete' : 'ref-status-pending'}>
-                        {r.completed ? '✅ joined' : '⏳ pending'}
-                      </span>
+                      {shorten(r.wallet || r.address)}
+                      {r.joinedAt && (
+                        <> – {new Date(r.joinedAt).toLocaleDateString()}</>
+                      )}
+                      {typeof r.xp === 'number' && (
+                        <> – {r.xp} XP</>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -127,3 +127,7 @@ const Referral = () => {
 };
 
 export default Referral;
+
+function shorten(addr = '') {
+  return addr.slice(0, 6) + '...' + addr.slice(-4);
+}
