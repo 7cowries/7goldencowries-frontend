@@ -125,13 +125,18 @@ export function getJSON(path, opts) {
 }
 
 let bindOncePromise = null;
+let lastBoundWallet = null;
 async function ensureBound() {
   if (typeof window === 'undefined') return;
   const w =
     localStorage.getItem('wallet') || window.tonconnect?.account?.address;
   if (!w) return;
-  if (!bindOncePromise)
-    bindOncePromise = bindWallet(w).catch(() => {});
+  if (w !== lastBoundWallet) {
+    lastBoundWallet = w;
+    bindOncePromise = bindWallet(w).catch(() => {
+      lastBoundWallet = null; // allow retry on failure
+    });
+  }
   return bindOncePromise;
 }
 
