@@ -6,6 +6,7 @@ import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import LeftNav from "./components/LeftNav";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./App.css";
+import "./styles/polish.css";
 
 // 🔊 Global sound system
 import {

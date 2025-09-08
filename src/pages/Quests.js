@@ -5,6 +5,7 @@ import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
+import { boomConfetti } from '../utils/fun';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -97,6 +98,7 @@ export default function Quests() {
       } else {
         const award = res?.awardedXp ?? res?.xp ?? 0;
         setToast(`Quest claimed! +${award} XP`);
+        boomConfetti();
       }
       const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
       if (mountedRef.current) {
