@@ -98,7 +98,7 @@ describe('Quests page claiming', () => {
     const proofBtn = await screen.findByText('Submit proof');
     await userEvent.click(proofBtn);
 
-    const input = screen.getByPlaceholderText('Paste tweet link');
+    const input = screen.getByPlaceholderText('Paste tweet/retweet/quote link');
     await userEvent.type(input, 'https://twitter.com/user/status/1');
 
     submitProof.mockResolvedValueOnce({ ok: true, proof: { status: 'approved' } });

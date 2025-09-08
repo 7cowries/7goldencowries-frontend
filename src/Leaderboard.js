@@ -15,11 +15,16 @@ const lore = {
 const Leaderboard = () => {
   const [leaders, setLeaders] = useState([]);
   const [error, setError] = useState('');
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     let mounted = true;
     getLeaderboard()
-      .then((data) => mounted && setLeaders(data.top || []))
+      .then((data) => {
+        if (!mounted) return;
+        setLeaders(data.entries || []);
+        setTotal(data.total || 0);
+      })
       .catch((e) => {
         if (mounted) setError(e.message || 'Failed to load leaderboard');
       });
@@ -40,7 +45,12 @@ const Leaderboard = () => {
       ) : (
         <div className="leaderboard-list">
           {leaders.map((user, i) => (
-            <div key={user.wallet} className={`leader-card ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}`}>
+            <div
+              key={user.wallet}
+              className={`leader-card ${
+                i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''
+              } ${user.wallet === currentWallet ? 'you' : ''}`}
+            >
               <div className="rank-badge">#{user.rank}</div>
               <div className="user-info">
                 <img
@@ -50,11 +60,11 @@ const Leaderboard = () => {
                   className="user-badge"
                 />
                 <div className="user-meta">
-                  <p><strong>{shorten(user.wallet)}</strong> {user.twitter && <span> | 🐦 @{user.twitter}</span>}</p>
+                  <p><strong>{shorten(user.wallet)}</strong> {user.twitterHandle && <span> | 🐦 @{user.twitterHandle}</span>}</p>
                   <p>{user.tier} • {user.name}</p>
                   <div className="progress-container">
                     <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${user.progress.toFixed(1)}%` }}></div>
+                      <div className="progress-fill" style={{ width: `${(user.progress || 0) * 100}%` }}></div>
                     </div>
                     <small>{user.xp} XP — {lore[user.name]}</small>
                   </div>
@@ -68,8 +78,10 @@ const Leaderboard = () => {
   );
 };
 
-function shorten(addr) {
+function shorten(addr = '') {
   return addr.slice(0, 6) + '...' + addr.slice(-4);
 }
+
+const currentWallet = typeof localStorage !== 'undefined' ? localStorage.getItem('wallet') : null;
 
 export default Leaderboard;
