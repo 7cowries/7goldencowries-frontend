@@ -5,6 +5,7 @@ import App from "./App";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import WalletProvider from "./context/WalletContext";
 import './index.css';
+import './styles/enchanted.css';
 import './styles/polish.css';
 import './styles/theme.css';
 import './styles/yolo.css';
