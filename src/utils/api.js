@@ -160,10 +160,12 @@ export function getLeaderboard({ signal } = {}) {
  * @param {AbortSignal} [opts.signal]
  * @returns {Promise<MeResponse>}
  */
-export async function getMe({ signal } = {}) {
+export async function getMe({ signal, force } = {}) {
   const key = userKey("me");
-  const cached = cacheGet(key);
-  if (cached) return Promise.resolve(cached);
+  if (!force) {
+    const cached = cacheGet(key);
+    if (cached) return Promise.resolve(cached);
+  }
   return jsonFetch("/api/users/me", { signal }).then((data) => {
     const user = data && typeof data === 'object' && 'user' in data ? data.user : data;
     if (user) cacheSet(key, user);

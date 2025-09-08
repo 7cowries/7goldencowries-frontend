@@ -56,6 +56,7 @@ export default function Quests() {
       walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       sync();
     };
+    const onProfile = () => sync();
     const onStorage = (e) => {
       if (e.key === 'wallet') {
         onWalletChanged();
@@ -63,11 +64,11 @@ export default function Quests() {
     };
     window.addEventListener('wallet:changed', onWalletChanged);
     window.addEventListener('storage', onStorage);
-    window.addEventListener('profile-updated', sync);
+    window.addEventListener('profile-updated', onProfile);
     return () => {
       window.removeEventListener('wallet:changed', onWalletChanged);
       window.removeEventListener('storage', onStorage);
-      window.removeEventListener('profile-updated', sync);
+      window.removeEventListener('profile-updated', onProfile);
     };
   }, []);
 

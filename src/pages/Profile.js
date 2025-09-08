@@ -114,14 +114,14 @@ export default function Profile() {
   const [discordGuildMember, setDiscordGuildMember] = useState(false);
   const [referralCode, setReferralCode] = useState('');
 
-  // Prefer new nested socials; gracefully fallback to legacy top-level fields if present
+  // Prefer me.socials but gracefully fall back to legacy top-level fields
   const socials = me?.socials || { twitter: {}, telegram: {}, discord: {} };
-  const twitterConnected = !!(socials?.twitter?.connected || me?.twitterHandle);
-  const telegramConnected = !!(socials?.telegram?.connected || me?.telegramHandle || me?.telegramId);
-  const discordConnected = !!(socials?.discord?.connected || me?.discordId);
-  const twitter = stripAt(socials?.twitter?.handle || me?.twitterHandle || '');
-  const telegram = stripAt(socials?.telegram?.username || me?.telegramHandle || me?.telegramId || '');
-  const discord = stripAt(socials?.discord?.id || me?.discordId || '');
+  const twitter = stripAt(socials?.twitter?.handle || me?.twitterHandle || me?.twitter || '');
+  const telegram = stripAt(socials?.telegram?.username || me?.telegramId || me?.telegram || '');
+  const discord = stripAt(socials?.discord?.id || me?.discordId || me?.discord || '');
+  const twitterConnected = !!(socials?.twitter?.connected || me?.twitterHandle || me?.twitter);
+  const telegramConnected = !!(socials?.telegram?.connected || me?.telegramId || me?.telegram);
+  const discordConnected = !!(socials?.discord?.connected || me?.discordId || me?.discord);
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
@@ -202,7 +202,8 @@ export default function Profile() {
     setError('');
     setLoading(true);
     try {
-      const apiMe = await getMe();
+      // force to bypass cache after OAuth/proof/claim
+      const apiMe = await getMe({ force: true });
       applyProfile(apiMe);
     } catch (e) {
       console.error(e);
@@ -572,7 +573,7 @@ export default function Profile() {
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>📜 Quest History</h3>
             {loading && <p>Loading…</p>}
-            {!loading && (!me?.questHistory || me.questHistory.length === 0) ? (
+            {!loading && (!(me?.questHistory) || me.questHistory.length === 0) ? (
               <p>No quests completed yet.</p>
             ) : (
               <ul>
@@ -580,18 +581,15 @@ export default function Profile() {
                   .slice()
                   .sort(
                     (a, b) =>
-                      new Date(b.completed_at || b.created_at || b.timestamp) -
-                      new Date(a.completed_at || a.created_at || a.timestamp)
+                      new Date(b.completed_at || b.created_at || b.timestamp || 0) -
+                      new Date(a.completed_at || a.created_at || a.timestamp || 0)
                   )
                   .map((q, i) => {
                     const when = q.completed_at || q.created_at || q.timestamp;
                     const ts = when ? new Date(when) : null;
                     return (
-                      <li key={q.id || i}>
-                        {q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ''}`} — {q.xp ?? q.delta ?? 0} XP
-                        {ts ? (
-                          <span className="timestamp"> • {ts.toLocaleDateString()}</span>
-                        ) : null}
+                      <li key={i}>
+                        {q.title || `Quest ${q.questId || q.quest_id || ''}`} — {q.xp ?? 0} XP{ts ? ` • ${ts.toLocaleString()}` : ''}
                       </li>
                     );
                   })}

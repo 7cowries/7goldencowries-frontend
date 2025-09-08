@@ -3,7 +3,8 @@ import { submitProof, tierMultiplier } from '../utils/api';
 
 export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
   const q = quest;
-  const needsProof = q.requirement && q.requirement !== 'none';
+  const req = String(q.requirement || '').toLowerCase();
+  const needsProof = req && req !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
   const claimable = !alreadyClaimed && (!needsProof || q.proofStatus === 'approved');
   const [url, setUrl] = useState('');
@@ -73,7 +74,7 @@ export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
         </div>
       ) : null}
 
-      {/* Inline proof input when needed and not completed */}
+      {/* Inline proof input (Twitter/Telegram/Discord/link) */}
       {!alreadyClaimed && needsProof && (
         <div className="inline-proof" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <input
@@ -81,13 +82,11 @@ export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder={
-              q.requirement === 'join_telegram'
+              req === 'join_telegram' || req === 'telegram'
                 ? 'Paste Telegram message/channel link'
-                : q.requirement === 'join_discord'
+                : req === 'join_discord' || req === 'discord'
                 ? 'Paste Discord invite/message link'
-                : q.requirement === 'tweet' ||
-                  q.requirement === 'retweet' ||
-                  q.requirement === 'quote'
+                : req === 'tweet' || req === 'retweet' || req === 'quote' || req === 'tweet_link'
                 ? 'Paste tweet/retweet/quote link'
                 : 'Paste link here'
             }
@@ -102,6 +101,7 @@ export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
               setSubmitting(true);
               try {
                 const res = await submitProof(q.id, { url });
+                // Optimistic: reflect backend decision
                 if (res?.status) q.proofStatus = res.status;
                 window.dispatchEvent(new Event('profile-updated'));
               } catch (e) {
@@ -111,27 +111,30 @@ export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
               }
             }}
           >
-            {submitting ? 'Submitting…' : 'Submit'}
+            {submitting ? 'Submitting…' : 'Submit proof'}
           </button>
         </div>
       )}
 
-      <div className="q-actions">
-        {alreadyClaimed ? (
-          <button className="btn success" disabled>
-            Claimed
-          </button>
-        ) : (
-          <button
-            className="btn ghost"
-            onClick={() => onClaim(q.id)}
-            disabled={claiming || !claimable}
-            title={!claimable && needsProof ? 'Submit proof first' : ''}
-          >
-            {claiming ? 'Claiming...' : 'Claim'}
-          </button>
-        )}
-      </div>
+        <div className="q-actions">
+          {alreadyClaimed ? (
+            <button className="btn success" disabled>
+              Claimed
+            </button>
+          ) : (
+            <button
+              className="btn ghost"
+              onClick={() => onClaim(q.id)}
+              disabled={claiming || !claimable}
+              title={!claimable && needsProof ? 'Submit proof first' : ''}
+            >
+              {claiming ? 'Claiming...' : 'Claim'}
+            </button>
+          )}
+          {q.url ? (
+            <a className="btn primary" href={q.url} target="_blank" rel="noopener noreferrer">Go</a>
+          ) : null}
+        </div>
     </div>
   );
 }
