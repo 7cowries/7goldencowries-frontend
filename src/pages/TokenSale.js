@@ -1,10 +1,31 @@
 // src/pages/TokenSale.js
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "./TokenSale.css";
-import { useCountdown, SALE_START_ISO, openCalendarReminder, inviteFriend } from "../utils/launch";
+import { SALE_START_ISO, openCalendarReminder, inviteFriend } from "../utils/launch";
+
+const TARGET = Date.UTC(2025, 9, 4, 0, 0, 0); // Oct 4, 2025 00:00:00 UTC
+
+function getTimeLeft() {
+  const now = Date.now();
+  let diff = Math.max(0, Math.floor((TARGET - now) / 1000));
+  const days = Math.floor(diff / 86400);
+  diff -= days * 86400;
+  const hours = Math.floor(diff / 3600);
+  diff -= hours * 3600;
+  const mins = Math.floor(diff / 60);
+  const secs = diff % 60;
+  return { days, hours, mins, secs, finished: TARGET - now <= 0 };
+}
 
 export default function TokenSale() {
-  const { days, hours, minutes, seconds, finished } = useCountdown(SALE_START_ISO);
+  const [time, setTime] = useState(getTimeLeft());
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(getTimeLeft()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const { days, hours, mins, secs, finished } = time;
 
   return (
     <div className="page">
@@ -29,10 +50,10 @@ export default function TokenSale() {
             </div>
             {!finished ? (
               <div className="ts-countdown-grid">
-                <div className="ts-time"><span>{days}</span><label>days</label></div>
-                <div className="ts-time"><span>{hours}</span><label>hours</label></div>
-                <div className="ts-time"><span>{minutes}</span><label>mins</label></div>
-                <div className="ts-time"><span>{seconds}</span><label>secs</label></div>
+                <div className="ts-time"><span>{String(days).padStart(2, '0')}</span><label>days</label></div>
+                <div className="ts-time"><span>{String(hours).padStart(2, '0')}</span><label>hours</label></div>
+                <div className="ts-time"><span>{String(mins).padStart(2, '0')}</span><label>mins</label></div>
+                <div className="ts-time"><span>{String(secs).padStart(2, '0')}</span><label>secs</label></div>
               </div>
             ) : (
               <div className="ts-live-note">Follow updates in-app and socials—waves are moving.</div>
