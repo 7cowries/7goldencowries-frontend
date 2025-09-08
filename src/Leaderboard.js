@@ -60,7 +60,12 @@ const Leaderboard = () => {
                   className="user-badge"
                 />
                 <div className="user-meta">
-                  <p><strong>{shorten(user.wallet)}</strong> {user.twitterHandle && <span> | 🐦 @{user.twitterHandle}</span>}</p>
+                  <p>
+                    <strong>{shorten(user.wallet)}</strong>
+                    {user.twitterHandle && (
+                      <span> | 🐦 @{user.twitterHandle}</span>
+                    )}
+                  </p>
                   <p>{user.tier} • {user.name}</p>
                   <div className="progress-container">
                     <div className="progress-bar">

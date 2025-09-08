@@ -122,9 +122,15 @@ export default function Profile() {
   const [referralCode, setReferralCode] = useState('');
 
   const [perk, setPerk] = useState("");
-  const [history, setHistory] = useState([]);
   const [toast, setToast] = useState("");
   const [hasProfile, setHasProfile] = useState(false);
+
+  const questHistory = useMemo(() => {
+    const list = me.questHistory || [];
+    return [...list].sort(
+      (a, b) => new Date(b.completed_at) - new Date(a.completed_at)
+    );
+  }, [me.questHistory]);
 
   // Disable connect buttons while starting OAuth flows
   const [connecting, setConnecting] = useState({
@@ -169,9 +175,8 @@ export default function Profile() {
         meObj.questHistory ||
         [];
 
-      const merged = { ...DEFAULT_ME, ...meObj };
+      const merged = { ...DEFAULT_ME, ...meObj, questHistory: hist };
       setMe(merged);
-      setHistory(hist);
 
       if (!merged.wallet) {
         setHasProfile(false);
@@ -215,7 +220,6 @@ export default function Profile() {
     } catch (e) {
       console.error(e);
       setError('Failed to load profile.');
-      setHistory([]);
       setMe(DEFAULT_ME);
       setHasProfile(false);
     } finally {
@@ -564,7 +568,30 @@ export default function Profile() {
                   </>
                 )}
               </div>
-            </div>
+          </div>
+        </section>
+
+          {/* Quest History */}
+          <section className="card glass" style={{ marginTop: 16 }}>
+            <h3>📜 Quest History</h3>
+            {loading && <p>Loading…</p>}
+            {!loading && questHistory.length === 0 ? (
+              <p>No quests completed yet.</p>
+            ) : (
+              <ul>
+                {questHistory.map((q, i) => (
+                  <li key={q.id || i}>
+                    <strong>{q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ""}`}</strong> — +{q.xp ?? q.delta ?? 0} XP
+                    <br />
+                    <span className="timestamp">
+                      {q.completed_at
+                        ? new Date(q.completed_at).toLocaleDateString()
+                        : "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {/* Link New Accounts */}
@@ -614,30 +641,6 @@ export default function Profile() {
             )}
           </section>
 
-          {/* Quest History */}
-          <section className="card glass" style={{ marginTop: 16 }}>
-            <h3>📜 Quest History</h3>
-            {loading && <p>Loading…</p>}
-            {!loading && history.length === 0 ? (
-              <p>No quests completed yet.</p>
-            ) : (
-              <ul>
-                {history.map((q, i) => {
-                  const when = q.created_at || q.completed_at || q.timestamp;
-                  const ts = when ? new Date(when) : null;
-                  return (
-                    <li key={q.id || i}>
-                      <strong>{q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ""}`}</strong> — +{q.xp ?? q.delta ?? 0} XP
-                      <br />
-                      <span className="timestamp">
-                        {ts ? ts.toLocaleString() : "—"}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
         </>
       )}
     </div>
