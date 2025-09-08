@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { submitProof, tierMultiplier } from '../utils/api';
-import { confettiBurst } from '../utils/confetti';
 
-export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
+export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
   const q = quest;
   const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
@@ -75,23 +74,24 @@ export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
             onClick={async () => {
               if (!url) return;
               setSubmitting(true);
-                try {
-                  const res = await submitProof(q.id, { url });
-                  if (res?.status) q.proofStatus = res.status; // optimistic
-                  if (res?.status === 'approved')
-                    confettiBurst({ particleCount: 90, spread: 70 });
-                  window.dispatchEvent(new Event('profile-updated'));
-                } catch (e) {
-                  alert(e?.message || 'Failed to submit proof');
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
-            >
-              {submitting ? 'Submitting…' : 'Submit'}
-            </button>
-          </div>
-        )}
+              try {
+                const res = await submitProof(q.id, { url });
+                if (res?.status) q.proofStatus = res.status; // optimistic
+                setToast?.('Proof submitted');
+                setTimeout(() => setToast?.(''), 3000);
+                window.dispatchEvent(new Event('profile-updated'));
+              } catch (e) {
+                setToast?.(e?.message || 'Failed to submit proof');
+                setTimeout(() => setToast?.(''), 3000);
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {submitting ? 'Submitting…' : 'Submit'}
+          </button>
+        </div>
+      )}
 
       <div className="q-actions">
         {alreadyClaimed ? (

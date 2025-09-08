@@ -160,7 +160,7 @@ const Subscription = () => {
           </div>
         </div>
 
-        <p className="muted">Your XP boost: <strong>{(mult * 100 - 100).toFixed(0)}%</strong></p>
+        <p className="muted">Your XP boost: <strong>+{(mult * 100 - 100).toFixed(0)}%</strong></p>
 
         {/* Info panel */}
         <div className="subscription-info card">

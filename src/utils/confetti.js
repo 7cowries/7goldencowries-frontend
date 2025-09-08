@@ -21,5 +21,6 @@ export async function confettiBurst(opts = {}) {
   const { particleCount = 120, spread = 75, angle = 60, origin = { y: 0.7 } } = opts;
   confettiFn({ particleCount, spread, angle, origin });
   confettiFn({ particleCount, spread, angle: 120, origin });
+  confettiFn({ particleCount, spread, angle: 90, origin });
 }
 

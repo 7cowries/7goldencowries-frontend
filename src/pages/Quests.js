@@ -33,6 +33,13 @@ export default function Quests() {
     setXp(data?.xp ?? 0);
   }
 
+  async function loadMe() {
+    try {
+      const data = await getMe();
+      if (mountedRef.current) setMe(data);
+    } catch {}
+  }
+
   async function sync() {
     setLoading(true);
     const controller = new AbortController();
@@ -51,11 +58,12 @@ export default function Quests() {
   useEffect(() => {
     walletRef.current = localStorage.getItem('wallet') || '';
     sync();
+    loadMe();
     const onWalletChanged = (e) => {
       walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
+      loadMe();
       sync();
     };
-    const onProfile = () => sync();
     const onStorage = (e) => {
       if (e.key === 'wallet') {
         onWalletChanged();
@@ -63,25 +71,23 @@ export default function Quests() {
     };
     window.addEventListener('wallet:changed', onWalletChanged);
     window.addEventListener('storage', onStorage);
-    window.addEventListener('profile-updated', onProfile);
     return () => {
       window.removeEventListener('wallet:changed', onWalletChanged);
       window.removeEventListener('storage', onStorage);
-      window.removeEventListener('profile-updated', onProfile);
     };
   }, []);
 
   useEffect(() => {
-    async function loadMe() {
-      try {
-        const data = await getMe();
-        setMe(data);
-      } catch {}
-    }
-    loadMe();
-    const onProfile = () => loadMe();
-    window.addEventListener('profile-updated', onProfile);
-    return () => window.removeEventListener('profile-updated', onProfile);
+    const reload = () => {
+      loadMe();
+      sync();
+    };
+    window.addEventListener('profile-updated', reload);
+    window.addEventListener('focus', reload);
+    return () => {
+      window.removeEventListener('profile-updated', reload);
+      window.removeEventListener('focus', reload);
+    };
   }, []);
 
     const handleClaim = async (id) => {
@@ -177,6 +183,7 @@ export default function Quests() {
                   me={me}
                   onClaim={handleClaim}
                   claiming={!!claiming[q.id]}
+                  setToast={setToast}
                 />
               ))
             )}
