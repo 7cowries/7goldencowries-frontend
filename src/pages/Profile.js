@@ -114,14 +114,14 @@ export default function Profile() {
   const [discordGuildMember, setDiscordGuildMember] = useState(false);
   const [referralCode, setReferralCode] = useState('');
 
-  // Read from me.socials directly
+  // Prefer new nested socials; gracefully fallback to legacy top-level fields if present
   const socials = me?.socials || { twitter: {}, telegram: {}, discord: {} };
-  const twitterConnected = !!socials?.twitter?.connected;
-  const telegramConnected = !!socials?.telegram?.connected;
-  const discordConnected = !!socials?.discord?.connected;
-  const twitter = stripAt(socials?.twitter?.handle || '');
-  const telegram = stripAt(socials?.telegram?.username || '');
-  const discord = stripAt(socials?.discord?.id || '');
+  const twitterConnected = !!(socials?.twitter?.connected || me?.twitterHandle);
+  const telegramConnected = !!(socials?.telegram?.connected || me?.telegramHandle || me?.telegramId);
+  const discordConnected = !!(socials?.discord?.connected || me?.discordId);
+  const twitter = stripAt(socials?.twitter?.handle || me?.twitterHandle || '');
+  const telegram = stripAt(socials?.telegram?.username || me?.telegramHandle || me?.telegramId || '');
+  const discord = stripAt(socials?.discord?.id || me?.discordId || '');
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
