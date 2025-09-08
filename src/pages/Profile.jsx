@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
+import Page from "../components/Page";
 import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
@@ -345,7 +346,8 @@ export default function Profile() {
   };
 
   return (
-    <div className="page profile">
+    <Page>
+      <div className="profile">
       {/* toast */}
       {toast && (
         <div
@@ -643,6 +645,7 @@ export default function Profile() {
 
         </>
       )}
-    </div>
+      </div>
+    </Page>
   );
 }

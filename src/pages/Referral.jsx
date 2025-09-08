@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { burstConfetti } from '../utils/confetti';
 import { getMe } from '../utils/api';
+import Page from '../components/Page';
 import './Referral.css';
 import '../App.css'; // Import layout classes
 
@@ -66,7 +67,7 @@ const Referral = () => {
   };
 
   return (
-    <div className="page">
+    <Page>
       <div className="section referral-wrapper">
         <h1 className="referral-title">🧬 Invite the Shellborn</h1>
         <p className="referral-sub">Earn XP as your friends explore the Seven Isles of Tides.</p>
@@ -137,7 +138,7 @@ const Referral = () => {
           <p className="referral-info">🔌 Connect your wallet to generate your referral link.</p>
         )}
       </div>
-    </div>
+    </Page>
   );
 };
 

@@ -7,6 +7,7 @@ import {
   useTonWallet,
 } from "@tonconnect/ui-react";
 import XPModal from "../components/XPModal";
+import Page from "../components/Page";
 import "../App.css";
 import { tierMultiplier } from '../utils/api';
 
@@ -129,7 +130,7 @@ const Subscription = () => {
   };
 
   return (
-    <div className="page">
+    <Page>
       <div className="section subscription-wrapper fade-in">
         <h1 className="subscription-title text-glow">🌊 Your Subscription</h1>
 
@@ -228,7 +229,7 @@ const Subscription = () => {
           />
         )}
       </div>
-    </div>
+    </Page>
   );
 };
 

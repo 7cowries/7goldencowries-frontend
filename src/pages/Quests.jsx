@@ -3,6 +3,7 @@ import { getQuests, claimQuest, getMe } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
+import Page from '../components/Page';
 import './Quests.css';
 import '../App.css';
 import { burstConfetti } from '../utils/confetti';
@@ -136,9 +137,7 @@ export default function Quests() {
     );
 
   return (
-    <div className="page">
-      <div className="veil" />
-
+    <Page>
       <div className="q-container">
         <div className="glass profile-strip">
           <ProfileWidget />
@@ -189,6 +188,6 @@ export default function Quests() {
 
         <Toast message={toast} />
       </div>
-    </div>
+    </Page>
   );
 }

@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Isles.css";
 import "../App.css";
+import Page from "../components/Page";
 import { getMe } from "../utils/api"; // ✅ use session-aware profile first
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -298,9 +299,9 @@ export default function Isles() {
   }, [toastOn]);
 
   return (
-    <div className="isles-page">
-      <div className="veil" />
-      <Confetti active={confettiOn} onDone={() => setConfettiOn(false)} />
+    <Page>
+      <div className="isles-page">
+        <Confetti active={confettiOn} onDone={() => setConfettiOn(false)} />
       <LevelToast show={toastOn} level={LEVELS[currentIndex]} onClose={() => setToastOn(false)} />
 
       <header className="isles-header">
@@ -412,6 +413,7 @@ export default function Isles() {
         <a className="cta ghost" href="/profile">View Profile</a>
         <a className="cta primary" href="/quests">Continue Quests</a>
       </footer>
-    </div>
+      </div>
+    </Page>
   );
 }
