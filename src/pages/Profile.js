@@ -367,7 +367,7 @@ export default function Profile() {
         </div>
       )}
 
-      <h1 className="section-title">🌊 Explorer Profile</h1>
+      <h1 className="section-title">🌊 <span className="yolo-gradient">Explorer Profile</span></h1>
 
       {loading ? (
         <div className="skeleton" style={{ height: 160, borderRadius: 16 }} />
@@ -456,12 +456,12 @@ export default function Profile() {
                         href={`https://x.com/${twitter}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ color: 'var(--success)', fontWeight: 700 }}
+                        style={{ color: 'var(--c-mint)', fontWeight: 800 }}
                       >
                         ✅ @{twitter}
                       </a>
                     ) : (
-                      <span className="connected" style={{ color: 'var(--success)', fontWeight: 700 }}>✅ Connected</span>
+                      <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ Connected</span>
                     )}
                     <div className="social-actions">
                       <button className="mini" disabled title="Already connected">Connect</button>
@@ -494,12 +494,12 @@ export default function Profile() {
                         href={`https://t.me/${telegram}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ color: 'var(--success)', fontWeight: 700 }}
+                        style={{ color: 'var(--c-mint)', fontWeight: 800 }}
                       >
                         ✅ @{telegram}
                       </a>
                     ) : (
-                      <span className="connected" style={{ color: 'var(--success)', fontWeight: 700 }}>✅ Connected</span>
+                      <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ Connected</span>
                     )}
                     <div className="social-actions">
                       <button className="mini" disabled title="Already connected">Connect</button>
@@ -526,7 +526,7 @@ export default function Profile() {
                 <span className="muted">Discord:</span>
                 {discordConnected ? (
                   <>
-                    <span className="connected" style={{ color: 'var(--success)', fontWeight: 700 }}>✅ {discord || 'Connected'}</span>
+                    <span style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ {discord}</span>
                     <div className="social-actions">
                       {discord ? (
                         <button

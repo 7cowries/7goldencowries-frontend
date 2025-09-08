@@ -4,8 +4,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import WalletProvider from "./context/WalletContext";
+import './index.css';
 import './styles/polish.css';
 import './styles/theme.css';
+import './styles/yolo.css';
+import { initTheme } from './utils/theme';
+import { initHeroVideo } from './utils/video';
 import { setupWalletSync } from './utils/init';
 import { captureReferralFromQuery } from './utils/referral';
 
@@ -15,11 +19,10 @@ const manifestUrl =
   `${window.location.origin}/tonconnect-manifest.json`;
 
 captureReferralFromQuery();
+initTheme();
+initHeroVideo();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-
-// Enable colorful “Ocean Light”
-document.body.classList.add('theme-ocean-light');
 
 setupWalletSync();
 

@@ -12,7 +12,7 @@ export default function TokenSale() {
         {/* HERO */}
         <section className="section ts-hero card gradient-border pad-24 fade-in">
           <div className="ts-hero-head">
-            <h1 className="soft-title text-glow">$GCT — Golden Cowrie Token</h1>
+            <h1 className="soft-title text-glow">$GCT — <span className="yolo-gradient">Golden Cowrie Token</span></h1>
             <div className="ts-badge">First Wave • Oct 4, 2025 (UTC)</div>
           </div>
 
@@ -85,7 +85,7 @@ export default function TokenSale() {
 
         {/* ROADMAP */}
         <section className="section card gradient-border pad-24 hover ts-roadmap">
-          <h3 className="soft-title">Roadmap • Waves of Release</h3>
+          <h3 className="soft-title"><span className="yolo-gradient">Roadmap • Waves of Release</span></h3>
           <ol className="ts-steps">
             <li><b>First Wave</b> — Presale opens, XP blessing airdrops, lore reveal.</li>
             <li><b>Second Wave</b> — Premium Isles unlocks, governance proposals begin.</li>

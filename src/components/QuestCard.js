@@ -53,7 +53,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
         )}
       </p>
       {q.url ? (
-        <div className="muted mono" style={{ wordBreak: 'break-all', color: 'var(--ink-soft)' }}>
+        <div className="muted mono" style={{ color: 'var(--ink-soft)' }}>
           {q.url}
         </div>
       ) : null}

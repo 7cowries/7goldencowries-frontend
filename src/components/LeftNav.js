@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import "./LeftNav.css";
 import logo from "../assets/logo.svg";
+import { toggleTheme } from "../utils/theme";
 
 export default function LeftNav() {
   const { pathname } = useLocation();
@@ -71,6 +72,10 @@ export default function LeftNav() {
             <span className="emoji">🌱</span>
             <span>Isles</span>
           </NavLink>
+          <button type="button" className="nav-item" onClick={toggleTheme}>
+            <span className="emoji">🌈</span>
+            <span>Theme</span>
+          </button>
         </nav>
       </aside>
     </>
