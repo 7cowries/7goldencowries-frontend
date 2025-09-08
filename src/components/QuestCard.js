@@ -52,7 +52,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
         ) : (
           <p className="quest-title">{q.title || q.id}</p>
         )}
-        {q.url ? <div className="muted mono url-line">{q.url}</div> : null}
+        {/* Title is the only link; no duplicate URL preview */}
 
       {/* Inline proof input (only when required and not completed) */}
       {!alreadyClaimed && needsProof && (

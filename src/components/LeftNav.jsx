@@ -31,7 +31,16 @@ export default function LeftNav() {
 
       <div className="nav-wallet">
         <WalletConnect />
-        <button className="chip" onClick={() => setEffectsOff(!effectsOff)} title={effectsOff ? "Enable FX" : "Disable FX"}>{effectsOff ? "✨ Enable FX" : "🪄 Reduce FX"}</button>
+        <button
+          className="chip"
+          onClick={() => {
+            setOff(!effectsOff);
+            setEffectsOff(!effectsOff);
+          }}
+          title={effectsOff ? "Enable FX" : "Disable FX"}
+        >
+          {effectsOff ? "✨ Enable FX" : "🪄 Reduce FX"}
+        </button>
       </div>
     </aside>
   );

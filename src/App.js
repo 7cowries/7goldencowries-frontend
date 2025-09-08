@@ -85,6 +85,10 @@ const App = () => {
       window.removeEventListener("pointerdown", arm);
       window.removeEventListener("keydown", arm);
     };
+  }, []);
+
+  // Handle landing with ?ref= once on mount
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
     if (ref) {
