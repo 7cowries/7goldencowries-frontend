@@ -63,9 +63,11 @@ export default function Quests() {
     };
     window.addEventListener('wallet:changed', onWalletChanged);
     window.addEventListener('storage', onStorage);
+    window.addEventListener('profile-updated', sync);
     return () => {
       window.removeEventListener('wallet:changed', onWalletChanged);
       window.removeEventListener('storage', onStorage);
+      window.removeEventListener('profile-updated', sync);
     };
   }, []);
 
@@ -208,6 +210,7 @@ export default function Quests() {
                 <QuestCard
                   key={q.id}
                   quest={q}
+                  me={me}
                   onClaim={handleClaim}
                   onProof={handleProof}
                   claiming={!!claiming[q.id]}
