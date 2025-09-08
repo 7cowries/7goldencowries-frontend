@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { submitProof, tierMultiplier } from '../utils/api';
+import { confettiBurst } from '../utils/confetti';
 
-export default function QuestCard({ quest, onClaim, claiming, me }) {
+export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
   const q = quest;
   const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
@@ -20,11 +21,11 @@ export default function QuestCard({ quest, onClaim, claiming, me }) {
           </span>
         ) : null}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {alreadyClaimed ? (
-            <span className="chip completed">✅ Completed</span>
-          ) : q.proofStatus === 'pending' ? (
-            <span className="chip pending">🕒 Pending</span>
-          ) : null}
+            {alreadyClaimed ? (
+              <span className="chip completed">✅ Completed</span>
+            ) : q.proofStatus === 'pending' ? (
+              <span className="chip pending">🕒 Pending review</span>
+            ) : null}
           <span className="xp-badge">
             +{q.xp} XP
             {mult > 1 ? (
@@ -35,16 +36,21 @@ export default function QuestCard({ quest, onClaim, claiming, me }) {
           </span>
         </div>
       </div>
-      <p className="quest-title">
         {q.url ? (
-          <a href={q.url} target="_blank" rel="noopener noreferrer">
-            {q.title || q.id}
-          </a>
+          <p className="quest-title one-link">
+            <a
+              href={q.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {q.title || q.id}
+            </a>
+          </p>
         ) : (
-          q.title || q.id
+          <p className="quest-title">{q.title || q.id}</p>
         )}
-      </p>
-      {q.url ? <div className="muted mono small-url">{q.url}</div> : null}
+        {q.url ? <div className="muted mono url-line">{q.url}</div> : null}
 
       {/* Inline proof input (only when required and not completed) */}
       {!alreadyClaimed && needsProof && (
@@ -69,21 +75,23 @@ export default function QuestCard({ quest, onClaim, claiming, me }) {
             onClick={async () => {
               if (!url) return;
               setSubmitting(true);
-              try {
-                const res = await submitProof(q.id, { url });
-                if (res?.status) q.proofStatus = res.status; // optimistic
-                window.dispatchEvent(new Event('profile-updated'));
-              } catch (e) {
-                alert(e?.message || 'Failed to submit proof');
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-          >
-            {submitting ? 'Submitting…' : 'Submit proof'}
-          </button>
-        </div>
-      )}
+                try {
+                  const res = await submitProof(q.id, { url });
+                  if (res?.status) q.proofStatus = res.status; // optimistic
+                  if (res?.status === 'approved')
+                    confettiBurst({ particleCount: 90, spread: 70 });
+                  window.dispatchEvent(new Event('profile-updated'));
+                } catch (e) {
+                  alert(e?.message || 'Failed to submit proof');
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
+          </div>
+        )}
 
       <div className="q-actions">
         {alreadyClaimed ? (

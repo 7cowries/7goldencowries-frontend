@@ -5,7 +5,7 @@ import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
-import { boomConfetti } from '../utils/fun';
+import { confettiBurst } from '../utils/confetti';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -84,36 +84,32 @@ export default function Quests() {
     return () => window.removeEventListener('profile-updated', onProfile);
   }, []);
 
-  const handleClaim = async (id) => {
-    walletRef.current = localStorage.getItem('wallet') || '';
-    if (claiming[id]) return; // guard duplicate clicks
-    setClaiming((c) => ({ ...c, [id]: true }));
-    try {
-      const res = await claimQuest(id);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('claim_clicked', id, res);
+    const handleClaim = async (id) => {
+      walletRef.current = localStorage.getItem('wallet') || '';
+      if (claiming[id]) return;
+      setClaiming((c) => ({ ...c, [id]: true }));
+      try {
+        const res = await claimQuest(id);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('claim_clicked', id, res);
+        }
+        confettiBurst();
+        setToast(res?.xp ? `Quest claimed! +${res.xp} XP` : 'Quest claimed!');
+        await Promise.all([getMe(), getQuests()]).then(([meData, questsData]) => {
+          if (mountedRef.current) {
+            setMe(meData);
+            setQuests(questsData?.quests ?? []);
+            setXp(questsData?.xp ?? 0);
+          }
+        });
+        window.dispatchEvent(new Event('profile-updated'));
+      } catch (e) {
+        setToast(e.message || 'Failed to claim quest');
+      } finally {
+        setClaiming((c) => ({ ...c, [id]: false }));
+        setTimeout(() => setToast(''), 3000);
       }
-      if (res?.alreadyClaimed) {
-        setToast('Already claimed');
-      } else {
-        const award = res?.awardedXp ?? res?.xp ?? 0;
-        setToast(`Quest claimed! +${award} XP`);
-        boomConfetti();
-      }
-      const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
-      if (mountedRef.current) {
-        setMe(meData);
-        setQuests(questsData?.quests ?? []);
-        setXp(questsData?.xp ?? 0);
-      }
-      window.dispatchEvent(new Event('profile-updated'));
-    } catch (e) {
-      setToast(e.message || 'Failed to claim quest');
-    } finally {
-      setClaiming((c) => ({ ...c, [id]: false }));
-      setTimeout(() => setToast(''), 3000);
-    }
-  };
+    };
 
   const shownQuests =
     activeTab === 'all'

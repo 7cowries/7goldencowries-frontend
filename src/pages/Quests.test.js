@@ -98,7 +98,7 @@ describe('Quests page claiming', () => {
     await userEvent.type(input, 'https://twitter.com/user/status/1');
 
     submitProof.mockResolvedValueOnce({ status: 'approved' });
-    const submitBtn = screen.getByText('Submit proof');
+      const submitBtn = screen.getByText('Submit');
     await userEvent.click(submitBtn);
 
     await waitFor(() => expect(submitProof).toHaveBeenCalled());

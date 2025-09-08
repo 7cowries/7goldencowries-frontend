@@ -209,6 +209,36 @@ body {
 
 /* Improve contrast of chips/buttons over bright art */
 .chip, .btn, .xp-badge {
-  backdrop-filter: saturate(110%) blur(2px);
-  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    backdrop-filter: saturate(110%) blur(2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}
+
+/* Softer video veil on content pages */
+.page .bg-video + .veil,
+.veil {
+  background: radial-gradient(1200px 400px at 50% 0%, rgba(7,12,24,0.55), transparent 60%),
+              linear-gradient(180deg, rgba(5,8,16,0.75), rgba(5,8,16,0.85));
+}
+
+/* Quest card tidy */
+.quest-card { backdrop-filter: blur(6px); }
+.quest-card .one-link a { font-weight: 700; text-decoration: none; }
+.quest-card .url-line { opacity: .75; font-size: 12px; margin-top: -4px; }
+
+/* Chips & bars */
+.chip.completed { background: rgba(46, 204, 113, .18); border: 1px solid rgba(46,204,113,.5); }
+.chip.pending   { background: rgba(241, 196, 15, .15); border: 1px solid rgba(241,196,15,.45); }
+
+/* Inline proof input */
+.inline-proof .input {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+.inline-proof .input:focus {
+  border-color: rgba(135, 206, 250, 0.9);
+  box-shadow: 0 0 0 2px rgba(135, 206, 250, 0.25);
 }
