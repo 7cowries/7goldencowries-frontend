@@ -103,7 +103,6 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [me, setMe] = useState(DEFAULT_ME);
 
-  const [xp, setXp] = useState(0);
   const [tier, setTier] = useState("Free");
   const [level, setLevel] = useState({
     name: "Shellborn",
@@ -112,14 +111,17 @@ export default function Profile() {
     nextXP: 10000,
   });
 
-  const [twitter, setTwitter] = useState("");
-  const [telegram, setTelegram] = useState("");
-  const [discord, setDiscord] = useState("");
-  const [twitterConnected, setTwitterConnected] = useState(false);
-  const [telegramConnected, setTelegramConnected] = useState(false);
-  const [discordConnected, setDiscordConnected] = useState(false);
   const [discordGuildMember, setDiscordGuildMember] = useState(false);
   const [referralCode, setReferralCode] = useState('');
+
+  // Read from me.socials directly
+  const socials = me?.socials || { twitter: {}, telegram: {}, discord: {} };
+  const twitterConnected = !!socials?.twitter?.connected;
+  const telegramConnected = !!socials?.telegram?.connected;
+  const discordConnected = !!socials?.discord?.connected;
+  const twitter = stripAt(socials?.twitter?.handle || '');
+  const telegram = stripAt(socials?.telegram?.username || '');
+  const discord = stripAt(socials?.discord?.id || '');
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
@@ -176,7 +178,6 @@ export default function Profile() {
         return;
       }
 
-      setXp(merged.xp ?? 0);
       setTier(merged.tier || merged.subscriptionTier || "Free");
 
       const lvlName = merged.levelName || merged.level || "Shellborn";
@@ -188,13 +189,6 @@ export default function Profile() {
       });
       setPerk(perksMap[lvlName] || "");
 
-      const socials = merged.socials || {};
-      setTwitter(stripAt(socials.twitter?.handle || merged.twitterHandle || merged.twitter));
-      setTelegram(stripAt(socials.telegram?.username || merged.telegramId || merged.telegram));
-      setDiscord(stripAt(socials.discord?.id || merged.discordId || merged.discord));
-      setTwitterConnected(!!socials.twitter?.connected);
-      setTelegramConnected(!!socials.telegram?.connected);
-      setDiscordConnected(!!socials.discord?.connected);
       setDiscordGuildMember(!!merged.discordGuildMember);
       setReferralCode(merged.referral_code || merged.referralCode || "");
 
@@ -417,7 +411,7 @@ export default function Profile() {
                 <strong>Level:</strong> {level.name ?? 'Shellborn'} {level.symbol ?? ''}
               </p>
               <p>
-                <strong>XP:</strong> {xp ?? 0} / {level.nextXP ?? "∞"}
+                <strong>XP:</strong> {me.xp ?? 0} / {me.nextXP ?? "∞"}
               </p>
 
               <div className="xp-bar">

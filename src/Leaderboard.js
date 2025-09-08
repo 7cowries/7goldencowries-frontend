@@ -22,8 +22,8 @@ const Leaderboard = () => {
     getLeaderboard()
       .then((data) => {
         if (!mounted) return;
-        setLeaders(data.entries || []);
-        setTotal(data.total || 0);
+        setLeaders(Array.isArray(data?.entries) ? data.entries : []);
+        setTotal(Number(data?.total ?? 0));
       })
       .catch((e) => {
         if (mounted) setError(e.message || 'Failed to load leaderboard');
@@ -69,7 +69,7 @@ const Leaderboard = () => {
                   <p>{user.tier} • {user.name}</p>
                   <div className="progress-container">
                     <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${(user.progress || 0) * 100}%` }}></div>
+                      <div className="progress-fill" style={{ width: `${((user.progress || 0) * 100).toFixed(1)}%` }} />
                     </div>
                     <small>{user.xp} XP — {lore[user.name]}</small>
                   </div>
