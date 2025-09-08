@@ -30,14 +30,14 @@
 
 /* ===== Glass cards ===== */
 .card.glass {
-  background: rgba(0, 25, 51, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow);
+  color: var(--ink);
   border-radius: 14px;
   padding: 24px;
   margin-bottom: 32px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ===== Top profile card ===== */
@@ -86,7 +86,7 @@
 
 /* ===== XP bar ===== */
 .xp-bar {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bar-bg);
   border-radius: 10px;
   overflow: hidden;
   height: 14px;
@@ -97,9 +97,7 @@
 
 .xp-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ffd445, #ffe97a, #ffd445);
-  background-size: 200% 100%;
-  animation: shimmer 3s infinite linear;
+  background: var(--bar-fill);
   transition: width 1s ease-in-out;
 }
 

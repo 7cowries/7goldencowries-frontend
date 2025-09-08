@@ -50,12 +50,12 @@ body {
 .ocean-fade-bottom { bottom: 0; background: linear-gradient(0deg, rgba(10,31,68,0.45), transparent); }
 
 /* Cards & panels */
-.glass {
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
-  border: 1px solid var(--stroke);
-  border-radius: 20px;
-  box-shadow: 0 10px 30px var(--shadow);
-  backdrop-filter: saturate(1.1) blur(8px);
+.glass, .card.glass, .quest-card, .profile-card, .leader-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow);
+  color: var(--ink);
 }
 
 .glow-card {
@@ -126,15 +126,16 @@ body {
 }
 
 /* Progress bars (XP etc.) */
-.progress {
-  width: 100%; height: 10px; border-radius: 999px;
-  background: rgba(255,255,255,0.08); overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+.progress, .progress-bar, .xp-bar, .bar-outer {
+  width: 100%;
+  height: 10px;
+  background: var(--bar-bg);
+  border-radius: 10px;
+  overflow: hidden;
 }
-.progress > .bar {
+.progress > .bar, .progress-fill, .xp-fill, .bar-inner {
   height: 100%;
-  background: linear-gradient(90deg, #79c3ff, #ffd445 70%);
-  box-shadow: 0 0 24px rgba(121,195,255,.35);
+  background: var(--bar-fill);
   transition: width .6s cubic-bezier(.22,1,.36,1);
 }
 
@@ -181,8 +182,7 @@ body {
 /* Slightly stronger veil for readability */
 /* Darker overlay for improved video contrast */
 .veil {
-  background: rgba(0,0,0,0.54);
-  backdrop-filter: blur(2px) brightness(0.95);
+  background: var(--veil);
 }
 
 /* Quest cards: small, legible URL line */
@@ -202,7 +202,7 @@ body {
 /* Softer video veil on content pages */
 .page .bg-video + .veil,
 .veil {
-  background: rgba(0,0,0,0.54);
+  background: var(--veil);
 }
 
 /* Quest card tidy */
@@ -211,18 +211,30 @@ body {
 .quest-card .url-line { opacity: .75; font-size: 12px; margin-top: -4px; }
 
 /* Chips & bars */
-.chip.completed { background: rgba(46, 204, 113, .18); border: 1px solid rgba(46,204,113,.5); }
-.chip.pending   { background: rgba(241, 196, 15, .15); border: 1px solid rgba(241,196,15,.45); }
+.chip {
+  background: var(--chip-bg);
+  color: var(--chip-ink);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 600;
+  border: 1px solid rgba(16,31,46,0.08);
+}
+.chip.completed { background: rgba(48,208,122,0.18); border-color: rgba(48,208,122,0.35); }
+.chip.pending   { background: rgba(255,210,71,0.18); border-color: rgba(255,210,71,0.35); }
+.chip.twitter { background: rgba(32,185,255,0.16); }
+.chip.telegram { background: rgba(139,223,255,0.16); }
+.chip.discord { background: rgba(138,107,255,0.16); }
 
 /* Inline proof input */
 .inline-proof .input {
-  background: rgba(255,255,255,0.06);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.95);
+  color: var(--ink);
+  border: 1px solid rgba(16,31,46,0.15);
   border-radius: 10px;
   padding: 10px 12px;
   outline: none;
 }
+.inline-proof .input::placeholder { color: #6b7f93; }
 .inline-proof .input:focus {
   border-color: rgba(135, 206, 250, 0.9);
   box-shadow: 0 0 0 2px rgba(135, 206, 250, 0.25);

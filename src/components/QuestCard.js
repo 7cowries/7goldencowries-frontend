@@ -38,21 +38,25 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
           </span>
         </div>
       </div>
+      <p className="quest-title" style={{ color: 'var(--ink)' }}>
         {q.url ? (
-          <p className="quest-title one-link">
-            <a
-              href={q.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {q.title || q.id}
-            </a>
-          </p>
+          <a
+            href={q.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {q.title || q.id}
+          </a>
         ) : (
-          <p className="quest-title">{q.title || q.id}</p>
+          q.title || q.id
         )}
-        {/* Title is the only link; no duplicate URL preview */}
+      </p>
+      {q.url ? (
+        <div className="muted mono" style={{ wordBreak: 'break-all', color: 'var(--ink-soft)' }}>
+          {q.url}
+        </div>
+      ) : null}
 
       {/* Inline proof input (only when required and not completed) */}
       {!alreadyClaimed && needsProof && (

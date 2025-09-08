@@ -1,121 +1,66 @@
 :root {
-  --bg-0: #07111f;          /* deep sea dusk */
-  --bg-1: #0d1a2b;
-  --card: rgba(18, 28, 45, 0.6);
-  --card-strong: rgba(18, 28, 45, 0.75);
-  --glass-border: rgba(255,255,255,0.16);
+  /* legacy fallback (kept) */
+  --glass-bg: rgba(8,12,18,0.66);
+  --veil: rgba(0,0,0,0.55);
 
-  /* Neon ocean spectrum */
-  --cyan: #6fe7ff;
-  --aqua: #49f7dc;
-  --violet: #9d7dff;
-  --pink: #ff7ad9;
-  --sun: #ffd562;
+  /* ocean light palette */
+  --bg: #0e1c2b;
+  --bg-2: #102338;
+  --panel: rgba(255,255,255,0.72);
+  --panel-strong: rgba(255,255,255,0.82);
+  --blur: 12px;
 
-  --text: #e9f2ff;
-  --muted: #a8c1d9;
+  --ink: #0a1b2a;
+  --ink-soft: #30485f;
+  --ink-inv: #0f1b27; /* dark text over light chips */
 
-  /* Gradients */
-  --grad-hero: linear-gradient(135deg, rgba(105,205,255,.24), rgba(255,122,217,.16) 50%, rgba(255,213,98,.16));
-  --grad-chip: linear-gradient(135deg, rgba(105,205,255,.25), rgba(157,125,255,.25));
-  --grad-btn: linear-gradient(180deg, #6fe7ff, #49f7dc);
-  --grad-btn-glow: 0 10px 35px rgba(73,247,220,.35);
+  --primary: #2aa7ff;   /* azure */
+  --primary-2: #6be2ff; /* aqua */
+  --accent: #7b61ff;    /* violet */
+  --accent-2: #ff9b6b;  /* coral */
+  --success: #30d07a;   /* green */
+  --warning: #ffd166;   /* gold */
+  --danger: #ff5c7a;    /* pink/red */
 
-  /* Shadows */
-  --shadow-1: 0 10px 30px rgba(3, 8, 20, .35);
-  --shadow-2: 0 18px 60px rgba(3, 8, 20, .55);
+  --chip-bg: rgba(255,255,255,0.7);
+  --chip-ink: #0f1b27;
 
-  /* Rounding */
-  --r-lg: 18px;
-  --r-xl: 24px;
+  --bar-bg: rgba(255,255,255,0.45);
+  --bar-fill: linear-gradient(90deg, #2aa7ff, #7b61ff);
 
-  /* Motion */
-  --motion-fast: 160ms cubic-bezier(.2,.8,.2,1);
-  --motion-med: 280ms cubic-bezier(.2,.8,.2,1);
+  --card-border: rgba(255,255,255,0.35);
+  --shadow: 0 22px 55px -18px rgba(10, 17, 30, 0.35);
+
+  --link: #1478ff;
+  --link-hover: #0e5dd1;
 }
 
-/* Lighten overall background; reduce black “veil” feel */
-body {
-  background:
-    radial-gradient(1000px 400px at 10% -10%, rgba(105,205,255,.12), transparent 60%),
-    radial-gradient(1000px 400px at 120% 110%, rgba(255,213,98,.10), transparent 60%),
-    var(--bg-0);
-  color: var(--text);
+/* Bright, colorful variant */
+.theme-ocean-light {
+  --bg: #0f2236;
+  --bg-2: #13304a;
+  --panel: rgba(255,255,255,0.85);
+  --panel-strong: rgba(255,255,255,0.92);
+  --blur: 14px;
+
+  --veil: rgba(7,16,28,0.28);          /* much lighter veil */
+  --glass-bg: rgba(255,255,255,0.78);  /* bright cards */
+  --card-border: rgba(255,255,255,0.65);
+  --bar-bg: rgba(16,31,46,0.12);
+
+  --primary: #20b9ff;
+  --primary-2: #8ff0ff;
+  --accent: #8a6bff;
+  --accent-2: #ffaf7b;
+  --success: #20c07a;
+  --warning: #ffd247;
+  --danger: #ff6b8a;
+
+  --chip-bg: rgba(255,255,255,0.92);
+  --chip-ink: #0d1f31;
 }
 
-/* Glass cards (lighter than before) */
-.glass, .card, .quest-card {
-  background: var(--card);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-1);
-  backdrop-filter: blur(8px);
+/* Prefer light when user prefers it */
+@media (prefers-color-scheme: light) {
+  :root { color-scheme: light; }
 }
-
-/* Stronger panels (hero strips, modals) */
-.glass-strong { background: var(--card-strong); box-shadow: var(--shadow-2); }
-
-/* Buttons */
-.btn, button {
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: #0f2239;
-  color: var(--text);
-  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
-}
-.btn.primary {
-  background: var(--grad-btn);
-  color: #0a1827;
-  box-shadow: var(--grad-btn-glow);
-}
-.btn.primary:hover { transform: translateY(-2px) scale(1.01); }
-
-/* Chips & badges */
-.chip {
-  background: var(--grad-chip);
-  border: 1px solid rgba(255,255,255,.2);
-  padding: 6px 10px;
-  border-radius: 999px;
-  color: var(--text);
-}
-
-/* Links */
-a { color: var(--cyan); }
-a:hover { color: var(--pink); }
-
-/* Inline inputs used on quest proofs */
-.inline-proof .input {
-  background: rgba(255,255,255,0.08);
-  color: var(--text);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-.inline-proof .input:focus {
-  border-color: var(--aqua);
-  box-shadow: 0 0 0 2px rgba(73,247,220,.28);
-}
-
-/* Progress (XP, leaderboard bars) */
-.progress, .xp-bar, .bar-outer {
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 999px;
-}
-.progress-fill, .xp-fill, .bar-inner {
-  background: linear-gradient(90deg, var(--aqua), var(--violet));
-  border-radius: 999px;
-}
-
-/* Softer veil atop videos */
-.veil { background: rgba(4, 10, 20, .45) !important; }
-
-/* Fade-in animation */
-.fade-in { animation: fi .36s var(--motion-med) both; }
-@keyframes fi { from { opacity:0; transform: translateY(8px) } to { opacity:1; transform: translateY(0) } }
-.quest-title { font-size: 1.1rem; font-weight: 700; letter-spacing:.2px; }
-
-/* Podium glows */
-.podium-1 { box-shadow: 0 0 0 2px rgba(255,213,98,.25), 0 10px 40px rgba(255,213,98,.25); }
-.podium-2 { box-shadow: 0 0 0 2px rgba(157,125,255,.25), 0 10px 40px rgba(157,125,255,.25); }
-.podium-3 { box-shadow: 0 0 0 2px rgba(73,247,220,.25), 0 10px 40px rgba(73,247,220,.25); }
