@@ -1,193 +1,95 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { getQuests, claimQuest, getMe } from '../utils/api';
-import Toast from '../components/Toast';
-import ProfileWidget from '../components/ProfileWidget';
-import QuestCard from '../components/QuestCard';
-import Page from '../components/Page';
-import './Quests.css';
-import '../App.css';
-import { burstConfetti } from '../utils/confetti';
+import React, { useEffect, useState } from "react";
+import { getQuests, claimQuest, submitProof, getMe } from "../utils/api";
+import Section from "../components/ui/Section";
+import Card from "../components/ui/Card";
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [xp, setXp] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [claiming, setClaiming] = useState({});
-  const [toast, setToast] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-  const [me, setMe] = useState(null);
-  const walletRef = useRef('');
-  const mountedRef = useRef(true);
+  const [proof, setProof] = useState({});
+  const [submitted, setSubmitted] = useState({});
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
+    getQuests().then((res) => setQuests(res?.quests || [])).catch(() => {});
   }, []);
 
-  async function loadQuests(signal) {
-    const data = await getQuests({ signal });
-    if (!mountedRef.current) return;
-    setQuests(data?.quests ?? []);
-    setXp(data?.xp ?? 0);
-  }
-
-  async function loadMe() {
+  async function handleSubmit(q) {
     try {
-      const data = await getMe();
-      if (mountedRef.current) setMe(data);
-    } catch {}
-  }
-
-  async function sync() {
-    setLoading(true);
-    const controller = new AbortController();
-    try {
-      await loadQuests(controller.signal);
-      if (mountedRef.current) setError(null);
+      await submitProof(q.id, { url: proof[q.id] });
+      setSubmitted({ ...submitted, [q.id]: true });
     } catch (e) {
-      if (!mountedRef.current) return;
-      setError(e?.message || 'Failed to load quests. Please try again.');
-      console.error('[Quests] load error:', e);
-    } finally {
-      if (mountedRef.current) setLoading(false);
+      console.error(e);
     }
   }
 
-  useEffect(() => {
-    walletRef.current = localStorage.getItem('wallet') || '';
-    sync();
-    loadMe();
-    const onWalletChanged = (e) => {
-      walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
-      loadMe();
-      sync();
-    };
-    const onStorage = (e) => {
-      if (e.key === 'wallet') {
-        onWalletChanged();
-      }
-    };
-    window.addEventListener('wallet:changed', onWalletChanged);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener('wallet:changed', onWalletChanged);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
+  async function claim(q) {
+    try {
+      const res = await claimQuest(q.id);
+      setToast(`+${res?.xpDelta ?? res?.xp ?? 0} XP`);
+      await Promise.all([getMe(), getQuests()]).then(([, qs]) => {
+        setQuests(qs?.quests || []);
+      });
+      setTimeout(() => setToast(""), 3000);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
-  useEffect(() => {
-    const reload = () => {
-      loadMe();
-      sync();
-    };
-    window.addEventListener('profile-updated', reload);
-    window.addEventListener('focus', reload);
-    return () => {
-      window.removeEventListener('profile-updated', reload);
-      window.removeEventListener('focus', reload);
-    };
-  }, []);
-
-    const handleClaim = async (id) => {
-      walletRef.current = localStorage.getItem('wallet') || '';
-      if (claiming[id]) return;
-      setClaiming((c) => ({ ...c, [id]: true }));
-      try {
-        const res = await claimQuest(id);
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('claim_clicked', id, res);
-        }
-        burstConfetti();
-        const delta = res?.xpDelta ?? res?.xp;
-        setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
-        await Promise.all([getMe(), getQuests()]).then(([meData, questsData]) => {
-          if (mountedRef.current) {
-            setMe(meData);
-            setQuests(questsData?.quests ?? []);
-            setXp(questsData?.xp ?? 0);
-          }
-        });
-        window.dispatchEvent(new Event('profile-updated'));
-      } catch (e) {
-        setToast(e.message || 'Failed to claim quest');
-      } finally {
-        setClaiming((c) => ({ ...c, [id]: false }));
-        setTimeout(() => setToast(''), 3000);
-      }
-    };
-
-  const shownQuests =
-    activeTab === 'all'
-      ? quests.filter((q) => q.active === 1)
-      : quests.filter(
-          (q) =>
-            (q.category || 'All').toLowerCase() === activeTab && q.active === 1
-        );
-
-
-  if (loading) return <div className="loading">Loading quests…</div>;
-  if (!loading && error)
-    return (
-      <div className="error">
-        {error} <button onClick={sync}>Retry</button>
-      </div>
-    );
+  function placeholderFor(q) {
+    if (["tweet", "retweet", "quote"].includes(q.requirement)) {
+      return "Paste tweet/retweet/quote link";
+    }
+    return "Paste your proof link";
+  }
 
   return (
-    <Page>
-      <div className="q-container">
-        <div className="glass profile-strip">
-          <ProfileWidget />
-        </div>
-
-        <div className="glass-strong q-header">
-          <div className="q-title">
-            <span className="emoji">📜</span>
-            <h1><span className="yolo-gradient">Quests</span></h1>
-          </div>
-          <p className="subtitle">Complete tasks. Earn XP. Level up.</p>
-          <div className="tabs">
-            {['all','daily','social','partner','insider','onchain'].map((type) => (
-              <button
-                key={type}
-                className={`tab ${activeTab === type ? 'active' : ''}`}
-                onClick={() => setActiveTab(type)}
-              >
-                {type === 'all' && 'All Quests'}
-                {type === 'daily' && '📅 Daily'}
-                {type === 'social' && '🌐 Social'}
-                {type === 'partner' && '🤝 Partner'}
-                {type === 'insider' && '🧠 Insider'}
-                {type === 'onchain' && '🧾 Onchain'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="q-list">
-          {shownQuests.length === 0 ? (
-            <div className="glass quest-card">
-              <p className="quest-title">No quests yet for this category.</p>
+    <Section title="Quests" subtitle="Complete tasks. Earn XP. Level up.">
+      <div className="grid-2">
+        {quests.map((q) => (
+          <Card key={q.id}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+              {q.url ? (
+                <a
+                  href={q.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link-underline"
+                  style={{ fontWeight: 700, fontSize: 18 }}
+                >
+                  {q.title || q.id}
+                </a>
+              ) : (
+                <span style={{ fontWeight: 700, fontSize: 18 }}>{q.title || q.id}</span>
+              )}
+              {q.category && <span className="pill">{q.category}</span>}
             </div>
-          ) : (
-              shownQuests.map((q) => (
-                <QuestCard
-                  key={q.id}
-                  quest={q}
-                  me={me}
-                  onClaim={handleClaim}
-                  claiming={!!claiming[q.id]}
-                  setToast={setToast}
-                />
-              ))
-            )}
-        </div>
 
-        <Toast message={toast} />
+            <div className="muted" style={{ marginTop: 6 }}>{q.subtitle || q.url}</div>
+
+            {/* proof input */}
+            {q.requirement && q.requirement !== "none" && !q.claimed && !submitted[q.id] && (
+              <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                <input
+                  placeholder={placeholderFor(q)}
+                  value={proof[q.id] || ""}
+                  onChange={(e) => setProof({ ...proof, [q.id]: e.target.value })}
+                />
+                <button className="btn success" onClick={() => handleSubmit(q)}>Submit</button>
+              </div>
+            )}
+
+            {/* claim button */}
+            {!q.claimed && (q.requirement === "none" || submitted[q.id]) && (
+              <button className="btn glow" style={{ marginTop: 12 }} onClick={() => claim(q)}>
+                Claim
+              </button>
+            )}
+
+            {q.claimed && <div className="chip success" style={{ marginTop: 12 }}>✔ Completed · +{q.xp} XP</div>}
+          </Card>
+        ))}
       </div>
-    </Page>
+      {toast && <div className="chip" style={{ marginTop: 16 }}>{toast}</div>}
+    </Section>
   );
 }
