@@ -179,8 +179,9 @@ body {
   to   { transform: translateY(-120vh) scale(.8); opacity: 0; }
 }
 /* Slightly stronger veil for readability */
+/* Darker overlay for improved video contrast */
 .veil {
-  background: linear-gradient(180deg, rgba(3,10,24,0.55), rgba(3,10,24,0.35));
+  background: rgba(0,0,0,0.54);
   backdrop-filter: blur(2px) brightness(0.95);
 }
 
@@ -201,8 +202,7 @@ body {
 /* Softer video veil on content pages */
 .page .bg-video + .veil,
 .veil {
-  background: radial-gradient(1200px 400px at 50% 0%, rgba(7,12,24,0.55), transparent 60%),
-              linear-gradient(180deg, rgba(5,8,16,0.75), rgba(5,8,16,0.85));
+  background: rgba(0,0,0,0.54);
 }
 
 /* Quest card tidy */
