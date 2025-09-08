@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getQuests, claimQuest, getMe } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
-import SubmitProofModal from '../components/SubmitProofModal';
 import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
@@ -16,7 +15,6 @@ export default function Quests() {
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [me, setMe] = useState(null);
-  const [proofQuest, setProofQuest] = useState(null);
   const walletRef = useRef('');
   const mountedRef = useRef(true);
 
@@ -56,6 +54,7 @@ export default function Quests() {
       walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       sync();
     };
+    const onProfile = () => sync();
     const onStorage = (e) => {
       if (e.key === 'wallet') {
         onWalletChanged();
@@ -63,11 +62,11 @@ export default function Quests() {
     };
     window.addEventListener('wallet:changed', onWalletChanged);
     window.addEventListener('storage', onStorage);
-    window.addEventListener('profile-updated', sync);
+    window.addEventListener('profile-updated', onProfile);
     return () => {
       window.removeEventListener('wallet:changed', onWalletChanged);
       window.removeEventListener('storage', onStorage);
-      window.removeEventListener('profile-updated', sync);
+      window.removeEventListener('profile-updated', onProfile);
     };
   }, []);
 
@@ -122,39 +121,6 @@ export default function Quests() {
             (q.category || 'All').toLowerCase() === activeTab && q.active === 1
         );
 
-  const handleProof = (q) => {
-    walletRef.current = localStorage.getItem('wallet') || '';
-    setProofQuest(q);
-  };
-
-  const onProofSubmitted = async (res) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('proof_submitted', proofQuest?.id, res?.status);
-    }
-    setToast('Proof submitted');
-    setQuests((qs) =>
-      qs.map((qq) =>
-        qq.id === proofQuest?.id
-          ? { ...qq, proofStatus: res?.status || 'pending' }
-          : qq
-      )
-    );
-    try {
-      const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
-      if (mountedRef.current) {
-        setMe(meData);
-        setQuests(questsData?.quests ?? []);
-        setXp(questsData?.xp ?? 0);
-      }
-    } catch {}
-    setTimeout(() => setToast(''), 3000);
-    window.dispatchEvent(new Event('profile-updated'));
-  };
-
-  const onProofError = (msg) => {
-    setToast(msg || 'Failed to submit proof');
-    setTimeout(() => setToast(''), 3000);
-  };
 
   if (loading) return <div className="loading">Loading quests…</div>;
   if (!loading && error)
@@ -212,22 +178,13 @@ export default function Quests() {
                   quest={q}
                   me={me}
                   onClaim={handleClaim}
-                  onProof={handleProof}
                   claiming={!!claiming[q.id]}
                 />
-                ))
+              ))
             )}
         </div>
 
         <Toast message={toast} />
-        {proofQuest && (
-          <SubmitProofModal
-            quest={proofQuest}
-            onClose={() => setProofQuest(null)}
-            onSuccess={onProofSubmitted}
-            onError={onProofError}
-          />
-        )}
       </div>
     </div>
   );
