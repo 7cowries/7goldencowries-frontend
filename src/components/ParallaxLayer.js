@@ -5,9 +5,10 @@ export default function ParallaxLayer({ strength = 10, children, className = "" 
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || typeof window === 'undefined') return;
     const onMove = (e) => {
-      const { innerWidth: w, innerHeight: h } = window;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       const rx = (e.clientX / w - 0.5) * strength;
       const ry = (e.clientY / h - 0.5) * strength;
       el.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
