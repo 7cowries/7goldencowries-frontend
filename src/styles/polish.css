@@ -178,3 +178,17 @@ body {
   from { transform: translateY(20px) scale(1); opacity: .28; }
   to   { transform: translateY(-120vh) scale(.8); opacity: 0; }
 }
+
+/* Inline proof input */
+.inline-proof .input {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+.inline-proof .input:focus {
+  border-color: rgba(135, 206, 250, 0.9);
+  box-shadow: 0 0 0 2px rgba(135, 206, 250, 0.25);
+}

@@ -1,3 +1,4 @@
+import { ensureWalletBound } from './walletBind';
 import { bindWallet, getMe, getQuests } from './api';
 
 export function setupWalletSync() {
@@ -7,6 +8,7 @@ export function setupWalletSync() {
     const w = ls || tc || null;
     if (w) {
       try {
+        await ensureWalletBound(w);
         await bindWallet(w);
       } catch (e) {
         console.error('[init] bind failed', e);
@@ -22,5 +24,7 @@ export function setupWalletSync() {
   sync();
   if (typeof window !== 'undefined') {
     window.addEventListener('wallet:changed', sync);
+    window.addEventListener('focus', sync);
+    window.addEventListener('profile-updated', sync);
   }
 }

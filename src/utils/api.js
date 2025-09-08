@@ -195,6 +195,14 @@ export function submitProof(id, body, opts = {}) {
   });
 }
 
+// UI-only helper for showing projected XP; backend still awards the truth.
+export function tierMultiplier(tier) {
+  const t = String(tier || '').toLowerCase();
+  if (t.includes('tier 3')) return 1.25;
+  if (t.includes('tier 2')) return 1.10;
+  return 1.0; // Free or unknown
+}
+
 export function bindWallet(wallet, opts = {}) {
   return postJSON("/api/session/bind-wallet", { wallet }, opts).then((res) => {
     clearUserCache();

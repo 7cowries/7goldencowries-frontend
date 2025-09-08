@@ -44,6 +44,19 @@ const Referral = () => {
       );
   }, [referralCode]);
 
+  useEffect(() => {
+    const rerun = () => {
+      if (referralCode) {
+        fetch(`${API}/referrals/${referralCode}`)
+          .then(res => res.json())
+          .then(data => setReferrals(data.entries || data.referrals || []))
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('profile-updated', rerun);
+    return () => window.removeEventListener('profile-updated', rerun);
+  }, [referralCode]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
     setCopied(true);

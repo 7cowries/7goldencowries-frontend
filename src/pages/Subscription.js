@@ -8,6 +8,7 @@ import {
 } from "@tonconnect/ui-react";
 import XPModal from "../components/XPModal";
 import "../App.css";
+import { tierMultiplier } from '../utils/api';
 
 const tiersUSD = [
   {
@@ -57,6 +58,7 @@ const Subscription = () => {
 
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
+  const mult = tierMultiplier(currentTier);
 
   useEffect(() => {
     // Fetch TON price
@@ -157,6 +159,8 @@ const Subscription = () => {
             </p>
           </div>
         </div>
+
+        <p className="muted">Your XP boost: <strong>{(mult * 100 - 100).toFixed(0)}%</strong></p>
 
         {/* Info panel */}
         <div className="subscription-info card">

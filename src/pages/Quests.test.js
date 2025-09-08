@@ -45,14 +45,13 @@ describe('Quests page claiming', () => {
 
     await userEvent.click(claimBtn);
 
-    await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(getQuests).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getMe).toHaveBeenCalled());
+    await waitFor(() => expect(getQuests).toHaveBeenCalled());
 
-    expect(await screen.findByText('Claimed')).toBeDisabled();
-    expect(screen.getByText(/\+50 XP/)).toBeInTheDocument();
+    expect(await screen.findByText('Quest claimed! +50 XP')).toBeInTheDocument();
   });
 
-  test('shows Go button when quest has a URL', async () => {
+  test('quest title links to URL when provided', async () => {
     getQuests.mockResolvedValueOnce({
       quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', requirement: 'none' }],
       completed: [],
@@ -68,19 +67,19 @@ describe('Quests page claiming', () => {
 
     render(<Quests />);
 
-    const goBtn = await screen.findByText('Go');
-    expect(goBtn).toHaveAttribute('href', 'https://example.com');
+    const link = await screen.findByRole('link', { name: '1' });
+    expect(link).toHaveAttribute('href', 'https://example.com');
   });
 
-  test('submitting proof enables claim for tweet link quest', async () => {
+  test('submitting proof enables claim for tweet quest', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, requirement: 'tweet_link' }],
+      quests: [{ id: 1, xp: 10, active: 1, requirement: 'tweet' }],
       completed: [],
       xp: 0,
     });
     getQuests.mockResolvedValueOnce({
       quests: [
-        { id: 1, xp: 10, active: 1, requirement: 'tweet_link', proofStatus: 'approved' },
+        { id: 1, xp: 10, active: 1, requirement: 'tweet', proofStatus: 'approved' },
       ],
       completed: [],
       xp: 0,
@@ -95,13 +94,10 @@ describe('Quests page claiming', () => {
 
     render(<Quests />);
 
-    const proofBtn = await screen.findByText('Submit proof');
-    await userEvent.click(proofBtn);
-
-    const input = screen.getByPlaceholderText('Paste tweet/retweet/quote link');
+    const input = await screen.findByPlaceholderText('Paste tweet/retweet/quote link');
     await userEvent.type(input, 'https://twitter.com/user/status/1');
 
-    submitProof.mockResolvedValueOnce({ ok: true, proof: { status: 'approved' } });
+    submitProof.mockResolvedValueOnce({ status: 'approved' });
     const submitBtn = screen.getByText('Submit');
     await userEvent.click(submitBtn);
 

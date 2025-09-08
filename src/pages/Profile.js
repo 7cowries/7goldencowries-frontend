@@ -125,13 +125,6 @@ export default function Profile() {
   const [toast, setToast] = useState("");
   const [hasProfile, setHasProfile] = useState(false);
 
-  const questHistory = useMemo(() => {
-    const list = me.questHistory || [];
-    return [...list].sort(
-      (a, b) => new Date(b.completed_at) - new Date(a.completed_at)
-    );
-  }, [me.questHistory]);
-
   // Disable connect buttons while starting OAuth flows
   const [connecting, setConnecting] = useState({
     twitter: false,
@@ -263,6 +256,16 @@ export default function Profile() {
     const onVis = () => document.visibilityState === "visible" && loadMe();
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
+  }, [loadMe]);
+
+  useEffect(() => {
+    const onFocus = () => loadMe();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('profile-updated', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('profile-updated', onFocus);
+    };
   }, [loadMe]);
 
   // Toast + brief polling when returning with ?connected=
@@ -421,13 +424,13 @@ export default function Profile() {
                 <div
                   className="xp-fill"
                   style={{
-                    width: `${((level.progress ?? 0) * 100).toFixed(1)}%`,
+                    width: `${((me.levelProgress || 0) * 100).toFixed(1)}%`,
                     transition: "width 0.8s ease-in-out",
                   }}
                 />
               </div>
               <p className="progress-label">
-                {((level.progress ?? 0) * 100).toFixed(1)}% to next virtue
+                {((me.levelProgress || 0) * 100).toFixed(1)}% — XP {me.xp} / {me.nextXP}
               </p>
 
               <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadMe()}>
@@ -575,21 +578,29 @@ export default function Profile() {
           <section className="card glass" style={{ marginTop: 16 }}>
             <h3>📜 Quest History</h3>
             {loading && <p>Loading…</p>}
-            {!loading && questHistory.length === 0 ? (
+            {!loading && (!me?.questHistory || me.questHistory.length === 0) ? (
               <p>No quests completed yet.</p>
             ) : (
               <ul>
-                {questHistory.map((q, i) => (
-                  <li key={q.id || i}>
-                    <strong>{q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ""}`}</strong> — +{q.xp ?? q.delta ?? 0} XP
-                    <br />
-                    <span className="timestamp">
-                      {q.completed_at
-                        ? new Date(q.completed_at).toLocaleDateString()
-                        : "—"}
-                    </span>
-                  </li>
-                ))}
+                {(me.questHistory || [])
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      new Date(b.completed_at || b.created_at || b.timestamp) -
+                      new Date(a.completed_at || a.created_at || a.timestamp)
+                  )
+                  .map((q, i) => {
+                    const when = q.completed_at || q.created_at || q.timestamp;
+                    const ts = when ? new Date(when) : null;
+                    return (
+                      <li key={q.id || i}>
+                        {q.title || q.reason || `Quest #${q.quest_id ?? q.id ?? ''}`} — {q.xp ?? q.delta ?? 0} XP
+                        {ts ? (
+                          <span className="timestamp"> • {ts.toLocaleDateString()}</span>
+                        ) : null}
+                      </li>
+                    );
+                  })}
               </ul>
             )}
           </section>
