@@ -76,7 +76,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
               setSubmitting(true);
               try {
                 const res = await submitProof(q.id, { url });
-                if (res?.status) q.proofStatus = res.status; // optimistic
+                q.proofStatus = res?.status || 'pending'; // optimistic
                 setToast?.('Proof submitted');
                 setTimeout(() => setToast?.(''), 3000);
                 window.dispatchEvent(new Event('profile-updated'));
