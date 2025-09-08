@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react'; 
+import React, { useEffect, useState } from 'react';
 import { useTonWallet } from '@tonconnect/ui-react';
 import './Referral.css';
 import '../App.css'; // Import layout classes
+import { getMe } from '../utils/api';
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -9,9 +10,10 @@ const Referral = () => {
   const wallet = useTonWallet();
   const [copied, setCopied] = useState(false);
   const [referrals, setReferrals] = useState([]);
+  const [referralCode, setReferralCode] = useState('');
 
-  const referralLink = wallet?.account?.address
-    ? `https://7goldencowries.com/ref/${wallet.account.address}`
+  const referralLink = referralCode
+    ? `${window.location.origin}/?ref=${referralCode}`
     : '';
 
   // 🌊 Handle /ref/:code URL
@@ -24,19 +26,27 @@ const Referral = () => {
     }
   }, []);
 
-  // 🧠 Fetch referrals
+  // Load profile to obtain referral code (session-aware)
   useEffect(() => {
-    if (!wallet?.account?.address) return;
-
-    fetch(`${API}/referrals/${wallet.account.address}`)
-      .then(res => res.json())
-      .then(data => setReferrals(data.referrals || []))
-      .catch(err =>
-        console.error("Referral fetch error:", err?.response?.data || err.message || err)
-      );
+    getMe()
+      .then((me) => setReferralCode(me?.referral_code || me?.referralCode || ''))
+      .catch((err) => console.error('getMe error:', err));
   }, [wallet]);
 
+  // 🧠 Fetch referrals for this code
+  useEffect(() => {
+    if (!referralCode) return;
+
+    fetch(`${API}/referrals/${referralCode}`)
+      .then((res) => res.json())
+      .then((data) => setReferrals(data.referrals || []))
+      .catch((err) =>
+        console.error('Referral fetch error:', err?.response?.data || err.message || err)
+      );
+  }, [referralCode]);
+
   const handleCopy = () => {
+    if (!referralLink) return;
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -48,7 +58,7 @@ const Referral = () => {
         <h1 className="referral-title">🧬 Invite the Shellborn</h1>
         <p className="referral-sub">Earn XP as your friends explore the Seven Isles of Tides.</p>
 
-        {wallet?.account?.address ? (
+        {referralCode ? (
           <>
             <div className="referral-box">
               <p><strong>Your Referral Link:</strong></p>
