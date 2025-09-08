@@ -54,24 +54,22 @@ const Leaderboard = () => {
               <div className="rank-badge">#{user.rank}</div>
               <div className="user-info">
                 <img
-                  src={`/images/badges/level-${user.name.toLowerCase().replace(/\s+/g, '-')}.png`}
-                  alt={user.name}
+                  src={`/images/badges/level-${(user.levelName || 'unranked').toLowerCase().replace(/\s+/g, '-')}.png`}
+                  alt={user.levelName || 'Unranked'}
                   onError={(e) => (e.target.src = '/images/badges/unranked.png')}
                   className="user-badge"
                 />
                 <div className="user-meta">
                   <p>
                     <strong>{shorten(user.wallet)}</strong>
-                    {user.twitterHandle && (
-                      <span> | 🐦 @{user.twitterHandle}</span>
-                    )}
+                    {user.twitterHandle ? <span> | 🐦 @{user.twitterHandle}</span> : null}
                   </p>
-                  <p>{user.tier} • {user.name}</p>
+                  <p>{user.tier} • {user.levelName}</p>
                   <div className="progress-container">
                     <div className="progress-bar">
                       <div className="progress-fill" style={{ width: `${((user.progress || 0) * 100).toFixed(1)}%` }} />
                     </div>
-                    <small>{user.xp} XP — {lore[user.name]}</small>
+                    <small>{user.xp} XP — {lore[user.levelName] || ''}</small>
                   </div>
                 </div>
               </div>
