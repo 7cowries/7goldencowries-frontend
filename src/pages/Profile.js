@@ -6,6 +6,7 @@ import "../App.css";
 import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
+import { burstConfetti } from "../utils/confetti";
 import ConnectButtons from "../components/ConnectButtons";
 
 // Telegram embed constants
@@ -287,6 +288,7 @@ export default function Profile() {
       msg += gm === "true" ? " — server member 🎉" : " — please join our server";
     }
     setToast(msg);
+    burstConfetti();
 
     // Clean URL
     params.delete("connected");
@@ -518,6 +520,7 @@ export default function Profile() {
                       onClick={() => {
                         navigator.clipboard?.writeText(discord);
                         setToast('Discord ID copied ✅');
+                        burstConfetti({count:80,duration:1800});
                         setTimeout(() => setToast(''), 1500);
                       }}
                     >
@@ -603,6 +606,7 @@ export default function Profile() {
                     const link = `${window.location.origin}/?ref=${referralCode}`;
                     navigator.clipboard?.writeText(link);
                     setToast('Referral link copied ✅');
+                    burstConfetti({count:80,duration:1800});
                     setTimeout(() => setToast(''), 1500);
                   }}
                 >
