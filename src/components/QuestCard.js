@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { submitProof, tierMultiplier } from '../utils/api';
 
-export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
+export default function QuestCard({ quest, onClaim, claiming, me }) {
   const q = quest;
   const req = String(q.requirement || '').toLowerCase();
   const needsProof = req && req !== 'none';
