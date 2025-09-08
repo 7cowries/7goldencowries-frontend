@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { burstConfetti } from '../utils/confetti';
 import { getMe } from '../utils/api';
 import './Referral.css';
 import '../App.css'; // Import layout classes
@@ -60,6 +61,7 @@ const Referral = () => {
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
+    burstConfetti({count:80,duration:1800});
     setTimeout(() => setCopied(false), 2000);
   };
 

@@ -1,10 +1,17 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getEffectsOff, setEffectsOff } from "../store/effects";
 import { Link, NavLink } from "react-router-dom";
 import "./LeftNav.css";
 import logo from "../assets/logo.svg";
 import WalletConnect from "./WalletConnect";
 
 export default function LeftNav() {
+  const [effectsOff, setOff] = useState(getEffectsOff());
+  useEffect(() => {
+    const on = () => setOff(getEffectsOff());
+    window.addEventListener("effects:toggled", on);
+    return () => window.removeEventListener("effects:toggled", on);
+  }, []);
   return (
     <aside className="leftnav" aria-label="Primary">
       <Link to="/" className="brand" aria-label="7GoldenCowries — Home">
@@ -24,6 +31,7 @@ export default function LeftNav() {
 
       <div className="nav-wallet">
         <WalletConnect />
+        <button className="chip" onClick={() => setEffectsOff(!effectsOff)} title={effectsOff ? "Enable FX" : "Disable FX"}>{effectsOff ? "✨ Enable FX" : "🪄 Reduce FX"}</button>
       </div>
     </aside>
   );

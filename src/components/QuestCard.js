@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import useTilt from '../fx/useTilt';
 import { submitProof, tierMultiplier } from '../utils/api';
 
 export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
@@ -10,9 +11,11 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
   const [submitting, setSubmitting] = useState(false);
   const mult = tierMultiplier(me?.tier || me?.subscriptionTier);
   const projected = Math.round((q.xp || 0) * mult);
+  const cardRef = useRef(null);
+  useTilt(cardRef, 8);
 
   return (
-    <div className="glass quest-card">
+    <div ref={cardRef} className="glass quest-card fade-in">
       <div className="q-row">
         {q.type ? (
           <span className={`chip ${q.type}`}>

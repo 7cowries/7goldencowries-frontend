@@ -5,6 +5,8 @@ import { TonConnectUIProvider } from "@tonconnect/ui-react";
 
 import LeftNav from "./components/LeftNav";
 import ErrorBoundary from "./components/ErrorBoundary";
+import FXCanvas from "./fx/FXCanvas";
+import { getEffectsOff } from "./store/effects";
 import "./App.css";
 import "./styles/polish.css";
 
@@ -55,6 +57,12 @@ function AmbientLayers() {
    App Component
 ----------------------------- */
 const App = () => {
+  const [effectsOff, setEffectsOffState] = React.useState(getEffectsOff());
+  React.useEffect(() => {
+    const on = () => setEffectsOffState(getEffectsOff());
+    window.addEventListener("effects:toggled", on);
+    return () => window.removeEventListener("effects:toggled", on);
+  }, []);
   useEffect(() => {
     // 1) Attach click sound globally
     attachGlobalClickSFX();
@@ -88,6 +96,7 @@ const App = () => {
     <TonConnectUIProvider manifestUrl={manifestUrl}>
       <ErrorBoundary>
         <Router>
+          {!effectsOff && <FXCanvas paused={false} />}
           <AmbientLayers />
           <div className="app-layout">
             <LeftNav />
