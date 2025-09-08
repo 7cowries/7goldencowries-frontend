@@ -1,6 +1,10 @@
 export function burstConfetti({ count = 120, duration = 1600 } = {}) {
   const end = Date.now() + duration;
+  let emitted = 0;
+
   const tick = () => {
+    if (emitted >= Math.min(count, 200) || Date.now() >= end) return;
+
     const p = document.createElement('div');
     p.className = 'confetti-piece';
     const size = 6 + Math.random() * 8;
@@ -16,8 +20,13 @@ export function burstConfetti({ count = 120, duration = 1600 } = {}) {
       p.style.opacity = '0';
     });
     setTimeout(() => p.remove(), duration + 200);
-    if (Date.now() < end) requestAnimationFrame(tick);
+
+    emitted++;
+    if (emitted < Math.min(count, 200) && Date.now() < end) {
+      requestAnimationFrame(tick);
+    }
   };
-  for (let i = 0; i < Math.min(count, 200); i++) tick();
+
+  tick();
 }
 
