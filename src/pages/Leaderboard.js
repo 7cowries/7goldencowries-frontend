@@ -76,7 +76,15 @@ export default function Leaderboard() {
             <div className="big-wallet">
               {abbreviateWallet(u.wallet)}
               {u.twitterHandle ? (
-                <span className="muted" style={{ marginLeft: 6 }}>@{u.twitterHandle}</span>
+                <a
+                  className="muted"
+                  style={{ marginLeft: 6 }}
+                  href={`https://x.com/${u.twitterHandle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  @{u.twitterHandle}
+                </a>
               ) : null}
             </div>
             <div className="chips">
@@ -103,7 +111,15 @@ export default function Leaderboard() {
                 <div className="wallet mono">
                   {abbreviateWallet(u.wallet)}
                   {u.twitterHandle ? (
-                    <span className="muted" style={{ marginLeft: 4 }}>@{u.twitterHandle}</span>
+                    <a
+                      className="muted"
+                      style={{ marginLeft: 4 }}
+                      href={`https://x.com/${u.twitterHandle}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      @{u.twitterHandle}
+                    </a>
                   ) : null}
                 </div>
                 <div className="badges">

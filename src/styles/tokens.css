@@ -1,0 +1,30 @@
+:root {
+  /* Base surface */
+  --bg: #0e1530;               /* lighter than before */
+  --bg-2: #111a3c;
+  --glass: rgba(255,255,255,.08);
+  --glass-strong: rgba(255,255,255,.12);
+  --veil: rgba(10,25,40,.14);
+
+  /* Text */
+  --txt: #eaf2ff;
+  --txt-muted: #b7c2e1;
+  --txt-invert: #0b1024;
+
+  /* YOLO pop gradient accents */
+  --c-pink:   #ff6bd5;
+  --c-purple: #8a7dff;
+  --c-blue:   #37b6ff;
+  --c-cyan:   #43ffd3;
+  --c-lime:   #b5ff52;
+  --c-sun:    #ffd15a;
+
+  /* Shared gradient */
+  --grad-1: linear-gradient(135deg,var(--c-pink),var(--c-purple),var(--c-blue));
+  --grad-2: linear-gradient(135deg,var(--c-cyan),var(--c-lime),var(--c-sun));
+
+  /* Cards & shadows */
+  --radius: 16px;
+  --shadow-1: 0 6px 30px rgba(0,0,0,.25);
+  --shadow-2: 0 12px 50px rgba(0,0,0,.35);
+}
