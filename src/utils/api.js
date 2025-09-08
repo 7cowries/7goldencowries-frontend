@@ -111,6 +111,8 @@ export async function jsonFetch(path, opts = {}) {
       method: opts.method || 'GET',
       headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
       signal: opts.signal || (controller && controller.signal),
+      credentials: 'include',
+      cache: 'no-store',
       ...opts,
     });
   } finally {
@@ -122,7 +124,19 @@ export function getJSON(path, opts) {
   return jsonFetch(path, opts);
 }
 
-export function getQuests({ signal } = {}) {
+let bindOncePromise = null;
+async function ensureBound() {
+  if (typeof window === 'undefined') return;
+  const w =
+    localStorage.getItem('wallet') || window.tonconnect?.account?.address;
+  if (!w) return;
+  if (!bindOncePromise)
+    bindOncePromise = bindWallet(w).catch(() => {});
+  return bindOncePromise;
+}
+
+export async function getQuests({ signal } = {}) {
+  await ensureBound();
   const key = userKey("quests");
   const cached = cacheGet(key);
   if (cached) return Promise.resolve(cached);
@@ -161,6 +175,7 @@ export function getLeaderboard({ signal } = {}) {
  * @returns {Promise<MeResponse>}
  */
 export async function getMe({ signal, force } = {}) {
+  await ensureBound();
   const key = userKey("me");
   if (!force) {
     const cached = cacheGet(key);

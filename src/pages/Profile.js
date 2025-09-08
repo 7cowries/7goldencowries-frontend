@@ -122,10 +122,10 @@ export default function Profile() {
   const discord = norm(
     socials?.discord?.id ?? me?.discordId ?? me?.discord ?? ''
   );
-  // connected booleans: true if API marks connected OR a handle/id exists (legacy data)
-  const twitterConnected = !!(socials?.twitter?.connected || twitter);
-  const telegramConnected = !!(socials?.telegram?.connected || telegram);
-  const discordConnected = !!(socials?.discord?.connected || discord);
+    // connected booleans from API
+    const twitterConnected = !!socials?.twitter?.connected;
+    const telegramConnected = !!socials?.telegram?.connected;
+    const discordConnected = !!socials?.discord?.connected;
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");

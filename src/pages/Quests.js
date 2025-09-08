@@ -5,7 +5,7 @@ import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
-import { confettiBurst } from '../utils/confetti';
+import { burstConfetti } from '../utils/confetti';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -99,7 +99,7 @@ export default function Quests() {
         if (process.env.NODE_ENV !== 'production') {
           console.log('claim_clicked', id, res);
         }
-        confettiBurst();
+        if (localStorage.getItem('effects:confetti') !== 'off') burstConfetti();
         const delta = res?.xpDelta ?? res?.xp;
         setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
         await Promise.all([getMe(), getQuests()]).then(([meData, questsData]) => {

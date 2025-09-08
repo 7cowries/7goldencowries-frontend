@@ -181,7 +181,7 @@ body {
 /* Slightly stronger veil for readability */
 /* Darker overlay for improved video contrast */
 .veil {
-  background: rgba(0,0,0,0.54);
+  background: rgba(0,0,0,0.55); /* better contrast over video */
   backdrop-filter: blur(2px) brightness(0.95);
 }
 
@@ -202,13 +202,15 @@ body {
 /* Softer video veil on content pages */
 .page .bg-video + .veil,
 .veil {
-  background: rgba(0,0,0,0.54);
+  background: rgba(0,0,0,0.55);
 }
 
 /* Quest card tidy */
-.quest-card { backdrop-filter: blur(6px); }
+.quest-card { backdrop-filter: blur(6px); background: rgba(8,12,18,0.66); }
 .quest-card .one-link a { font-weight: 700; text-decoration: none; }
 .quest-card .url-line { opacity: .75; font-size: 12px; margin-top: -4px; }
+.quest-title a { color: #E8F1FF; text-decoration: none; }
+.quest-title a:hover { text-decoration: underline; }
 
 /* Chips & bars */
 .chip.completed { background: rgba(46, 204, 113, .18); border: 1px solid rgba(46,204,113,.5); }
