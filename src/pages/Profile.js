@@ -447,94 +447,117 @@ export default function Profile() {
             <div className="social-status-list">
               {/* Twitter / X */}
               <div className="social-status">
-                <span>X (Twitter):</span>
+                <span className="muted">X (Twitter):</span>
                 {twitterConnected ? (
-                  twitter ? (
-                    <a
-                      className="connected"
-                      href={`https://x.com/${twitter}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      ✅ @{twitter}
-                    </a>
-                  ) : (
-                    <span className="connected">✅ Connected</span>
-                  )
+                  <>
+                    {twitter ? (
+                      <a
+                        className="connected"
+                        href={`https://x.com/${twitter}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: 'var(--success)', fontWeight: 700 }}
+                      >
+                        ✅ @{twitter}
+                      </a>
+                    ) : (
+                      <span className="connected" style={{ color: 'var(--success)', fontWeight: 700 }}>✅ Connected</span>
+                    )}
+                    <div className="social-actions">
+                      <button className="mini" disabled title="Already connected">Connect</button>
+                    </div>
+                  </>
                 ) : (
-                  <span className="not-connected">❌ Not Connected</span>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectTwitter}
+                        disabled={connecting.twitter}
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div className="social-actions">
-                  <button
-                    className="mini"
-                    onClick={connectTwitter}
-                    disabled={connecting.twitter || twitterConnected}
-                  >
-                    Connect
-                  </button>
-                </div>
               </div>
 
               {/* Telegram */}
               <div className="social-status">
-                <span>Telegram:</span>
+                <span className="muted">Telegram:</span>
                 {telegramConnected ? (
-                  telegram ? (
-                    <a
-                      className="connected"
-                      href={`https://t.me/${telegram}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      ✅ @{telegram}
-                    </a>
-                  ) : (
-                    <span className="connected">✅ Connected</span>
-                  )
+                  <>
+                    {telegram ? (
+                      <a
+                        className="connected"
+                        href={`https://t.me/${telegram}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: 'var(--success)', fontWeight: 700 }}
+                      >
+                        ✅ @{telegram}
+                      </a>
+                    ) : (
+                      <span className="connected" style={{ color: 'var(--success)', fontWeight: 700 }}>✅ Connected</span>
+                    )}
+                    <div className="social-actions">
+                      <button className="mini" disabled title="Already connected">Connect</button>
+                    </div>
+                  </>
                 ) : (
-                  <span className="not-connected">❌ Not Connected</span>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectTelegram}
+                        disabled={connecting.telegram}
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div className="social-actions">
-                  <button
-                    className="mini"
-                    onClick={connectTelegram}
-                    disabled={connecting.telegram || telegramConnected}
-                  >
-                    Connect
-                  </button>
-                </div>
               </div>
 
               {/* Discord */}
               <div className="social-status">
-                <span>Discord:</span>
+                <span className="muted">Discord:</span>
                 {discordConnected ? (
-                  <span className="connected">✅ {discord || 'Connected'}</span>
+                  <>
+                    <span className="connected" style={{ color: 'var(--success)', fontWeight: 700 }}>✅ {discord || 'Connected'}</span>
+                    <div className="social-actions">
+                      {discord ? (
+                        <button
+                          className="mini"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(discord);
+                            setToast('Discord ID copied ✅');
+                            burstConfetti({count:80,duration:1800});
+                            setTimeout(() => setToast(''), 1500);
+                          }}
+                        >
+                          Copy
+                        </button>
+                      ) : null}
+                      <button className="mini" disabled title="Already connected">Connect</button>
+                    </div>
+                  </>
                 ) : (
-                  <span className="not-connected">❌ Not Connected</span>
+                  <>
+                    <span className="not-connected">❌ Not Connected</span>
+                    <div className="social-actions">
+                      <button
+                        className="mini"
+                        onClick={connectDiscord}
+                        disabled={connecting.discord}
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div className="social-actions">
-                  {discordConnected && discord ? (
-                    <button
-                      className="mini"
-                      onClick={() => {
-                        navigator.clipboard?.writeText(discord);
-                        setToast('Discord ID copied ✅');
-                        burstConfetti({count:80,duration:1800});
-                        setTimeout(() => setToast(''), 1500);
-                      }}
-                    >
-                      Copy
-                    </button>
-                  ) : null}
-                  <button
-                    className="mini"
-                    onClick={connectDiscord}
-                    disabled={connecting.discord || discordConnected}
-                  >
-                    Connect
-                  </button>
-                </div>
               </div>
             </div>
           </section>

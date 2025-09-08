@@ -26,9 +26,7 @@
   position: fixed;
   inset: 0;
   z-index: 1;
-  background:
-    radial-gradient(1200px 600px at 70% 10%, rgba(10, 20, 40, 0.16), transparent 60%),
-    linear-gradient(180deg, rgba(6, 12, 20, 0.18), rgba(6, 12, 20, 0.35));
+  background: var(--veil);
   pointer-events: none;
 }
 
@@ -44,12 +42,12 @@
 
 /* Glass cards */
 .glass {
-  background: rgba(10, 16, 28, 0.54);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow);
+  color: var(--ink);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
 }
 
 .glass-strong {
@@ -153,11 +151,12 @@
 }
 
 .chip {
-  font-size: 13px;
-  padding: 6px 10px;
+  background: var(--chip-bg);
+  color: var(--chip-ink);
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 10px;
+  font-weight: 600;
+  border: 1px solid rgba(16,31,46,0.08);
 }
 .chip.daily   { color: #bde0ff; }
 .chip.social  { color: #c8f3ff; }
@@ -206,11 +205,19 @@
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 
 .btn.primary {
-  background: linear-gradient(180deg, rgba(255, 216, 106, .18), rgba(255, 216, 106, .12));
-  border-color: rgba(255, 216, 106, .35);
-  color: #ffe9a6;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: white;
+  border: 0;
 }
-.btn.ghost { background: rgba(12, 18, 32, 0.35); }
+.btn.primary:hover {
+  filter: brightness(1.03) saturate(1.05);
+  transform: translateY(-1px);
+}
+.btn.ghost {
+  border: 1px solid rgba(16,31,46,0.15);
+  background: rgba(255,255,255,0.6);
+  color: var(--ink);
+}
 .btn.success {
   background: linear-gradient(180deg, rgba(60, 190, 110, .22), rgba(60, 190, 110, .15));
   border-color: rgba(60, 190, 110, .45);
