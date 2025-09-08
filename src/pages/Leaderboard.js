@@ -16,16 +16,10 @@ export default function Leaderboard() {
     try {
       const data = await getLeaderboard({ signal });
       if (!mountedRef.current) return;
-      const raw = data?.leaders ?? data ?? [];
-      const list = Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+      const list = Array.isArray(data?.entries) ? data.entries : [];
       const rows = list.map((u) => ({
         ...u,
-        progress: (() => {
-          const p = Number(u.levelProgress ?? u.progress ?? 0);
-          const pct = p <= 1 ? p * 100 : p;
-          const clamped = Math.max(0, Math.min(100, pct));
-          return clamped;
-        })(),
+        progress: Math.max(0, Math.min(1, Number(u.progress ?? u.levelProgress ?? 0))),
       }));
       setLeaders(rows);
       setError(null);
@@ -63,7 +57,7 @@ export default function Leaderboard() {
 
   const Bar = ({ pct = 0 }) => (
     <div className="bar-outer">
-      <div className="bar-inner" style={{ width: `${pct}%` }} />
+      <div className="bar-inner" style={{ width: `${(pct * 100).toFixed(1)}%` }} />
     </div>
   );
 
@@ -79,7 +73,12 @@ export default function Leaderboard() {
         {podium.map((u, i) => (
           <div key={u.wallet || i} className={`card glass podium-${i+1} ${walletRef.current===u.wallet ? 'me' : ''}`}>
             <div className="corner-rank">#{i+1}</div>
-            <div className="big-wallet">{abbreviateWallet(u.wallet)}</div>
+            <div className="big-wallet">
+              {abbreviateWallet(u.wallet)}
+              {u.twitterHandle ? (
+                <span className="muted" style={{ marginLeft: 6 }}>@{u.twitterHandle}</span>
+              ) : null}
+            </div>
             <div className="chips">
               <span className="chip">{u.tier || 'Free'}</span>
               <span className="chip">{u.levelName}</span>
@@ -101,7 +100,12 @@ export default function Leaderboard() {
             return (
               <div key={u.wallet || rank} className={`row glass ${isMe ? 'me' : ''}`}>
                 <div className="rank">#{rank}</div>
-                <div className="wallet mono">{abbreviateWallet(u.wallet)}</div>
+                <div className="wallet mono">
+                  {abbreviateWallet(u.wallet)}
+                  {u.twitterHandle ? (
+                    <span className="muted" style={{ marginLeft: 4 }}>@{u.twitterHandle}</span>
+                  ) : null}
+                </div>
                 <div className="badges">
                   <span className="chip">{u.tier || 'Free'}</span>
                   <span className="chip">{u.levelName}</span>

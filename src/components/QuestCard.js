@@ -33,16 +33,20 @@ export default function QuestCard({ quest, onClaim, onProof, claiming, me }) {
             {q.type.charAt(0).toUpperCase() + q.type.slice(1)}
           </span>
         ) : null}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {alreadyClaimed ? (
-            <span className="chip completed">✅ Completed</span>
-          ) : q.proofStatus === 'pending' ? (
-            <span className="chip pending">🕒 Pending review</span>
-          ) : null}
-          <span className="xp-badge">
-            +{q.xp} XP{mult > 1 ? <span className="muted" style={{ marginLeft: 6 }}>(×{mult.toFixed(2)} ≈ {projected})</span> : null}
-          </span>
-        </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {alreadyClaimed ? (
+              <span className="chip completed">✅ Completed</span>
+            ) : q.proofStatus === 'pending' ? (
+              <span className="chip pending">🕒 Pending review</span>
+            ) : null}
+            <span className="xp-badge">
+              +{q.xp} XP{mult > 1 ? (
+                <span className="muted" style={{ marginLeft: 6 }}>
+                  (×{mult.toFixed(2)} ≈ {projected})
+                </span>
+              ) : null}
+            </span>
+          </div>
       </div>
       <p className="quest-title">
         {q.url ? (

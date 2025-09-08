@@ -137,7 +137,7 @@ export function getLeaderboard({ signal } = {}) {
   if (cached) return Promise.resolve(cached);
   return jsonFetch("/api/leaderboard", { signal }).then((data) => {
     cacheSet("leaderboard", data);
-    return data;
+    return data; // { entries, total }
   });
 }
 
