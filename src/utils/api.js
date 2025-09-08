@@ -177,8 +177,8 @@ export async function postJSON(path, body, opts = {}) {
   return jsonFetch(path, { method: "POST", body: JSON.stringify(body ?? {}), ...opts });
 }
 
-export function claimQuest(id, opts = {}) {
-  return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => {
+export function claimQuest(id, body = {}, opts = {}) {
+  return postJSON(`/api/quests/${id}/claim`, body, opts).then((res) => {
     clearUserCache();
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profile-updated'));

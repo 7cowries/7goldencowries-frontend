@@ -5,7 +5,7 @@ import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
 import './Quests.css';
 import '../App.css';
-import { burstConfetti } from '../utils/confetti';
+import { confettiBurst } from '../utils/confetti';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -90,16 +90,16 @@ export default function Quests() {
     };
   }, []);
 
-    const handleClaim = async (id) => {
+    const handleClaim = async (id, proofUrl) => {
       walletRef.current = localStorage.getItem('wallet') || '';
       if (claiming[id]) return;
       setClaiming((c) => ({ ...c, [id]: true }));
       try {
-        const res = await claimQuest(id);
+        const res = await claimQuest(id, proofUrl ? { proofUrl } : {});
         if (process.env.NODE_ENV !== 'production') {
           console.log('claim_clicked', id, res);
         }
-        burstConfetti();
+        confettiBurst();
         const delta = res?.xpDelta ?? res?.xp;
         setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
         await Promise.all([getMe(), getQuests()]).then(([meData, questsData]) => {

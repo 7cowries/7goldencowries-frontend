@@ -1,35 +1,35 @@
-// src/components/Sidebar.js
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 export default function Sidebar() {
   const links = [
-    { to: '/quests',      label: 'Quests'      },
+    { to: '/quests', label: 'Quests' },
     { to: '/leaderboard', label: 'Leaderboard' },
-    { to: '/referral',    label: 'Referral'    },
-    { to: '/subscription',label: 'Subscription'},
-    { to: '/profile',     label: 'Profile'     },
+    { to: '/referral', label: 'Referral' },
+    { to: '/subscription', label: 'Subscription' },
+    { to: '/profile', label: 'Profile' }
   ];
 
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
   return (
-    <nav className="bg-blue-800 text-white w-48 flex-shrink-0">
-      <div className="p-6 text-2xl font-bold">🐚 Cowries</div>
-      <ul>
-        {links.map(link => (
-          <li key={link.to}>
-            <NavLink
-              to={link.to}
-              className={({ isActive }) =>
-                `block px-6 py-3 hover:bg-blue-700 ${
-                  isActive ? 'bg-blue-700 font-semibold' : ''
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <>
+      <button className="sidebar-toggle" onClick={() => setOpen(true)}>☰</button>
+      <nav className={`sidebar glass ${open ? 'open' : ''}`}>
+        <div className="p-6 text-2xl font-bold">🐚 Cowries</div>
+        <ul>
+          {links.map(link => (
+            <li key={link.to}>
+              <NavLink to={link.to} className={({ isActive }) => isActive ? 'active' : ''} onClick={close}>
+                {link.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+        <button className="sidebar-close" onClick={close}>×</button>
+      </nav>
+      {open && <div className="sidebar-scrim" onClick={close} />}
+    </>
   );
 }

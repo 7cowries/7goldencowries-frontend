@@ -1,11 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Quests from './Quests';
-import { getQuests, claimQuest, getMe, submitProof } from '../utils/api';
+import { getQuests, claimQuest, getMe } from '../utils/api';
+import { confettiBurst } from '../utils/confetti';
 
 jest.mock('../utils/api');
+jest.mock('../utils/confetti', () => ({ confettiBurst: jest.fn() }));
 
-describe('Quests page claiming', () => {
+describe('Quests page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
@@ -13,7 +15,7 @@ describe('Quests page claiming', () => {
 
   test('claiming a quest refreshes data and shows awarded XP', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, requirement: 'none' }],
+      quests: [{ id: 1, xp: 10, active: 1 }],
       completed: [],
       xp: 0,
     });
@@ -47,13 +49,14 @@ describe('Quests page claiming', () => {
 
     await waitFor(() => expect(getMe).toHaveBeenCalled());
     await waitFor(() => expect(getQuests).toHaveBeenCalled());
+    expect(confettiBurst).toHaveBeenCalled();
 
     expect(await screen.findByText('+50 XP')).toBeInTheDocument();
   });
 
-  test('quest title links to URL when provided', async () => {
+  test('quest title renders a single link when URL provided', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', requirement: 'none' }],
+      quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com' }],
       completed: [],
       xp: 0,
     });
@@ -69,18 +72,13 @@ describe('Quests page claiming', () => {
 
     const link = await screen.findByRole('link', { name: '1' });
     expect(link).toHaveAttribute('href', 'https://example.com');
+    const card = link.closest('.quest-card');
+    expect(within(card).getAllByRole('link')).toHaveLength(1);
   });
 
-  test('submitting proof enables claim for tweet quest', async () => {
+  test('proof input is shown on quest card', async () => {
     getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, requirement: 'tweet' }],
-      completed: [],
-      xp: 0,
-    });
-    getQuests.mockResolvedValueOnce({
-      quests: [
-        { id: 1, xp: 10, active: 1, requirement: 'tweet', proofStatus: 'approved' },
-      ],
+      quests: [{ id: 1, xp: 10, active: 1 }],
       completed: [],
       xp: 0,
     });
@@ -94,18 +92,6 @@ describe('Quests page claiming', () => {
 
     render(<Quests />);
 
-    const input = await screen.findByPlaceholderText('Paste tweet/retweet/quote link');
-    await userEvent.type(input, 'https://twitter.com/user/status/1');
-
-    submitProof.mockResolvedValueOnce({ status: 'approved' });
-      const submitBtn = screen.getByText('Submit');
-    await userEvent.click(submitBtn);
-
-    await waitFor(() => expect(submitProof).toHaveBeenCalled());
-
-    const claimBtn = await screen.findByText('Claim');
-    expect(claimBtn).not.toBeDisabled();
+    expect(await screen.findByPlaceholderText('Paste proof link (optional)')).toBeInTheDocument();
   });
 });
-
-

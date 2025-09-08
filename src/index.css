@@ -3,6 +3,7 @@
    Enchanted Ocean Theme (v2)
    =========================== */
 @import "./styles/tokens.css";
+@import "./styles/enchanted.css";
 
 /* ===== Theme Tokens ===== */
 :root{
