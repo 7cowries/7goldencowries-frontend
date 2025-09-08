@@ -109,14 +109,23 @@ export default function Profile() {
 
   const [referralCode, setReferralCode] = useState('');
 
-  // read from me.socials always
+  // Read from me.socials but also fall back to legacy top-level fields for backward compatibility
   const socials = me?.socials || { twitter: {}, telegram: {}, discord: {} };
-  const twitterConnected = !!socials?.twitter?.connected;
-  const telegramConnected = !!socials?.telegram?.connected;
-  const discordConnected = !!socials?.discord?.connected;
-  const twitter = socials?.twitter?.handle || '';
-  const telegram = socials?.telegram?.username || '';
-  const discord = socials?.discord?.id || '';
+  const norm = (s) => String(s || '').replace(/^@/, '');
+  // handles / ids with fallbacks
+  const twitter = norm(
+    socials?.twitter?.handle ?? me?.twitterHandle ?? me?.twitter ?? ''
+  );
+  const telegram = norm(
+    socials?.telegram?.username ?? me?.telegramId ?? me?.telegram ?? ''
+  );
+  const discord = norm(
+    socials?.discord?.id ?? me?.discordId ?? me?.discord ?? ''
+  );
+  // connected booleans: true if API marks connected OR a handle/id exists (legacy data)
+  const twitterConnected = !!(socials?.twitter?.connected || twitter);
+  const telegramConnected = !!(socials?.telegram?.connected || telegram);
+  const discordConnected = !!(socials?.discord?.connected || discord);
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
@@ -439,7 +448,7 @@ export default function Profile() {
                 <span>X (Twitter):</span>
                 {twitterConnected ? (
                   twitter ? (
-                    <a className="connected" href={`https://x.com/${twitter.replace(/^@/, '')}`} target="_blank" rel="noreferrer">✅ @{twitter.replace(/^@/,'')}</a>
+                    <a className="connected" href={`https://x.com/${twitter}`} target="_blank" rel="noreferrer">✅ @{twitter}</a>
                   ) : (
                     <span className="connected">✅ Connected</span>
                   )
@@ -453,7 +462,7 @@ export default function Profile() {
                 <span>Telegram:</span>
                 {telegramConnected ? (
                   telegram ? (
-                    <a className="connected" href={`https://t.me/${telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer">✅ @{telegram.replace(/^@/,'')}</a>
+                    <a className="connected" href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer">✅ @{telegram}</a>
                   ) : (
                     <span className="connected">✅ Connected</span>
                   )
