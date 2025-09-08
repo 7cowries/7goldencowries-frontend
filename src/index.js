@@ -6,11 +6,14 @@ import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import WalletProvider from "./context/WalletContext";
 import './styles/polish.css';
 import { setupWalletSync } from './utils/init';
+import { captureReferralFromQuery } from './utils/referral';
 
 // Prefer an env override; otherwise use the local manifest served from /public
 const manifestUrl =
   process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
   `${window.location.origin}/tonconnect-manifest.json`;
+
+captureReferralFromQuery();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 

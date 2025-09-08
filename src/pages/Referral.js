@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'; 
+import React, { useEffect, useState } from 'react';
 import { useTonWallet } from '@tonconnect/ui-react';
+import { getMe } from '../utils/api';
 import './Referral.css';
 import '../App.css'; // Import layout classes
 
@@ -8,33 +9,44 @@ const API = process.env.REACT_APP_API_URL;
 const Referral = () => {
   const wallet = useTonWallet();
   const [copied, setCopied] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
   const [referrals, setReferrals] = useState([]);
 
-  const referralLink = wallet?.account?.address
-    ? `https://7goldencowries.com/ref/${wallet.account.address}`
+  const referralLink = referralCode
+    ? `${window.location.origin}/ref/${referralCode}`
     : '';
 
-  // 🌊 Handle /ref/:code URL
-  useEffect(() => {
-    const path = window.location.pathname;
-    const match = path.match(/^\/ref\/(.{20,64})$/);
-    if (match?.[1]) {
-      localStorage.setItem('referral', match[1]);
-      window.history.replaceState({}, '', '/');
-    }
-  }, []);
-
-  // 🧠 Fetch referrals
+  // Retrieve referral code once wallet is connected
   useEffect(() => {
     if (!wallet?.account?.address) return;
 
-    fetch(`${API}/referrals/${wallet.account.address}`)
+    (async () => {
+      try {
+        const me = await getMe();
+        const code = me?.referral_code || me?.referralCode;
+        if (code) {
+          setReferralCode(code);
+        }
+      } catch (err) {
+        console.error('Referral getMe error:', err);
+      }
+    })();
+  }, [wallet]);
+
+  // Fetch referrals list for this code
+  useEffect(() => {
+    if (!referralCode) return;
+
+    fetch(`${API}/referrals/${referralCode}`)
       .then(res => res.json())
       .then(data => setReferrals(data.referrals || []))
       .catch(err =>
-        console.error("Referral fetch error:", err?.response?.data || err.message || err)
+        console.error(
+          'Referral fetch error:',
+          err?.response?.data || err.message || err
+        )
       );
-  }, [wallet]);
+  }, [referralCode]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
@@ -48,7 +60,7 @@ const Referral = () => {
         <h1 className="referral-title">🧬 Invite the Shellborn</h1>
         <p className="referral-sub">Earn XP as your friends explore the Seven Isles of Tides.</p>
 
-        {wallet?.account?.address ? (
+        {referralCode ? (
           <>
             <div className="referral-box">
               <p><strong>Your Referral Link:</strong></p>
