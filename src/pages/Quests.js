@@ -137,9 +137,6 @@ export default function Quests() {
 
   return (
     <div className="page">
-      <video autoPlay loop muted playsInline className="bg-video">
-        <source src="/videos/sea-goddess.mp4" type="video/mp4" />
-      </video>
       <div className="veil" />
 
       <div className="q-container">
@@ -150,7 +147,7 @@ export default function Quests() {
         <div className="glass-strong q-header">
           <div className="q-title">
             <span className="emoji">📜</span>
-            <h1>Quests</h1>
+            <h1><span className="yolo-gradient">Quests</span></h1>
           </div>
           <p className="subtitle">Complete tasks. Earn XP. Level up.</p>
           <div className="tabs">

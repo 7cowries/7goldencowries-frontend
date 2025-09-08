@@ -64,7 +64,7 @@ export default function Leaderboard() {
   return (
     <div className="section">
       <div className="hero glass-strong" style={{ marginBottom: 24 }}>
-        <h1>🏆 Cowrie Leaderboard</h1>
+        <h1>🏆 <span className="yolo-gradient">Cowrie Leaderboard</span></h1>
         <p className="subtitle">Top explorers across the Seven Isles</p>
       </div>
 

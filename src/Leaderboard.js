@@ -35,7 +35,7 @@ const Leaderboard = () => {
 
   return (
     <div className="leaderboard-wrapper">
-      <h1>🏆 Cowrie Leaderboard</h1>
+      <h1>🏆 <span className="yolo-gradient">Cowrie Leaderboard</span></h1>
       <p className="subtitle">Top explorers across the Seven Isles</p>
 
       {error ? (
@@ -70,10 +70,13 @@ const Leaderboard = () => {
                     <strong>{shorten(user.wallet)}</strong>
                     {user.twitterHandle ? <span> | 🐦 @{user.twitterHandle}</span> : null}
                   </p>
-                  <p>{user.tier} • {user.levelName || 'Shellborn'}</p>
+                  <div className="chips">
+                    <span className="chip">{user.tier}</span>
+                    <span className="chip">{user.levelName || 'Shellborn'}</span>
+                  </div>
                   <div className="progress-container">
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${((user.progress || 0) * 100).toFixed(1)}%` }} />
+                    <div className="bar-outer">
+                      <div className="bar-inner" style={{ width: `${((user.progress || 0) * 100).toFixed(1)}%` }} />
                     </div>
                     <small>{user.xp} XP — {lore[user.levelName || 'Shellborn']}</small>
                   </div>

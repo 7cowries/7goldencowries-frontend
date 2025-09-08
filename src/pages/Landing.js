@@ -293,7 +293,7 @@ export default function Landing() {
 
       {/* ROADMAP */}
       <section className="landing-block roadmap">
-        <h2>Roadmap</h2>
+        <h2><span className="yolo-gradient">Roadmap</span></h2>
         <div className="features-grid">
           <div className="feature-card">
             <div className="chip">Now</div>
