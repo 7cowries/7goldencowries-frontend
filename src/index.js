@@ -8,6 +8,7 @@ import './index.css';
 import './styles/polish.css';
 import './styles/theme.css';
 import './styles/yolo.css';
+import './styles/enchanted.css';
 import { initTheme } from './utils/theme';
 import { initHeroVideo } from './utils/video';
 import { setupWalletSync } from './utils/init';

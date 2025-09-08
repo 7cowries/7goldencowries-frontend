@@ -9,6 +9,7 @@ import Isles from './pages/Isles';
 import Referral from './pages/Referral';
 import Subscription from './pages/Subscription';
 import TokenSale from './pages/TokenSale';
+import RefRedirect from './pages/RefRedirect';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/isles" element={<Isles />} />
         </Route>
+        <Route path="/ref/:code" element={<RefRedirect />} />
       </Routes>
     </BrowserRouter>
   );
