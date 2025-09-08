@@ -48,7 +48,7 @@ describe('Quests page claiming', () => {
     await waitFor(() => expect(getMe).toHaveBeenCalled());
     await waitFor(() => expect(getQuests).toHaveBeenCalled());
 
-    expect(await screen.findByText('Quest claimed! +50 XP')).toBeInTheDocument();
+    expect(await screen.findByText('+50 XP')).toBeInTheDocument();
   });
 
   test('quest title links to URL when provided', async () => {

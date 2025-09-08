@@ -187,8 +187,8 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
-export function submitProof(id, body, opts = {}) {
-  return postJSON(`/api/quests/${id}/proofs`, body, opts).then((res) => {
+export function submitProof(id, { url }, opts = {}) {
+  return postJSON(`/api/quests/${id}/proofs`, { url }, opts).then((res) => {
     clearUserCache();
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profile-updated'));

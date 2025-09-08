@@ -100,7 +100,8 @@ export default function Quests() {
           console.log('claim_clicked', id, res);
         }
         confettiBurst();
-        setToast(res?.xp ? `Quest claimed! +${res.xp} XP` : 'Quest claimed!');
+        const delta = res?.xpDelta ?? res?.xp;
+        setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
         await Promise.all([getMe(), getQuests()]).then(([meData, questsData]) => {
           if (mountedRef.current) {
             setMe(meData);
