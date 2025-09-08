@@ -332,7 +332,7 @@ export default function Profile() {
       setConnecting((c) => ({ ...c, telegram: false }));
     } else {
       // Fallback (rare): open hosted flow
-      window.location.href = `${API_BASE}/auth/telegram/start?state=${state}`;
+      window.location.href = `${API_BASE}/api/auth/telegram/start?state=${state}`;
     }
   };
 
@@ -582,7 +582,7 @@ export default function Profile() {
               {/* Tiny fallback link to hosted flow, just in case */}
               <p className="muted" style={{ marginTop: 8 }}>
                 If the button doesn’t render,{" "}
-                <a href={`${API_BASE}/auth/telegram/start?state=${encodeURIComponent(b64(address || ""))}`}>
+                <a href={`${API_BASE}/api/auth/telegram/start?state=${encodeURIComponent(b64(address || ""))}`}>
                   open Telegram login
                 </a>
                 .

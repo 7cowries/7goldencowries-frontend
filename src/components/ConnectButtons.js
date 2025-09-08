@@ -18,9 +18,9 @@ export default function ConnectButtons({ address = "", className = "" }) {
     window.location.href = `${API_BASE}${path}${sep}state=${state}`;
   };
 
-  const connectTwitter = () => go("/auth/twitter");
-  const connectTelegram = () => go("/auth/telegram/start");
-  const connectDiscord = () => go("/auth/discord");
+  const connectTwitter = () => go("/api/auth/twitter/start");
+  const connectTelegram = () => go("/api/auth/telegram/start");
+  const connectDiscord = () => go("/api/auth/discord/start");
 
   const disabled = !hasWallet || !API_BASE;
 

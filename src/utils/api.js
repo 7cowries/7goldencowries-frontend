@@ -17,10 +17,10 @@ if (!API_BASE) {
 
 // Prebuilt URLs for starting OAuth or embedding auth widgets
 export const API_URLS = {
-  twitterStart: `${API_BASE}/auth/twitter`,
-  discordStart: `${API_BASE}/auth/discord`,
+  twitterStart: `${API_BASE}/api/auth/twitter/start`,
+  discordStart: `${API_BASE}/api/auth/discord/start`,
   // Used by the Telegram login widget (data-auth-url)
-  telegramEmbedAuth: `${API_BASE}/auth/telegram/callback`,
+  telegramEmbedAuth: `${API_BASE}/api/auth/telegram/callback`,
 };
 
 export function withSignal(ms = 15000) {
