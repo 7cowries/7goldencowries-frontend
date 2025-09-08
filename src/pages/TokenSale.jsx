@@ -1,6 +1,7 @@
 // src/pages/TokenSale.js
 import React, { useEffect, useState } from "react";
 import "./TokenSale.css";
+import Page from "../components/Page";
 import { SALE_START_ISO, openCalendarReminder, inviteFriend } from "../utils/launch";
 
 const TARGET = Date.UTC(2025, 9, 4, 0, 0, 0); // Oct 4, 2025 00:00:00 UTC
@@ -28,7 +29,7 @@ export default function TokenSale() {
   const { days, hours, mins, secs, finished } = time;
 
   return (
-    <div className="page">
+    <Page>
       <div className="container">
         {/* HERO */}
         <section className="section ts-hero card gradient-border pad-24 fade-in">
@@ -131,6 +132,6 @@ export default function TokenSale() {
           </details>
         </section>
       </div>
-    </div>
+    </Page>
   );
 }

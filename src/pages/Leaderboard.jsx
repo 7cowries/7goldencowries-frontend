@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getLeaderboard } from '../utils/api';
 import { abbreviateWallet } from '../lib/format';
+import Page from '../components/Page';
 
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState([]);
@@ -62,8 +63,9 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="section">
-      <div className="hero glass-strong" style={{ marginBottom: 24 }}>
+    <Page>
+      <section className="section">
+        <div className="hero glass-strong" style={{ marginBottom: 24 }}>
         <h1>🏆 <span className="yolo-gradient">Cowrie Leaderboard</span></h1>
         <p className="subtitle">Top explorers across the Seven Isles</p>
       </div>
@@ -134,7 +136,8 @@ export default function Leaderboard() {
             );
           })
         )}
-      </div>
-    </div>
+        </div>
+      </section>
+    </Page>
   );
 }

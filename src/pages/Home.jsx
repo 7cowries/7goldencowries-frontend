@@ -1,18 +1,20 @@
 // src/pages/Landing.js
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import Page from "../components/Page";
 import { playClick, playXP } from "../utils/sounds";
 import { SALE_START_ISO, useCountdown, openCalendarReminder, inviteFriend } from "../utils/launch";
 import "./Landing.css";
 import "../App.css";
 
-export default function Landing() {
+export default function Home() {
   // Unified countdown (same as token-sale page)
   const { days: d, hours: h, minutes: m, seconds: s } = useCountdown(SALE_START_ISO);
   const particles = useMemo(() => Array.from({ length: 36 }), []);
 
   return (
-    <div className="landing page" aria-label="7 Golden Cowries landing">
+    <Page>
+      <div className="landing" aria-label="7 Golden Cowries landing">
       {/* Immersive background layers */}
       <div className="bg-waves" />
       <div className="aurora" aria-hidden="true" />
@@ -348,7 +350,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </Page>
   );
 }
 
