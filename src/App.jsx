@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
+import AppLayout from './components/layout/AppLayout';
 // import your pages:
 import Home from './pages/Home';
 import Quests from './pages/Quests';
@@ -13,8 +13,8 @@ import TokenSale from './pages/TokenSale';
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
+      <AppLayout>
+        <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/quests" element={<Quests />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
@@ -23,8 +23,8 @@ export default function App() {
           <Route path="/token-sale" element={<TokenSale />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/isles" element={<Isles />} />
-        </Route>
-      </Routes>
+        </Routes>
+      </AppLayout>
     </BrowserRouter>
   );
 }

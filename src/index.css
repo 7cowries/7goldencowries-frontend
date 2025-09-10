@@ -6,6 +6,7 @@
 
 /* ===== Theme Tokens ===== */
 :root{
+  --sidebar-w: 260px;
   /* Depth blues */
   --bg-0:#061325; --bg-1:#0a1f3f; --bg-2:#0f2d5e;
 
