@@ -11,7 +11,6 @@ import { burstConfetti } from "../utils/confetti";
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [claiming, setClaiming] = useState({});
@@ -32,7 +31,6 @@ export default function Quests() {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
     setQuests(data?.quests ?? []);
-    setXp(data?.xp ?? 0);
   }
 
   async function sync() {
