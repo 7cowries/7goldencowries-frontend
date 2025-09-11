@@ -1,7 +1,8 @@
 import React from 'react';
 
-export default function Toast({ message }) {
-  if (!message) return null;
+export default function Toast({ message, children }) {
+  const msg = children ?? message;
+  if (!msg) return null;
   return (
     <div
       style={{
@@ -14,7 +15,7 @@ export default function Toast({ message }) {
         borderRadius: 4,
       }}
     >
-      {message}
+      {msg}
     </div>
   );
 }

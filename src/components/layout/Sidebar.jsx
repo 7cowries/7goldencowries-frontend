@@ -12,12 +12,16 @@ const items = [
   { to: "/isles", label: "Isles", emoji: "🌱" },
 ];
 
-export default function Sidebar({ open }) {
+export default function Sidebar({ open = false }) {
   const { pathname } = useLocation();
   return (
-    <aside className={`sidebar ${open ? "open" : ""}`} role="navigation" aria-label="Main">
+    <aside
+      className={`sidebar ${open ? "open" : ""}`}
+      role="navigation"
+      aria-label="Main"
+    >
       <nav className="nav-list">
-        {items.map(it => {
+        {items.map((it) => {
           const active = pathname === it.to;
           return (
             <Link

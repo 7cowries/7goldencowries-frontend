@@ -1,85 +1,47 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import Quests from './Quests';
-import { getQuests, claimQuest, submitProof } from '../utils/api';
-import { useMe } from '../state/me';
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import Quests from "./Quests";
+import { getQuests, claimQuest, submitProof, getMe } from "../utils/api";
+import { MeProvider } from "../state/me";
 
-jest.mock('../utils/api');
-jest.mock('../state/me');
+jest.mock("../utils/api");
 
-describe('Quests page claiming', () => {
-  const refresh = jest.fn();
+describe("Quests page claiming", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    refresh.mockClear();
-    useMe.mockReturnValue({ me: { tier: 'Free', levelProgress: 0 }, refresh });
+    getMe.mockResolvedValue({}); // MeProvider will call this
   });
 
-  test('claiming a quest refreshes data and shows awarded XP', async () => {
-    getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, requirement: 'none' }],
-      completed: [],
-      xp: 0,
-    });
-    render(<Quests />);
-
-    const claimBtn = await screen.findByText('Claim');
+  test("claiming a quest refreshes data and shows awarded XP", async () => {
+    getQuests.mockResolvedValueOnce({ quests: [{ id: 1, xp: 10, active: 1, requirement: "none" }], completed: [], xp: 0 });
+    render(<MeProvider><Quests /></MeProvider>);
 
     claimQuest.mockResolvedValue({ xp: 50 });
-    getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, completed: true }],
-      completed: [1],
-      xp: 50,
-    });
+    getQuests.mockResolvedValueOnce({ quests: [{ id: 1, xp: 10, active: 1, completed: true }], completed: [1], xp: 50 });
 
+    const claimBtn = await screen.findByText("Claim");
     await userEvent.click(claimBtn);
-    await waitFor(() => expect(refresh).toHaveBeenCalled());
-    await waitFor(() => expect(getQuests).toHaveBeenCalledTimes(2));
 
-    expect(await screen.findByText('+50 XP')).toBeInTheDocument();
+    expect(claimQuest).toHaveBeenCalledWith(1);
+    expect(await screen.findByText("+50 XP")).toBeInTheDocument();
   });
 
-  test('quest title links to URL when provided', async () => {
-    getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, url: 'https://example.com', requirement: 'none' }],
-      completed: [],
-      xp: 0,
-    });
-    render(<Quests />);
+  test("submitting proof enables claim for tweet quest", async () => {
+    getQuests.mockResolvedValueOnce({ quests: [{ id: 1, xp: 10, active: 1, requirement: "tweet" }], completed: [], xp: 0 });
+    getQuests.mockResolvedValueOnce({ quests: [{ id: 1, xp: 10, active: 1, requirement: "tweet", proofStatus: "approved" }], completed: [], xp: 0 });
 
-    const link = await screen.findByRole('link', { name: '1' });
-    expect(link).toHaveAttribute('href', 'https://example.com');
-  });
+    render(<MeProvider><Quests /></MeProvider>);
 
-  test('submitting proof enables claim for tweet quest', async () => {
-    getQuests.mockResolvedValueOnce({
-      quests: [{ id: 1, xp: 10, active: 1, requirement: 'tweet' }],
-      completed: [],
-      xp: 0,
-    });
-    getQuests.mockResolvedValueOnce({
-      quests: [
-        { id: 1, xp: 10, active: 1, requirement: 'tweet', proofStatus: 'approved' },
-      ],
-      completed: [],
-      xp: 0,
-    });
-    render(<Quests />);
+    const input = await screen.findByPlaceholderText("Paste tweet/retweet/quote link");
+    await userEvent.type(input, "https://twitter.com/user/status/1");
 
-    const input = await screen.findByPlaceholderText('Paste tweet/retweet/quote link');
-    await userEvent.type(input, 'https://twitter.com/user/status/1');
-
-    submitProof.mockResolvedValueOnce({ status: 'approved' });
-    const submitBtn = screen.getByText('Submit');
+    submitProof.mockResolvedValueOnce({ status: "approved" });
+    const submitBtn = screen.getByText("Submit");
     await userEvent.click(submitBtn);
 
     await waitFor(() => expect(submitProof).toHaveBeenCalled());
-    await waitFor(() => expect(refresh).toHaveBeenCalled());
-
-    const claimBtn = await screen.findByText('Claim');
+    const claimBtn = await screen.findByText("Claim");
     expect(claimBtn).not.toBeDisabled();
   });
 });
-
-

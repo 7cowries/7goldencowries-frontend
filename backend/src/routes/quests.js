@@ -9,7 +9,10 @@ function categoryFor(q) {
   return 'All';
 }
 
-function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, run: () => {} }) }, { awardQuest, getUser, normalizeMe } = {}) {
+function createRouter(
+  db = { prepare: () => ({ all: () => [], get: () => null, run: () => {} }) },
+  { awardQuest, getUser, normalizeMe } = {}
+) {
   const router = express.Router();
   const proofs = new Map();
 
@@ -23,9 +26,9 @@ function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, r
       requirement: q.requirement || q.type || 'none',
       claimed: false,
       xp: q.xp,
-      active: q.active
+      active: q.active,
     }));
-    res.json({ quests });
+    return res.json({ quests });
   });
 
   router.post('/:id/proofs', (req, res) => {
@@ -63,14 +66,13 @@ function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, r
 
     try {
       db
-        .prepare(
-          'INSERT INTO quest_proofs (quest_id, wallet, vendor, url, status, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
-        )
+        .prepare('INSERT INTO quest_proofs (quest_id, wallet, vendor, url, status, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
         .run(id, wallet, vendor, url, status);
     } catch (e) {
       /* ignore db errors in demo */
     }
-    res.json({ ok: true, status });
+
+    return res.json({ ok: true, status });
   });
 
   router.post('/:id/claim', async (req, res) => {
@@ -90,12 +92,12 @@ function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, r
     }
 
     try {
-      const result = await (awardQuest ? awardQuest(wallet, id) : Promise.resolve({ ok: true, xpGain: 0 }));
+      const result = await (awardQuest ? awardQuest(wallet, id) : { ok: true, xpDelta: 0 });
       const user = getUser ? getUser(wallet) : null;
-      const me = normalizeMe && user ? normalizeMe(user) : undefined;
-      res.json({ ok: true, xpDelta: result.xpGain || result.xpDelta || 0, me });
+      const me = normalizeMe && user ? normalizeMe(user) : null;
+      return res.json({ ok: true, xpDelta: result.xpGain ?? result.xpDelta ?? 0, me });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      return res.status(400).json({ error: e.message });
     }
   });
 

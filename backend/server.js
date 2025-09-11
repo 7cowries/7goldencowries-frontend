@@ -248,7 +248,7 @@ app.get('/api/users/me', (req, res) => {
     .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
     .slice(0, 50)
     .map((q) => ({ questId: q.questId, title: q.title, xp: q.xp, completed_at: q.completed_at }));
-  res.json(me);
+  return res.json(me);
 });
 
 // Referral status for current session
