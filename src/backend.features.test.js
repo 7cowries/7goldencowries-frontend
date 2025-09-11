@@ -40,7 +40,7 @@ describe('backend features', () => {
     app.__users.get('w1').subscriptionTier = 'Tier3';
     await call('POST', '/api/quests/1/proofs', { wallet: 'w1', vendor: 'link', url: 'https://example.com' });
     const res = await call('POST', '/api/quests/1/claim', { wallet: 'w1' });
-    expect(res.body.xpGain).toBe(13);
+    expect(res.body.xpDelta).toBe(13);
   });
 
   test('auth start aliases redirect', async () => {
@@ -65,10 +65,10 @@ describe('backend features', () => {
     await call('POST', '/api/quests/3/proofs', { wallet: 'w3', vendor: 'link', url: 'https://example.com' });
     await call('POST', '/api/quests/3/claim', { wallet: 'w3' });
     const res = await call('GET', '/api/users/me', null, jar);
-    expect(res.body.user.wallet).toBe('w3');
-    expect(res.body.user.levelProgress).toBeGreaterThanOrEqual(0);
-    expect(res.body.user.levelProgress).toBeLessThanOrEqual(1);
-    expect(Array.isArray(res.body.user.questHistory)).toBe(true);
-    expect(res.body.user.questHistory[0].questId).toBe(3);
+    expect(res.body.wallet).toBe('w3');
+    expect(res.body.levelProgress).toBeGreaterThanOrEqual(0);
+    expect(res.body.levelProgress).toBeLessThanOrEqual(1);
+    expect(Array.isArray(res.body.history)).toBe(true);
+    expect(res.body.history[0].questId).toBe(3);
   });
 });

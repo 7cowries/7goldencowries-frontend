@@ -1,16 +1,19 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Quests from './Quests';
-import { getQuests, claimQuest, getMe, submitProof } from '../utils/api';
-import { MeProvider } from '../state/me';
+import { getQuests, claimQuest, submitProof } from '../utils/api';
+import { useMe } from '../state/me';
 
 jest.mock('../utils/api');
+jest.mock('../state/me');
 
 describe('Quests page claiming', () => {
+  const refresh = jest.fn();
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    getMe.mockResolvedValue({});
+    refresh.mockClear();
+    useMe.mockReturnValue({ me: { tier: 'Free', levelProgress: 0 }, refresh });
   });
 
   test('claiming a quest refreshes data and shows awarded XP', async () => {
@@ -19,26 +22,11 @@ describe('Quests page claiming', () => {
       completed: [],
       xp: 0,
     });
-    getMe.mockResolvedValueOnce({
-      wallet: 'w',
-      xp: 0,
-      level: '1',
-      levelProgress: 0,
-      socials: {},
-    });
-
-    render(<MeProvider><Quests /></MeProvider>);
+    render(<Quests />);
 
     const claimBtn = await screen.findByText('Claim');
 
     claimQuest.mockResolvedValue({ xp: 50 });
-    getMe.mockResolvedValueOnce({
-      wallet: 'w',
-      xp: 50,
-      level: '1',
-      levelProgress: 0,
-      socials: {},
-    });
     getQuests.mockResolvedValueOnce({
       quests: [{ id: 1, xp: 10, active: 1, completed: true }],
       completed: [1],
@@ -46,8 +34,7 @@ describe('Quests page claiming', () => {
     });
 
     await userEvent.click(claimBtn);
-
-    await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
     await waitFor(() => expect(getQuests).toHaveBeenCalledTimes(2));
 
     expect(await screen.findByText('+50 XP')).toBeInTheDocument();
@@ -59,15 +46,7 @@ describe('Quests page claiming', () => {
       completed: [],
       xp: 0,
     });
-    getMe.mockResolvedValueOnce({
-      wallet: 'w',
-      xp: 0,
-      level: '1',
-      levelProgress: 0,
-      socials: {},
-    });
-
-    render(<MeProvider><Quests /></MeProvider>);
+    render(<Quests />);
 
     const link = await screen.findByRole('link', { name: '1' });
     expect(link).toHaveAttribute('href', 'https://example.com');
@@ -86,25 +65,17 @@ describe('Quests page claiming', () => {
       completed: [],
       xp: 0,
     });
-    getMe.mockResolvedValueOnce({
-      wallet: 'w',
-      xp: 0,
-      level: '1',
-      levelProgress: 0,
-      socials: {},
-    });
-
-    render(<MeProvider><Quests /></MeProvider>);
+    render(<Quests />);
 
     const input = await screen.findByPlaceholderText('Paste tweet/retweet/quote link');
     await userEvent.type(input, 'https://twitter.com/user/status/1');
 
     submitProof.mockResolvedValueOnce({ status: 'approved' });
-      const submitBtn = screen.getByText('Submit');
+    const submitBtn = screen.getByText('Submit');
     await userEvent.click(submitBtn);
 
     await waitFor(() => expect(submitProof).toHaveBeenCalled());
-    await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
 
     const claimBtn = await screen.findByText('Claim');
     expect(claimBtn).not.toBeDisabled();
