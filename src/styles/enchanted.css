@@ -1,83 +1,71 @@
-/* 7GoldenCowries — Enchanted Web3 GOD MODE UI */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Audiowide&display=swap');
+/* Enchanted Web3 GOD MODE UI */
 :root {
-  --ink: #eef5ff;
-  --ink-dim: #bcd0ee;
-  --gold: #ffd466;
-  --aqua: #66e0ff;
-  --border: rgba(255,255,255,.12);
   --sidebar-w: 260px;
-  --r-md: 14px;
-  --blur: 18px;
-  --sat: 160%;
-  --anim-fast: .15s;
-  --anim-med: .3s;
-  --shadow-sm: 0 4px 20px rgba(0,0,0,.15);
 }
-body {
-  font-family: 'Poppins', sans-serif;
-  color: var(--ink);
-  background: linear-gradient(180deg,#061325,#0a1f3f);
-  min-height: 100vh;
-}
+
+/* Layout */
 .app-layout {
-  display:flex;
+  min-height: 100vh;
+  display: flex;
 }
+
 .main-view {
-  flex:1;
-  margin-left: var(--sidebar-w);
-  padding:24px;
+  flex: 1;
+  padding: 24px;
 }
-@media (max-width:1024px){
-  .main-view{margin-left:0;}
-}
+
 .page {
-  width:100%;
-  max-width:960px;
-  margin:0 auto;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
-/* --- Nav add-ons to drive the drawer/fixed sidebar --- */
-.sidebar {
-  position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
-  display: flex; flex-direction: column; gap: 10px;
+/* Desktop offset so content isn't under the fixed sidebar */
+@media (min-width: 1025px) {
+  .app-layout .main-view { margin-left: var(--sidebar-w); }
+}
+
+/* Sections & Cards */
+.section { margin-bottom: 32px; }
+
+.card {
   padding: 16px;
-  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-  border-right: 1px solid var(--border);
-  backdrop-filter: blur(var(--blur)) saturate(var(--sat));
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
-  z-index: 6;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.10);
 }
-.nav-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-.nav-logo { font-family:'Audiowide',sans-serif; font-size:18px; color: var(--ink); }
-.nav-list { display:flex; flex-direction:column; gap:10px; overflow:auto; }
-.nav-item {
-  display:flex; align-items:center; gap:10px; padding:12px 14px;
-  border-radius: var(--r-md);
-  color: var(--ink-dim); text-decoration:none;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12);
-  transition: transform var(--anim-fast), border-color var(--anim-fast), background var(--anim-fast);
-}
-.nav-item:hover { transform: translateY(-2px); border-color: var(--aqua); color: var(--ink); }
-.nav-item.active {
-  color:#0a1a2f; background: linear-gradient(135deg, var(--gold), var(--aqua));
-  border-color: transparent; box-shadow: var(--shadow-sm);
-}
-.menu-btn { display:none; }
 
-@media (max-width: 1024px) {
-  .sidebar { transform: translateX(-100%); transition: transform var(--anim-med) ease; }
-  .sidebar.open { transform: translateX(0); }
-  .nav-scrim {
-    position: fixed; inset: 0; background: rgba(0,0,0,.45);
-    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
-    z-index: 5; opacity: 0; pointer-events: none; transition: opacity var(--anim-med);
-  }
-  .nav-scrim.show { opacity: 1; pointer-events: auto; }
-  .menu-btn {
-    display:inline-flex; align-items:center; gap:8px;
-    padding:10px 12px; border-radius:var(--r-sm); border:1px solid rgba(255,255,255,.25);
-    background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.06)); color: var(--ink);
-  }
+/* Gradient border utility */
+.gradient-border { position: relative; }
+.gradient-border::before {
+  content: "";
+  position: absolute; inset: 0; padding: 1px; border-radius: inherit;
+  background: linear-gradient(135deg, #00f0ff, #ffe066);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
 }
+
+/* Responsive grids */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; padding:12px 20px; border-radius:12px; font-weight:600; cursor:pointer; text-decoration:none; }
+.btn.primary { background: var(--aqua); color: #000; }
+.btn.ghost   { border: 1px solid var(--aqua); color: var(--aqua); background: transparent; }
+.btn.glow    { box-shadow: 0 0 12px rgba(0,240,255,0.6); }
+.btn.success { background: #27e4c4; color: #000; }
+
+/* Pills/Chips */
+.pill, .chip { display:inline-block; padding:4px 8px; border-radius:20px; background: rgba(255,255,255,0.10); font-size:12px; }
+
+/* Progress */
+.progress-wrap { width: 100%; }
+.progress-bar { width:100%; height:8px; border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.15); }
+.progress-fill { height:100%; background: linear-gradient(90deg, var(--aqua), var(--violet)); }
+
+/* Hero */
+.hero .title { font-size: 2rem; font-weight: 700; }
+.hero .subtitle { margin-top: 8px; }
+
+/* Links */
+.link-underline { text-decoration: underline; }
