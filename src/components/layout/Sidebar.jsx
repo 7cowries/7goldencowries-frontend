@@ -41,7 +41,7 @@ export default function Sidebar() {
                 padding: "14px 16px",
                 borderRadius: 14,
                 textDecoration: "none",
-                color: "var(--ink)",
+                color: "var(--ink-0)",
                 border: "1px solid rgba(255,255,255,.18)",
                 background: active
                   ? "linear-gradient(135deg, rgba(0,240,255,.25), rgba(255,224,102,.25))"
