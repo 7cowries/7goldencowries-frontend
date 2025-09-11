@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getLeaderboard } from '../utils/api';
 import { abbreviateWallet } from '../lib/format';
 import Page from '../components/Page';
+import { Progress } from '../components/ui/Progress';
 
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState([]);
@@ -36,12 +37,16 @@ export default function Leaderboard() {
     walletRef.current = localStorage.getItem('wallet') || '';
     mountedRef.current = true;
     const controller = new AbortController();
-    load(controller.signal);
-    timerRef.current = setInterval(() => load(controller.signal), REFRESH_MS);
+    const tick = () => load(controller.signal);
+    const onVis = () => { if (!document.hidden) tick(); };
+    tick();
+    timerRef.current = setInterval(() => { if (!document.hidden) tick(); }, REFRESH_MS);
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       mountedRef.current = false;
       controller.abort();
       if (timerRef.current) clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, []);
 
@@ -55,12 +60,6 @@ export default function Leaderboard() {
 
   const podium = leaders.slice(0, 3);
   const rest = leaders.slice(3);
-
-  const Bar = ({ pct = 0 }) => (
-    <div className="bar-outer">
-      <div className="bar-inner" style={{ width: `${(pct * 100).toFixed(1)}%` }} />
-    </div>
-  );
 
   return (
     <Page>
@@ -94,7 +93,7 @@ export default function Leaderboard() {
               <span className="chip">{u.levelName}</span>
               <span className="chip">{u.xp} XP</span>
             </div>
-            <Bar pct={u.progress} />
+            <Progress value={u.progress * 100} />
           </div>
         ))}
       </div>
@@ -130,7 +129,7 @@ export default function Leaderboard() {
                 </div>
                 <div className="xp mono">{u.xp} XP</div>
                 <div className="grow">
-                  <Bar pct={u.progress} />
+                  <Progress value={u.progress * 100} />
                 </div>
               </div>
             );

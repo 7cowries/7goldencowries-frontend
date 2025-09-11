@@ -9,13 +9,22 @@ function categoryFor(q) {
   return 'All';
 }
 
-function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, run: () => {} }) }, { awardQuest } = {}) {
+function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, run: () => {} }) }, { awardQuest, getUser, normalizeMe } = {}) {
   const router = express.Router();
   const proofs = new Map();
 
   router.get('/', (req, res) => {
-    const rows = db.prepare('SELECT id, title, type, xp, active, sort, url FROM quests').all();
-    const quests = rows.map((q) => ({ ...q, category: categoryFor(q) }));
+    const rows = db.prepare('SELECT id, title, type, xp, active, sort, url, requirement FROM quests').all();
+    const quests = rows.map((q) => ({
+      id: q.id,
+      title: q.title,
+      url: q.url,
+      category: categoryFor(q),
+      requirement: q.requirement || q.type || 'none',
+      claimed: false,
+      xp: q.xp,
+      active: q.active
+    }));
     res.json({ quests });
   });
 
@@ -61,7 +70,7 @@ function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, r
     } catch (e) {
       /* ignore db errors in demo */
     }
-    res.json({ status });
+    res.json({ ok: true, status });
   });
 
   router.post('/:id/claim', async (req, res) => {
@@ -82,7 +91,9 @@ function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, r
 
     try {
       const result = await (awardQuest ? awardQuest(wallet, id) : Promise.resolve({ ok: true, xpGain: 0 }));
-      res.json(result);
+      const user = getUser ? getUser(wallet) : null;
+      const me = normalizeMe && user ? normalizeMe(user) : undefined;
+      res.json({ ok: true, xpDelta: result.xpGain || result.xpDelta || 0, me });
     } catch (e) {
       res.status(400).json({ error: e.message });
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getQuests, claimQuest, getMe } from '../utils/api';
+import { getQuests, claimQuest } from '../utils/api';
+import { useMe } from '../state/me';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
@@ -10,15 +11,14 @@ import { burstConfetti } from '../utils/confetti';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [me, setMe] = useState(null);
   const walletRef = useRef('');
   const mountedRef = useRef(true);
+  const { me, refresh } = useMe();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -31,14 +31,6 @@ export default function Quests() {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
     setQuests(data?.quests ?? []);
-    setXp(data?.xp ?? 0);
-  }
-
-  async function loadMe() {
-    try {
-      const data = await getMe();
-      if (mountedRef.current) setMe(data);
-    } catch {}
   }
 
   async function sync() {
@@ -59,10 +51,8 @@ export default function Quests() {
   useEffect(() => {
     walletRef.current = localStorage.getItem('wallet') || '';
     sync();
-    loadMe();
     const onWalletChanged = (e) => {
       walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
-      loadMe();
       sync();
     };
     const onStorage = (e) => {
@@ -80,8 +70,8 @@ export default function Quests() {
 
   useEffect(() => {
     const reload = () => {
-      loadMe();
       sync();
+      refresh();
     };
     window.addEventListener('profile-updated', reload);
     window.addEventListener('focus', reload);
@@ -89,7 +79,7 @@ export default function Quests() {
       window.removeEventListener('profile-updated', reload);
       window.removeEventListener('focus', reload);
     };
-  }, []);
+  }, [refresh]);
 
     const handleClaim = async (id) => {
       walletRef.current = localStorage.getItem('wallet') || '';
@@ -103,14 +93,8 @@ export default function Quests() {
         burstConfetti();
         const delta = res?.xpDelta ?? res?.xp;
         setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
-        await Promise.all([getMe(), getQuests()]).then(([meData, questsData]) => {
-          if (mountedRef.current) {
-            setMe(meData);
-            setQuests(questsData?.quests ?? []);
-            setXp(questsData?.xp ?? 0);
-          }
-        });
-        window.dispatchEvent(new Event('profile-updated'));
+        await refresh();
+        await loadQuests();
       } catch (e) {
         setToast(e.message || 'Failed to claim quest');
       } finally {

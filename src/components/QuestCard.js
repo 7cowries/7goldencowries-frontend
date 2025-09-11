@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import useTilt from '../fx/useTilt';
 import { submitProof, tierMultiplier } from '../utils/api';
+import { useMe } from '../state/me';
 
 export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
   const q = quest;
@@ -13,6 +14,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
   const projected = Math.round((q.xp || 0) * mult);
   const cardRef = useRef(null);
   useTilt(cardRef, 8);
+  const { refresh } = useMe();
 
   return (
     <div ref={cardRef} className="glass quest-card fade-in">
@@ -86,7 +88,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
                 q.proofStatus = res?.status || 'pending'; // optimistic
                 setToast?.('Proof submitted');
                 setTimeout(() => setToast?.(''), 3000);
-                window.dispatchEvent(new Event('profile-updated'));
+                await refresh();
               } catch (e) {
                 setToast?.(e?.message || 'Failed to submit proof');
                 setTimeout(() => setToast?.(''), 3000);

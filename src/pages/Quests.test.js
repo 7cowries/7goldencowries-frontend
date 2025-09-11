@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Quests from './Quests';
 import { getQuests, claimQuest, getMe, submitProof } from '../utils/api';
+import { MeProvider } from '../state/me';
 
 jest.mock('../utils/api');
 
@@ -9,6 +10,7 @@ describe('Quests page claiming', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    getMe.mockResolvedValue({});
   });
 
   test('claiming a quest refreshes data and shows awarded XP', async () => {
@@ -25,7 +27,7 @@ describe('Quests page claiming', () => {
       socials: {},
     });
 
-    render(<Quests />);
+    render(<MeProvider><Quests /></MeProvider>);
 
     const claimBtn = await screen.findByText('Claim');
 
@@ -45,8 +47,8 @@ describe('Quests page claiming', () => {
 
     await userEvent.click(claimBtn);
 
-    await waitFor(() => expect(getMe).toHaveBeenCalled());
-    await waitFor(() => expect(getQuests).toHaveBeenCalled());
+    await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getQuests).toHaveBeenCalledTimes(2));
 
     expect(await screen.findByText('+50 XP')).toBeInTheDocument();
   });
@@ -65,7 +67,7 @@ describe('Quests page claiming', () => {
       socials: {},
     });
 
-    render(<Quests />);
+    render(<MeProvider><Quests /></MeProvider>);
 
     const link = await screen.findByRole('link', { name: '1' });
     expect(link).toHaveAttribute('href', 'https://example.com');
@@ -92,7 +94,7 @@ describe('Quests page claiming', () => {
       socials: {},
     });
 
-    render(<Quests />);
+    render(<MeProvider><Quests /></MeProvider>);
 
     const input = await screen.findByPlaceholderText('Paste tweet/retweet/quote link');
     await userEvent.type(input, 'https://twitter.com/user/status/1');
@@ -102,6 +104,7 @@ describe('Quests page claiming', () => {
     await userEvent.click(submitBtn);
 
     await waitFor(() => expect(submitProof).toHaveBeenCalled());
+    await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2));
 
     const claimBtn = await screen.findByText('Claim');
     expect(claimBtn).not.toBeDisabled();

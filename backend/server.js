@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { createRouter } = require('./src/routes/quests.js');
+const { normalizeMe } = require('./src/utils/normalize');
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -229,7 +230,7 @@ app.get('/auth/:provider/callback', (req, res) => {
 app.get('/api/users/me', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res.json({ user: null });
+    return res.json(normalizeMe());
   }
   let user = users.get(sess.wallet);
   if (!user) {
@@ -241,13 +242,13 @@ app.get('/api/users/me', (req, res) => {
     referralCodes.set(user.referral_code, sess.wallet);
   }
   sess.user = user;
-  const levelProgress = Math.min(1, Math.max(0, user.levelProgress != null ? user.levelProgress : (user.xp || 0) / (user.nextXP || 1)));
-  const questHistory = (user.questHistory || [])
+  const me = normalizeMe(user);
+  me.history = (user.questHistory || [])
     .slice()
     .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
     .slice(0, 50)
     .map((q) => ({ questId: q.questId, title: q.title, xp: q.xp, completed_at: q.completed_at }));
-  res.json({ user: { ...DEFAULT_ME, ...user, wallet: sess.wallet, levelProgress, questHistory } });
+  res.json(me);
 });
 
 // Referral status for current session
@@ -268,7 +269,7 @@ app.get('/api/referral/status', (req, res) => {
 });
 
 // Attach quests router
-app.use('/api/quests', createRouter(null, { awardQuest }));
+app.use('/api/quests', createRouter(null, { awardQuest, getUser: (w) => users.get(w), normalizeMe }));
 
 module.exports = app;
 

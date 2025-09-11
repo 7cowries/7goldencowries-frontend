@@ -1,45 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { getMe } from '../utils/api';
-import { clampProgress } from '../lib/format';
+import React from 'react';
+import { useMe } from '../state/me';
+import { Progress } from './ui/Progress';
 
 export default function ProfileWidget() {
-  const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState(null);
-  const [error, setError] = useState('');
-
-  async function load() {
-    try {
-      const data = await getMe();
-      setMe(data);
-      setError('');
-    } catch (e) {
-      setError(e.message || 'Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-    const onUpdate = () => load();
-    window.addEventListener('profile-updated', onUpdate);
-    return () => window.removeEventListener('profile-updated', onUpdate);
-  }, []);
-
-  if (loading) return <div style={{ height: 40 }} />;
-  if (error) return <div>Error: {error}</div>;
+  const { me } = useMe();
   if (!me) return <div style={{ height: 40 }} />;
 
-  const progressPct = clampProgress((me.levelProgress || 0) * 100);
+  const pct = Math.min(100, Math.max(0, me.levelProgress * 100));
 
   return (
     <div style={{ marginBottom: 16 }}>
       <div>Level {me.levelName}, {me.xp} XP, Next: {me.nextXP}</div>
-      <div style={{ background: '#eee', height: 8, borderRadius: 4 }}>
-        <div
-          style={{ width: `${progressPct}%`, background: '#4caf50', height: '100%', borderRadius: 4 }}
-        />
-      </div>
+      <Progress value={pct} />
     </div>
   );
 }
