@@ -1,14 +1,14 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import AppLayout from './components/layout/AppLayout';
-// import your pages:
-import Home from './pages/Home';
-import Quests from './pages/Quests';
-import Leaderboard from './pages/Leaderboard';
-import Profile from './pages/Profile';
-import Isles from './pages/Isles';
-import Referral from './pages/Referral';
-import Subscription from './pages/Subscription';
-import TokenSale from './pages/TokenSale';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout";
+
+import Home from "./pages/Home";
+import Quests from "./pages/Quests";
+import Leaderboard from "./pages/Leaderboard";
+import Profile from "./pages/Profile";
+import Isles from "./pages/Isles";
+import Referral from "./pages/Referral";
+import Subscription from "./pages/Subscription";
+import TokenSale from "./pages/TokenSale";
 
 export default function App() {
   return (
