@@ -19,11 +19,6 @@
   margin: 0 auto;
 }
 
-/* Desktop offset so content isn't under the fixed sidebar */
-@media (min-width: 1025px) {
-  .app-layout .main-view { margin-left: var(--sidebar-w); }
-}
-
 /* Sections & Cards */
 .section { margin-bottom: 32px; }
 

@@ -118,11 +118,6 @@
   justify-content: center;
 }
 
-/* Push main content so it doesn't sit under the fixed sidebar (desktop only) */
-@media (min-width: 1025px){
-  .app-layout .main-view{ margin-left: var(--sidebar-w); }
-}
-
 /* On smaller screens, main content is full-width. Sidebar is a drawer. */
 @media (max-width: 1024px){
   .app-layout .main-view{ margin-left: 0; }
