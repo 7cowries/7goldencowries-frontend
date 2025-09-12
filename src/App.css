@@ -581,7 +581,10 @@ input:focus, select:focus, textarea:focus {
 
 /* Ensure main content isn’t hidden behind fixed sidebar on desktop */
 @media (min-width: 1025px) {
-  .app-layout .main-view { margin-left: var(--sidebar-w); }
+  .app-layout .main-view {
+    margin-left: var(--sidebar-w);
+    width: calc(100% - var(--sidebar-w));
+  }
 }
 
 /* --------------------------------
