@@ -15,21 +15,12 @@ const items = [
 export default function Sidebar({ open = false }) {
   const { pathname } = useLocation();
   return (
-    <aside
-      className={`sidebar ${open ? "open" : ""}`}
-      role="navigation"
-      aria-label="Main"
-    >
+    <aside className={`sidebar ${open ? "open" : ""}`} role="navigation" aria-label="Main">
       <nav className="nav-list">
         {items.map((it) => {
           const active = pathname === it.to;
           return (
-            <Link
-              key={it.to}
-              to={it.to}
-              className={`nav-item ${active ? "active" : ""}`}
-              aria-current={active ? "page" : undefined}
-            >
+            <Link key={it.to} to={it.to} className={`nav-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}>
               <span className="nav-emoji">{it.emoji}</span>
               <span className="nav-label">{it.label}</span>
             </Link>
