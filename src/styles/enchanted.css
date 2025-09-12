@@ -10,7 +10,11 @@
 .app-layout { min-height: 100vh; display: flex; }
 .main-view { flex: 1; padding: 24px; position: relative; z-index: 1; }
 @media (min-width: 1025px) { .app-layout .main-view { margin-left: var(--sidebar-w); } }
-.page { width: 100%; margin: 0 auto; padding: 0 16px; }
+.page {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 0 16px;
+}
 
 /* Sections & Cards */
 .section { margin-bottom: 32px; }

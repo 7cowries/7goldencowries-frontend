@@ -68,10 +68,7 @@ a:hover, .quest-title a:hover { color: var(--link-hover); text-decoration: under
 
 /* Standard page container */
 .page {
-  width: 100%;
-  margin: 0 auto;
-  position: relative;
-  animation: fade-in 0.8s ease-out;
+  /* use enchanted.css canonical rule */
 }
 
 /* Fade-in animation for pages */
