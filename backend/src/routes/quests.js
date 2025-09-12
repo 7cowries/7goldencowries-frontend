@@ -1,5 +1,4 @@
 const express = require('express');
-const { bump } = require('../utils/limits');
 
 function categoryFor(q) {
   if ([1, 2, 3].includes(q.id)) return 'Social';
@@ -9,9 +8,8 @@ function categoryFor(q) {
   return 'All';
 }
 
-function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, run: () => {} }) }, { awardQuest } = {}) {
+function createRouter(db, { awardQuest, clearUserCache } = {}) {
   const router = express.Router();
-  const proofs = new Map();
 
   router.get('/', (req, res) => {
     const rows = db.prepare('SELECT id, title, type, xp, active, sort, url FROM quests').all();
@@ -33,56 +31,30 @@ function createRouter(db = { prepare: () => ({ all: () => [], get: () => null, r
       return res.status(400).json({ error: 'url required' });
     }
 
-    if (!bump(`${req.ip}:${wallet}:proof`, { limit: 10, windowMs: 60000 })) {
-      return res.status(429).json({ error: 'rate_limited' });
-    }
-
     const allowedVendors = new Set(['twitter', 'telegram', 'discord', 'link']);
     if (!allowedVendors.has(vendor)) {
       return res.status(400).json({ error: 'unsupported vendor' });
     }
 
-    let parsed;
     try {
-      parsed = new URL(url);
+      new URL(url);
     } catch {
       return res.status(400).json({ error: 'invalid url' });
     }
 
-    const status = parsed.host ? 'approved' : 'pending';
-    proofs.set(`${wallet}:${id}`, { wallet, questId: id, vendor, url, status, updated_at: new Date().toISOString() });
-
-    try {
-      db
-        .prepare(
-          'INSERT INTO quest_proofs (quest_id, wallet, vendor, url, status, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
-        )
-        .run(id, wallet, vendor, url, status);
-    } catch (e) {
-      /* ignore db errors in demo */
-    }
-    res.json({ status });
+    const quest = db.prepare('SELECT id FROM quests WHERE id = ?').get(id);
+    if (!quest) return res.status(404).json({ error: 'Quest not found' });
+    db.prepare('INSERT INTO quest_proofs (quest_id, wallet, vendor, url, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)').run(id, wallet, vendor, url);
+    res.json({ ok: true });
   });
 
   router.post('/:id/claim', async (req, res) => {
     const id = Number(req.params.id);
     const wallet = req.body && req.body.wallet;
-    if (typeof wallet !== 'string' || !wallet.trim()) {
-      return res.status(400).json({ error: 'wallet required' });
-    }
-
-    if (!bump(`${req.ip}:${wallet}:claim`, { limit: 10, windowMs: 60000 })) {
-      return res.status(429).json({ error: 'rate_limited' });
-    }
-
-    const proof = proofs.get(`${wallet}:${id}`);
-    if (!proof || proof.status !== 'approved') {
-      return res.status(400).json({ error: 'proof_required' });
-    }
-
     try {
-      const result = await (awardQuest ? awardQuest(wallet, id) : Promise.resolve({ ok: true, xpGain: 0 }));
-      res.json(result);
+      const result = await (awardQuest ? awardQuest(id, wallet) : Promise.resolve({ xp: 0 }));
+      if (clearUserCache && wallet) clearUserCache(wallet);
+      res.json({ xp: result.xp, status: 'ok', alreadyClaimed: result.alreadyClaimed });
     } catch (e) {
       res.status(400).json({ error: e.message });
     }

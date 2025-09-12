@@ -25,7 +25,6 @@ const DEFAULT_ME = {
 const sessions = new Map();
 const users = new Map(); // wallet -> user profile
 const referralCodes = new Map(); // code -> wallet
-let leaderboardCache = null;
 
 function parseCookies(req) {
   const hdr = req.headers.cookie || '';
@@ -48,41 +47,8 @@ function getSession(req, res) {
   return sessions.get(sid);
 }
 
-function awardQuest(wallet, questId) {
-  if (typeof wallet !== 'string' || !wallet.trim()) throw new Error('wallet required');
-  let user = users.get(wallet);
-  if (!user) {
-    user = { ...DEFAULT_ME, wallet };
-    users.set(wallet, user);
-  }
-  if (user.questHistory && user.questHistory.some((q) => q.questId === questId)) {
-    return { ok: true, xpGain: 0, already: true };
-  }
-  const baseXP = 10;
-  const tier = user.subscriptionTier || 'Free';
-  const mult = tier === 'Tier3' ? 1.25 : tier === 'Tier2' ? 1.1 : tier === 'Tier1' ? 1.05 : 1;
-  const gain = Math.round(baseXP * mult);
-  user.xp = (user.xp || 0) + gain;
-  if (!user.questHistory) user.questHistory = [];
-  user.questHistory.push({
-    questId,
-    title: `Quest ${questId}`,
-    xp: gain,
-    completed_at: new Date().toISOString(),
-  });
-  if (user.questHistory.length > 50) {
-    user.questHistory = user.questHistory.slice(-50);
-  }
-  leaderboardCache = null;
-  return { ok: true, xpGain: gain };
-}
-
 const app = express();
 app.set('etag', false);
-
-// expose internals for tests
-app.__users = users;
-app.__sessions = sessions;
 
 // CORS configuration allowing production + local dev origins with credentials
 const allowedOrigins = [
@@ -156,11 +122,6 @@ app.post('/api/session/bind-wallet', (req, res) => {
     return res.status(400).json({ error: 'wallet required' });
   }
   const w = wallet.trim();
-  const now = Date.now();
-  if (sess.wallet === w && sess.lastBindAt && now - sess.lastBindAt < 4000) {
-    return res.json({ ok: true });
-  }
-  sess.lastBindAt = now;
   sess.wallet = w;
 
   const cookies = parseCookies(req);
@@ -194,42 +155,10 @@ app.post('/api/session/bind-wallet', (req, res) => {
   res.json({ ok: true });
 });
 
-const authProviders = new Set(['twitter', 'telegram', 'discord']);
-app.get('/api/auth/:provider/start', (req, res) => {
-  const { provider } = req.params;
-  if (!authProviders.has(provider)) return res.status(404).end();
-  res.redirect(302, `/auth/${provider}/start`);
-});
-
-app.get('/auth/:provider/callback', (req, res) => {
-  const { provider } = req.params;
-  if (!authProviders.has(provider)) return res.status(404).end();
-  const sess = getSession(req, res);
-  let user = sess.user;
-  if (!user && sess.wallet) {
-    user = users.get(sess.wallet) || { ...DEFAULT_ME, wallet: sess.wallet };
-    users.set(sess.wallet, user);
-    sess.user = user;
-  }
-  if (user) {
-    if (provider === 'twitter') user.twitterHandle = req.query.handle || null;
-    if (provider === 'telegram') {
-      user.telegramId = req.query.id || null;
-      user.telegramHandle = req.query.username || null;
-    }
-    if (provider === 'discord') {
-      user.discordId = req.query.id || null;
-    }
-  }
-  let dest = `/profile?connected=${provider}`;
-  if (req.query.guildMember !== undefined) dest += `&guildMember=${req.query.guildMember}`;
-  res.redirect(302, dest);
-});
-
 app.get('/api/users/me', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res.json({ user: null });
+    return res.json(DEFAULT_ME);
   }
   let user = users.get(sess.wallet);
   if (!user) {
@@ -241,13 +170,7 @@ app.get('/api/users/me', (req, res) => {
     referralCodes.set(user.referral_code, sess.wallet);
   }
   sess.user = user;
-  const levelProgress = Math.min(1, Math.max(0, user.levelProgress != null ? user.levelProgress : (user.xp || 0) / (user.nextXP || 1)));
-  const questHistory = (user.questHistory || [])
-    .slice()
-    .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
-    .slice(0, 50)
-    .map((q) => ({ questId: q.questId, title: q.title, xp: q.xp, completed_at: q.completed_at }));
-  res.json({ user: { ...DEFAULT_ME, ...user, wallet: sess.wallet, levelProgress, questHistory } });
+  res.json({ ...DEFAULT_ME, ...user, wallet: sess.wallet });
 });
 
 // Referral status for current session
@@ -267,8 +190,8 @@ app.get('/api/referral/status', (req, res) => {
   });
 });
 
-// Attach quests router
-app.use('/api/quests', createRouter(null, { awardQuest }));
+// Placeholder: attach additional routes here
+// e.g., app.use('/api/quests', createRouter(db));
 
 module.exports = app;
 
