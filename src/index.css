@@ -72,14 +72,7 @@ a:hover { text-decoration: underline; }
 }
 ::-webkit-scrollbar-track { background: transparent; }
 
-/* ===== Layout ===== */
-.app-layout{
-  display:grid; grid-template-columns: 280px 1fr; min-height:100vh;
-}
-.main-view{
-  padding: 24px 24px 60px;
-  max-width: 1280px; width:100%; margin:0 auto;
-}
+/* ===== Layout (moved to component styles; keep utility containers) ===== */
 .container { max-width: 1160px; margin: 0 auto; padding: var(--pad); }
 .section { padding: 18px; }
 
@@ -268,8 +261,7 @@ h1 {
 
 /* ===== Responsive ===== */
 @media (max-width: 960px){
-  .app-layout{ grid-template-columns: 1fr; }
-  .main-view{ padding: 18px 16px 70px; }
+  /* core layout handled in component styles; keep utility spacing tweaks */
   .container { padding: 16px; }
   .section { padding: 12px; }
   .btn { padding: 10px 16px; }

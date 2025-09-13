@@ -1,10 +1,10 @@
 import React from "react";
 import Sidebar from "./Sidebar";
-import "./AppLayout.css"; // layout & responsive rules
+import "./AppLayout.css"; // responsive flex layout rules
 
 export default function AppLayout({ children }) {
   return (
-    <div className="app-layout">
+    <div className="app-layout">{/* flex container so main area can grow */}
       <Sidebar />
       {/* Ambient layers */}
       <div id="magic-orbs">
