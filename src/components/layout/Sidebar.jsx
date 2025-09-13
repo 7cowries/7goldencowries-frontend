@@ -19,7 +19,7 @@ export default function Sidebar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
-  // Close drawer on route change
+  // Close drawer on route change (ensures drawer hides after navigation on mobile)
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
