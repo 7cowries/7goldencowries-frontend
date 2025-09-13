@@ -73,7 +73,7 @@ export default function Leaderboard() {
       {/* Podium */}
       <div className="grid podium">
         {podium.map((u, i) => (
-          <div key={u.wallet || i} className={`card glass podium-${i+1} ${walletRef.current===u.wallet ? 'me' : ''}`}>
+          <div key={u.wallet || i} className={`card glass glass-card podium-${i+1} ${walletRef.current===u.wallet ? 'me' : ''}`}>
             <div className="corner-rank">#{i+1}</div>
             <div className="big-wallet">
               {abbreviateWallet(u.wallet)}
@@ -108,7 +108,7 @@ export default function Leaderboard() {
             const rank = idx + 4;
             const isMe = walletRef.current === u.wallet;
             return (
-              <div key={u.wallet || rank} className={`row glass ${isMe ? 'me' : ''}`}>
+              <div key={u.wallet || rank} className={`row glass glass-card ${isMe ? 'me' : ''}`}>
                 <div className="rank">#{rank}</div>
                 <div className="wallet mono">
                   {abbreviateWallet(u.wallet)}

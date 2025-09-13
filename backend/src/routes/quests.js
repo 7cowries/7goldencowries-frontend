@@ -19,13 +19,13 @@ function createRouter(db, { awardQuest, clearUserCache } = {}) {
 
   router.post('/:id/proofs', (req, res) => {
     const id = Number(req.params.id);
-    const { wallet, vendor, url } = req.body || {};
+    const body = req.body || {};
+    const wallet = body.wallet || (req.session && req.session.wallet);
+    const vendor = body.vendor || 'link';
+    const { url } = body;
 
     if (typeof wallet !== 'string' || !wallet.trim()) {
       return res.status(400).json({ error: 'wallet required' });
-    }
-    if (typeof vendor !== 'string' || !vendor.trim()) {
-      return res.status(400).json({ error: 'vendor required' });
     }
     if (typeof url !== 'string' || !url.trim()) {
       return res.status(400).json({ error: 'url required' });

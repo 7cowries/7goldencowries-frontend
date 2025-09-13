@@ -143,7 +143,7 @@ const Subscription = () => {
         </div>
 
         {/* Current subscription card */}
-        <div className="subscription-card gradient-border hover">
+        <div className="subscription-card gradient-border hover glass-card">
           <img
             src={`/images/badges/level-${level
               .toLowerCase()
@@ -164,7 +164,7 @@ const Subscription = () => {
         <p className="muted">Your XP boost: <strong>+{(mult * 100 - 100).toFixed(0)}%</strong></p>
 
         {/* Info panel */}
-        <div className="subscription-info card">
+        <div className="subscription-info card glass-card">
           <h2>📜 Subscription Details</h2>
           <ul>
             <li>
@@ -190,7 +190,7 @@ const Subscription = () => {
             const isActive = tier.name === currentTier;
 
             return (
-              <div key={tier.tierKey} className="tier-card">
+              <div key={tier.tierKey} className="tier-card glass-card">
                 {isActive && (
                   <div className="active-ribbon">Active</div>
                 )}

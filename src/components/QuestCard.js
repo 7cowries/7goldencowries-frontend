@@ -1,21 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import useTilt from '../fx/useTilt';
-import { submitProof, tierMultiplier } from '../utils/api';
+import { tierMultiplier } from '../utils/api';
+import ProofInput from './ProofInput';
 
 export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
   const q = quest;
   const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
   const claimable = !alreadyClaimed && (!needsProof || q.proofStatus === 'approved');
-  const [url, setUrl] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const mult = tierMultiplier(me?.tier || me?.subscriptionTier);
   const projected = Math.round((q.xp || 0) * mult);
   const cardRef = useRef(null);
   useTilt(cardRef, 8);
 
   return (
-    <div ref={cardRef} className="glass quest-card fade-in">
+    <div ref={cardRef} className="glass glass-card quest-card fade-in">
       <div className="q-row">
         {q.type ? (
           <span className={`chip ${q.type}`}>
@@ -60,44 +59,14 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
 
       {/* Inline proof input (only when required and not completed) */}
       {!alreadyClaimed && needsProof && (
-        <div className="inline-proof" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={
-              q.requirement === 'join_telegram' ? 'Paste Telegram message/channel link' :
-              q.requirement === 'join_discord'  ? 'Paste Discord invite/message link' :
-              (q.requirement === 'tweet' || q.requirement === 'retweet' || q.requirement === 'quote')
-                ? 'Paste tweet/retweet/quote link'
-                : 'Paste link here'
-            }
-            className="input"
-            style={{ flex: 1, minWidth: 220 }}
-          />
-          <button
-            className="btn primary"
-            disabled={submitting || !url}
-            onClick={async () => {
-              if (!url) return;
-              setSubmitting(true);
-              try {
-                const res = await submitProof(q.id, { url });
-                q.proofStatus = res?.status || 'pending'; // optimistic
-                setToast?.('Proof submitted');
-                setTimeout(() => setToast?.(''), 3000);
-                window.dispatchEvent(new Event('profile-updated'));
-              } catch (e) {
-                setToast?.(e?.message || 'Failed to submit proof');
-                setTimeout(() => setToast?.(''), 3000);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-          >
-            {submitting ? 'Submitting…' : 'Submit'}
-          </button>
-        </div>
+        <ProofInput
+          questId={q.id}
+          requirement={q.requirement}
+          setToast={setToast}
+          onSubmitted={() => {
+            q.proofStatus = 'pending';
+          }}
+        />
       )}
 
       <div className="q-actions">

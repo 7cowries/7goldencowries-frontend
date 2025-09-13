@@ -139,11 +139,11 @@ export default function Quests() {
   return (
     <Page>
       <div className="q-container">
-        <div className="glass profile-strip">
+        <div className="glass glass-card profile-strip">
           <ProfileWidget />
         </div>
 
-        <div className="glass-strong q-header">
+        <div className="glass-strong glass-card q-header">
           <div className="q-title">
             <span className="emoji">📜</span>
             <h1><span className="yolo-gradient">Quests</span></h1>
@@ -169,7 +169,7 @@ export default function Quests() {
 
         <div className="q-list">
           {shownQuests.length === 0 ? (
-            <div className="glass quest-card">
+            <div className="glass glass-card quest-card">
               <p className="quest-title">No quests yet for this category.</p>
             </div>
           ) : (

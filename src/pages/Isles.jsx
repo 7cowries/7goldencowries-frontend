@@ -191,7 +191,7 @@ function SkeletonGrid() {
     <main className="isles-map">
       <ul className="isle-grid">
         {Array.from({ length: 6 }).map((_, i) => (
-          <li key={i} className="isle-card skeleton">
+          <li key={i} className="isle-card glass-card skeleton">
             <div className="sk-row sk-title" />
             <div className="sk-row sk-sub" />
             <div className="sk-ring" />
@@ -251,6 +251,7 @@ function useProfile(address) {
     // refresh when user completes quests elsewhere
     const onQuests = () => fetchProfile();
     window.addEventListener("quests:updated", onQuests);
+    window.addEventListener("profile-updated", onQuests);
     // refresh when tab becomes visible again
     const onVis = () => document.visibilityState === "visible" && fetchProfile();
     document.addEventListener("visibilitychange", onVis);
@@ -259,6 +260,7 @@ function useProfile(address) {
       cancelled = true;
       clearInterval(id);
       window.removeEventListener("quests:updated", onQuests);
+      window.removeEventListener("profile-updated", onQuests);
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [address]);
@@ -362,7 +364,7 @@ export default function Isles() {
                 <li
                   key={isle.key}
                   className={[
-                    "isle-card",
+                    "isle-card glass-card",
                     unlocked ? "unlocked" : "",
                     locked ? "locked" : "",
                     isCurrent ? "current" : "",

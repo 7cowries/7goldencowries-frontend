@@ -15,12 +15,6 @@
   z-index: 2;
 }
 
-@media (min-width: 1025px) {
-  .app-layout .main-view {
-    margin-left: var(--sidebar-w);
-  }
-}
-
 @media (max-width: 1200px) {
   .main-view { padding: 24px; }
 }

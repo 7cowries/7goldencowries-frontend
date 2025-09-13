@@ -36,10 +36,8 @@
 
 /* Sidebar container */
 .leftnav{
-  position: fixed;
-  left: 0; top: 0;
   width: var(--sidebar-w);
-  height: 100vh;
+  flex: 0 0 var(--sidebar-w);
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   padding: 16px;
@@ -52,13 +50,15 @@
   flex-direction: column;
 }
 
+@media (min-width: 1025px){
+  .leftnav{ position: sticky; top:0; height:100vh; transform:none !important; }
+}
+
 /* Drawer behavior on small screens */
 @media (max-width: 1024px){
+  .leftnav{ position: fixed; left:0; top:0; height:100vh; }
   .leftnav.closed{ transform: translateX(-105%); }
   .leftnav.open{ transform: translateX(0); }
-}
-@media (min-width: 1025px){
-  .leftnav{ transform: none !important; }
 }
 
 /* Brand */
