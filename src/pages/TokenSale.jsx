@@ -32,7 +32,7 @@ export default function TokenSale() {
     <Page>
       <div className="container">
         {/* HERO */}
-        <section className="section ts-hero card gradient-border pad-24 fade-in">
+        <section className="section ts-hero card gradient-border pad-24 fade-in glass-card">
           <div className="ts-hero-head">
             <h1 className="soft-title text-glow">$GCT — <span className="yolo-gradient">Golden Cowrie Token</span></h1>
             <div className="ts-badge">First Wave • Oct 4, 2025 (UTC)</div>
@@ -84,7 +84,7 @@ export default function TokenSale() {
 
         {/* WHY / TOKENOMICS */}
         <section className="section grid ts-why">
-          <div className="card gradient-border pad-24 hover">
+          <div className="card gradient-border pad-24 hover glass-card">
             <h3 className="soft-title">Why $GCT?</h3>
             <ul className="ts-bullets">
               <li>⚡ <b>Quest Power:</b> Boost XP multipliers and unlock insider quests.</li>
@@ -93,7 +93,7 @@ export default function TokenSale() {
               <li>🎁 <b>Early Perks:</b> First-wave supporters receive XP blessings & cosmetics.</li>
             </ul>
           </div>
-          <div className="card gradient-border pad-24 hover">
+          <div className="card gradient-border pad-24 hover glass-card">
             <h3 className="soft-title">Tokenomics (Preview)</h3>
             <ul className="ts-bullets">
               <li>🌊 <b>Supply:</b> <i>To Be Announced</i> — whispered across the Seven Isles.</li>
@@ -106,7 +106,7 @@ export default function TokenSale() {
         </section>
 
         {/* ROADMAP */}
-        <section className="section card gradient-border pad-24 hover ts-roadmap">
+        <section className="section card gradient-border pad-24 hover glass-card ts-roadmap">
           <h3 className="soft-title"><span className="yolo-gradient">Roadmap • Waves of Release</span></h3>
           <ol className="ts-steps">
             <li><b>First Wave</b> — Presale opens, XP blessing airdrops, lore reveal.</li>
@@ -116,7 +116,7 @@ export default function TokenSale() {
         </section>
 
         {/* FAQ */}
-        <section className="section card gradient-border pad-24 hover ts-faq">
+        <section className="section card gradient-border pad-24 hover glass-card ts-faq">
           <h3 className="soft-title">FAQ</h3>
           <details open>
             <summary>Will I be able to buy here?</summary>
