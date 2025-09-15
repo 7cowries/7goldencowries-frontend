@@ -66,6 +66,9 @@ export function downloadSaleReminder({
   URL.revokeObjectURL(url);
 }
 
+// Backwards compatibility for legacy imports
+export const openCalendarReminder = downloadSaleReminder;
+
 /** Share/invite with Web Share API, fall back to clipboard */
 export async function inviteFriend({
   url = window.location.origin + "/token-sale",
