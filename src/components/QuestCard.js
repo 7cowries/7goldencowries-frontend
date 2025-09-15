@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import useTilt from '../fx/useTilt';
 import { submitProof, tierMultiplier } from '../utils/api';
 
-export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
+export default function QuestCard({ quest, onClaim, claiming, me, setToast, canClaim = true }) {
   const q = quest;
   const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
@@ -107,8 +107,15 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
           <button
             className="btn ghost"
             onClick={() => onClaim(q.id)}
-            disabled={claiming || !claimable}
-            title={!claimable && needsProof ? 'Submit proof first' : ''}
+            disabled={claiming || !claimable || !canClaim}
+            title={
+              !canClaim
+                ? 'Connect wallet to claim'
+                : !claimable && needsProof
+                ? 'Submit proof first'
+                : ''
+            }
+            aria-disabled={claiming || !claimable || !canClaim}
           >
             {claiming ? 'Claiming...' : 'Claim'}
           </button>

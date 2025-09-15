@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AppLayout from "./components/layout/AppLayout";
+import Layout from "./components/Layout";
 
 import Home from "./pages/Home";
 import Quests from "./pages/Quests";
@@ -13,7 +13,7 @@ import TokenSale from "./pages/TokenSale";
 export default function App() {
   return (
     <BrowserRouter>
-      <AppLayout>
+      <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/quests" element={<Quests />} />
@@ -24,7 +24,7 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/isles" element={<Isles />} />
         </Routes>
-      </AppLayout>
+      </Layout>
     </BrowserRouter>
   );
 }

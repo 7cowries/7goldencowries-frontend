@@ -1,51 +1,65 @@
-import React, { useState } from "react";
-import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import { useEffect, useState } from "react";
 import Toast from "./Toast";
 import "./ConnectButtons.css";
-import { useWallet } from "../context/WalletContext";
+import { useWallet } from "../hooks/useWallet";
 
 /**
- * WalletConnect component: shows a connect or disconnect button using
- * TonConnect v2. Basic error handling is provided via a temporary toast.
+ * WalletConnect component: shows a connect or disconnect button backed by the
+ * shared `useWallet` hook. Errors surface as a temporary toast.
  */
 export default function WalletConnect({ className = "" }) {
-  const [tonConnectUI] = useTonConnectUI();
-  const address = useTonAddress();
-  const { disconnect: ctxDisconnect } = useWallet();
+  const { wallet, connect, disconnect, connecting, error } = useWallet();
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    if (!error) return;
+    setToast(error);
+    const id = window.setTimeout(() => setToast(""), 3200);
+    return () => window.clearTimeout(id);
+  }, [error]);
 
   const showError = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(""), 3000);
+    window.setTimeout(() => setToast(""), 3200);
   };
 
-  const connect = async () => {
+  const handleConnect = async () => {
     try {
-      await tonConnectUI.openModal();
+      await connect();
     } catch (e) {
-      console.error("[WalletConnect] connect error", e);
-      showError(e?.message || "Wallet connection failed");
+      if (e?.message) showError(e.message);
     }
   };
 
-  const disconnect = async () => {
+  const handleDisconnect = async () => {
     try {
-      await ctxDisconnect();
+      await disconnect();
     } catch (e) {
-      console.error("[WalletConnect] disconnect error", e);
-      showError(e?.message || "Failed to disconnect");
+      if (e?.message) showError(e.message);
     }
   };
+
+  const short = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : null;
 
   return (
     <div className={`connect-buttons ${className}`.trim()}>
-      {address ? (
-        <button type="button" className="connect-btn" onClick={disconnect}>
-          Disconnect {address.slice(0, 4)}…{address.slice(-4)}
+      {wallet ? (
+        <button
+          type="button"
+          className="connect-btn"
+          onClick={handleDisconnect}
+          disabled={connecting}
+        >
+          Disconnect {short}
         </button>
       ) : (
-        <button type="button" className="connect-btn" onClick={connect}>
-          Connect Wallet
+        <button
+          type="button"
+          className="connect-btn"
+          onClick={handleConnect}
+          disabled={connecting}
+        >
+          {connecting ? "Opening…" : "Connect Wallet"}
         </button>
       )}
       <Toast message={toast} />

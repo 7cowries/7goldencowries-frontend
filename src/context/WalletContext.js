@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -47,7 +48,7 @@ export default function WalletProvider({ children }) {
     });
   }, [wallet]);
 
-  const disconnect = async () => {
+  const disconnect = useCallback(async () => {
     try {
       await tonConnectUI.disconnect();
     } catch (e) {
@@ -58,12 +59,12 @@ export default function WalletProvider({ children }) {
     localStorage.removeItem("walletAddress");
     localStorage.removeItem("wallet");
     emitWalletChanged("");
-  };
+  }, [tonConnectUI]);
 
   // also read any TON address that other code may have saved
   const value = useMemo(
     () => ({ wallet, setWallet, disconnect, error, setError }),
-    [wallet, error]
+    [wallet, error, disconnect]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

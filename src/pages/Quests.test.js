@@ -2,13 +2,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Quests from './Quests';
 import { getQuests, claimQuest, getMe, submitProof } from '../utils/api';
+import { useWallet } from '../hooks/useWallet';
 
 jest.mock('../utils/api');
+jest.mock('../hooks/useWallet', () => ({
+  useWallet: jest.fn(),
+}));
 
 describe('Quests page claiming', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    useWallet.mockReturnValue({ wallet: 'w', isConnected: true });
   });
 
   test('claiming a quest refreshes data and shows awarded XP', async () => {
@@ -105,6 +110,22 @@ describe('Quests page claiming', () => {
 
     const claimBtn = await screen.findByText('Claim');
     expect(claimBtn).not.toBeDisabled();
+  });
+
+  test('claim button disabled when wallet disconnected', async () => {
+    useWallet.mockReturnValue({ wallet: null, isConnected: false });
+    getQuests.mockResolvedValueOnce({
+      quests: [{ id: 1, xp: 10, active: 1, requirement: 'none' }],
+      completed: [],
+      xp: 0,
+    });
+    getMe.mockResolvedValueOnce(null);
+
+    render(<Quests />);
+
+    const claimBtn = await screen.findByText('Claim');
+    expect(claimBtn).toBeDisabled();
+    expect(claimBtn).toHaveAttribute('title', 'Connect wallet to claim');
   });
 });
 

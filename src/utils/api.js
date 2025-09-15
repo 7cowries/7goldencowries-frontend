@@ -212,8 +212,24 @@ export function bindWallet(wallet, opts = {}) {
   });
 }
 
+export function startTokenSalePurchase({ wallet, amount }, opts = {}) {
+  return postJSON(
+    "/api/v1/token-sale/purchase",
+    { wallet, amount },
+    opts
+  );
+}
+
 export function getSubscription(opts = {}) {
-  return getJSON("/api/subscription", opts);
+  return getJSON("/api/v1/subscription", opts);
+}
+
+export function subscribeToTier({ wallet, tier }, opts = {}) {
+  return postJSON(
+    "/api/v1/subscription/subscribe",
+    { wallet, tier },
+    opts
+  );
 }
 
 export function startTelegram(opts = {}) {
@@ -254,7 +270,9 @@ export const api = {
   getLeaderboard,
   getMe,
   bindWallet,
+  startTokenSalePurchase,
   getSubscription,
+  subscribeToTier,
   startTelegram,
   startDiscord,
   startTwitter,

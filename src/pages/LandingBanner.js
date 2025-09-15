@@ -1,6 +1,6 @@
 // src/pages/LandingBanner.js
 import React from "react";
-import { useCountdown, SALE_START_ISO, openCalendarReminder, inviteFriend } from "../utils/launch";
+import { useCountdown, SALE_START_ISO, downloadSaleReminder, inviteFriend } from "../utils/launch";
 
 export default function LandingBanner() {
   const { days, hours, minutes, seconds } = useCountdown(SALE_START_ISO);
@@ -16,7 +16,12 @@ export default function LandingBanner() {
           </span>
         </div>
         <div className="flex" style={{ gap: 8 }}>
-          <button className="btn ripple" onClick={() => openCalendarReminder({ startIso: SALE_START_ISO })}>Set Reminder</button>
+          <button
+            className="btn ripple"
+            onClick={() => downloadSaleReminder({ startIso: SALE_START_ISO })}
+          >
+            Set Reminder
+          </button>
           <a className="btn ghost ripple" href="/token-sale">Learn More</a>
           <button className="btn ghost ripple" onClick={() => inviteFriend({})}>Invite</button>
         </div>
