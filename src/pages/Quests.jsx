@@ -7,6 +7,7 @@ import Page from '../components/Page';
 import './Quests.css';
 import '../App.css';
 import { burstConfetti } from '../utils/confetti';
+import { useWallet } from '../hooks/useWallet';
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -17,8 +18,8 @@ export default function Quests() {
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [me, setMe] = useState(null);
-  const walletRef = useRef('');
   const mountedRef = useRef(true);
+  const { wallet, isConnected } = useWallet();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -57,26 +58,15 @@ export default function Quests() {
   }
 
   useEffect(() => {
-    walletRef.current = localStorage.getItem('wallet') || '';
     sync();
     loadMe();
-    const onWalletChanged = (e) => {
-      walletRef.current = e?.detail?.wallet || localStorage.getItem('wallet') || '';
-      loadMe();
-      sync();
-    };
-    const onStorage = (e) => {
-      if (e.key === 'wallet') {
-        onWalletChanged();
-      }
-    };
-    window.addEventListener('wallet:changed', onWalletChanged);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener('wallet:changed', onWalletChanged);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
+  }, [wallet]);
+
+  useEffect(() => {
+    if (!wallet && mountedRef.current) {
+      setMe(null);
+    }
+  }, [wallet]);
 
   useEffect(() => {
     const reload = () => {
@@ -92,7 +82,11 @@ export default function Quests() {
   }, []);
 
     const handleClaim = async (id) => {
-      walletRef.current = localStorage.getItem('wallet') || '';
+      if (!isConnected) {
+        setToast('Connect your wallet to claim quests');
+        setTimeout(() => setToast(''), 3000);
+        return;
+      }
       if (claiming[id]) return;
       setClaiming((c) => ({ ...c, [id]: true }));
       try {
@@ -181,6 +175,7 @@ export default function Quests() {
                   onClaim={handleClaim}
                   claiming={!!claiming[q.id]}
                   setToast={setToast}
+                  canClaim={isConnected}
                 />
               ))
             )}

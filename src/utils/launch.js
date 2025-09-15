@@ -22,23 +22,48 @@ export function useCountdown(targetIso = SALE_START_ISO) {
   };
 }
 
-/** Open Google Calendar reminder in a new tab (1h default) */
-export function openCalendarReminder({
+/** Generate an ICS calendar reminder for Wave 1 and trigger a download. */
+export function downloadSaleReminder({
   title = "Golden Cowrie Token $GCT — First Wave",
   details = "The tide rises. Follow in-app for live details.",
   startIso = SALE_START_ISO,
   durationMinutes = 60,
+  filename = "7goldencowries-wave1.ics",
 }) {
+  if (typeof window === "undefined") return;
   const start = new Date(startIso);
   const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
-  const toGCalFmt = (d) =>
+  const format = (d) =>
     d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  const url =
-    `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-    `&text=${encodeURIComponent(title)}` +
-    `&details=${encodeURIComponent(details)}` +
-    `&dates=${toGCalFmt(start)}/${toGCalFmt(end)}`;
-  window.open(url, "_blank", "noopener,noreferrer");
+  const escapeText = (text) =>
+    String(text || "").replace(/\n/g, "\\n").replace(/[;,]/g, (m) => `\\${m}`);
+  const now = new Date();
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//7GoldenCowries//Token Sale//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${format(start)}@7goldencowries.com`,
+    `DTSTAMP:${format(now)}`,
+    `DTSTART:${format(start)}`,
+    `DTEND:${format(end)}`,
+    `SUMMARY:${escapeText(title)}`,
+    `DESCRIPTION:${escapeText(details)}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /** Share/invite with Web Share API, fall back to clipboard */

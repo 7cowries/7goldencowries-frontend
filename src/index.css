@@ -73,8 +73,14 @@ a:hover { text-decoration: underline; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ===== Layout (moved to component styles; keep utility containers) ===== */
-.container { max-width: 1160px; margin: 0 auto; padding: var(--pad); }
-.section { padding: 18px; }
+.container {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 32px);
+}
+.section {
+  padding: clamp(16px, 4vw, 32px);
+}
 
 /* ===== Surfaces ===== */
 .card{
@@ -162,10 +168,11 @@ html, body {
   color: var(--txt);
 }
 
-.container, .section {
-  width: min(1100px, 92vw);
+.container,
+.section {
+  width: min(1200px, 100%);
   margin: 0 auto;
-  padding: 16px;
+  padding: clamp(16px, 4vw, 32px);
 }
 
 .hero {

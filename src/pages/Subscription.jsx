@@ -1,15 +1,18 @@
 // src/pages/Subscription.js
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./Subscription.css";
-import {
-  TonConnectButton,
-  useTonConnectUI,
-  useTonWallet,
-} from "@tonconnect/ui-react";
-import XPModal from "../components/XPModal";
 import Page from "../components/Page";
 import "../App.css";
-import { tierMultiplier } from '../utils/api';
+import XPModal from "../components/XPModal";
+import WalletConnect from "../components/WalletConnect";
+import {
+  getMe,
+  getSubscription,
+  subscribeToTier,
+  tierMultiplier,
+} from "../utils/api";
+import { useWallet } from "../hooks/useWallet";
 
 const tiersUSD = [
   {
@@ -47,22 +50,27 @@ const tiersUSD = [
 ];
 
 const Subscription = () => {
-  const [tonConnectUI] = useTonConnectUI();
-  const connectedWallet = useTonWallet();
-  const walletAddress = connectedWallet?.account?.address;
-  const walletConnected = !!walletAddress;
-
-  const [currentTier, setCurrentTier] = useState("Free");
-  const [level, setLevel] = useState("Shellborn");
-  const [billingDate] = useState("Aug 21, 2025");
+  const { wallet, isConnected } = useWallet();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tonPrice, setTonPrice] = useState(null);
-
+  const [currentTier, setCurrentTier] = useState("free");
+  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
+  const [nextRenewal, setNextRenewal] = useState(null);
+  const [level, setLevel] = useState("Shellborn");
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
-  const mult = tierMultiplier(currentTier);
+  const [pendingTier, setPendingTier] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState("info");
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
+  const [error, setError] = useState("");
+
+  const showMessage = useCallback((text, tone = "info") => {
+    setMessage(text);
+    setMessageTone(tone);
+  }, []);
 
   useEffect(() => {
-    // Fetch TON price
     fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd"
     )
@@ -75,58 +83,135 @@ const Subscription = () => {
         console.error("Failed to fetch TON price:", err);
         setTonPrice(null);
       });
+  }, []);
 
-    // Fetch user tier + level
-    if (walletConnected) {
-      fetch(`http://localhost:5000/users/${walletAddress}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setCurrentTier(data.tier || "Free");
-          setLevel(data.levelName || "Shellborn");
-        })
-        .catch((e) => console.error("User fetch failed:", e));
-    }
-  }, [walletAddress, walletConnected]);
-
-  const subscribeToTier = (tier, tonEquivalent) => {
-    if (!walletConnected) {
-      alert("Please connect your TON wallet.");
+  const loadSubscription = useCallback(async () => {
+    if (!wallet) {
+      setCurrentTier("free");
+      setSubscriptionStatus("inactive");
+      setNextRenewal(null);
       return;
     }
-    if (tier.name === currentTier) {
-      alert("You are already on this tier.");
+    setLoadingSubscription(true);
+    try {
+      const data = await getSubscription();
+      const tierValue = (data?.tier || data?.subscriptionTier || "free").toLowerCase();
+      setCurrentTier(tierValue);
+      setSubscriptionStatus((data?.status || data?.state || "active").toLowerCase());
+      setNextRenewal(data?.nextRenewal || data?.renewalDate || data?.nextBillingDate || null);
+      setError("");
+    } catch (err) {
+      setError(err?.message || "Failed to load subscription details.");
+    } finally {
+      setLoadingSubscription(false);
+    }
+  }, [wallet]);
+
+  useEffect(() => {
+    loadSubscription();
+  }, [loadSubscription]);
+
+  useEffect(() => {
+    let active = true;
+    if (!wallet) {
+      setLevel("Shellborn");
       return;
     }
-
-    const tx = {
-      validUntil: Math.floor(Date.now() / 1000) + 60,
-      messages: [
-        {
-          address: "UQDeBauPI4FBpDmzFJIoHWB4ncZO7Y0Bv4P_XifOw_pmpHvb",
-          amount: Math.floor(tonEquivalent * 1e9).toString(), // nanoTON
-        },
-      ],
+    getMe({ force: true })
+      .then((data) => {
+        if (!active) return;
+        setLevel(data?.levelName || data?.level || "Shellborn");
+        if (data?.subscriptionTier) {
+          setCurrentTier(String(data.subscriptionTier).toLowerCase());
+        }
+      })
+      .catch((err) => {
+        console.warn("[Subscription] profile fetch failed", err);
+      });
+    return () => {
+      active = false;
     };
+  }, [wallet]);
 
-    tonConnectUI.sendTransaction(tx);
+  const statusParam = searchParams.get("status");
+  useEffect(() => {
+    if (!statusParam) return;
+    if (statusParam === "success") {
+      showMessage("Subscription confirmed! Welcome to your new tier.", "success");
+      loadSubscription();
+    } else if (statusParam === "cancel") {
+      showMessage("Checkout cancelled. You can try again any time.", "warn");
+    } else if (statusParam === "error") {
+      showMessage(
+        "We could not verify the subscription session. Please try again.",
+        "error"
+      );
+    }
+    setSearchParams({}, { replace: true });
+  }, [statusParam, setSearchParams, showMessage, loadSubscription]);
 
-    // Show XP modal instantly
-    setRecentXP(tier.xp);
-    setXPModalOpen(true);
+  const normalizedTier = useMemo(() => {
+    const key = String(currentTier || "").toLowerCase();
+    const match = tiersUSD.find(
+      (tier) => tier.tierKey === key || tier.name.toLowerCase() === key
+    );
+    return match?.tierKey || key || "free";
+  }, [currentTier]);
 
-    // Persist on backend
-    fetch("http://localhost:5000/api/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        wallet: walletAddress,
-        tier: tier.name,
-        ton: tonEquivalent,
-        usd: tier.usd,
-      }),
-    }).catch((e) => console.error("Subscribe failed:", e));
+  const activeTier = useMemo(
+    () => tiersUSD.find((tier) => tier.tierKey === normalizedTier),
+    [normalizedTier]
+  );
 
-    setCurrentTier(tier.name);
+  const displayTier = activeTier?.name || (currentTier ? String(currentTier) : "Free");
+  const mult = tierMultiplier(displayTier);
+  const walletShort = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : "";
+
+  const renewalLabel = useMemo(() => {
+    if (!nextRenewal) return "—";
+    const parsed = new Date(nextRenewal);
+    if (Number.isNaN(parsed.getTime())) return nextRenewal;
+    return parsed.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, [nextRenewal]);
+
+  const statusLabel = useMemo(() => {
+    if (!isConnected) return "Wallet disconnected";
+    if (!subscriptionStatus) return "Inactive";
+    const readable = subscriptionStatus.replace(/_/g, " ");
+    return readable.charAt(0).toUpperCase() + readable.slice(1);
+  }, [subscriptionStatus, isConnected]);
+
+  const handleSubscribe = async (tier) => {
+    if (!wallet) {
+      showMessage("Connect your wallet to pick a tier.", "warn");
+      return;
+    }
+    const targetKey = tier.tierKey;
+    if (targetKey === normalizedTier) {
+      showMessage("You are already on this tier.", "info");
+      return;
+    }
+    setPendingTier(targetKey);
+    showMessage("");
+    try {
+      const res = await subscribeToTier({ wallet, tier: targetKey });
+      if (res?.sessionUrl) {
+        window.location.href = res.sessionUrl;
+        return;
+      }
+      setRecentXP(tier.xp);
+      setXPModalOpen(true);
+      await loadSubscription();
+      showMessage(`Subscription updated to ${tier.name}.`, "success");
+    } catch (err) {
+      showMessage(err?.message || "Failed to start subscription.", "error");
+    } finally {
+      setPendingTier("");
+    }
   };
 
   return (
@@ -134,15 +219,18 @@ const Subscription = () => {
       <div className="section subscription-wrapper fade-in">
         <h1 className="subscription-title text-glow">🌊 Your Subscription</h1>
 
-        {/* Wallet connect */}
         <div className="wallet-section">
-          <TonConnectButton />
-          {walletConnected && (
-            <span className="wallet-status">Wallet Connected</span>
-          )}
+          <WalletConnect />
+          <span className="wallet-status">
+            {isConnected ? `Connected: ${walletShort}` : "Wallet disconnected"}
+          </span>
         </div>
 
-        {/* Current subscription card */}
+        {message && (
+          <div className={`subscription-alert ${messageTone}`}>{message}</div>
+        )}
+        {error && <div className="subscription-alert error">{error}</div>}
+
         <div className="subscription-card gradient-border hover">
           <img
             src={`/images/badges/level-${level
@@ -156,14 +244,15 @@ const Subscription = () => {
               <strong>Level:</strong> {level}
             </p>
             <p>
-              <strong>Subscription Tier:</strong> {currentTier}
+              <strong>Subscription Tier:</strong> {displayTier}
             </p>
           </div>
         </div>
 
-        <p className="muted">Your XP boost: <strong>+{(mult * 100 - 100).toFixed(0)}%</strong></p>
+        <p className="muted">
+          Your XP boost: <strong>+{(mult * 100 - 100).toFixed(0)}%</strong>
+        </p>
 
-        {/* Info panel */}
         <div className="subscription-info card">
           <h2>📜 Subscription Details</h2>
           <ul>
@@ -171,29 +260,25 @@ const Subscription = () => {
               <strong>Duration:</strong> 1 Month
             </li>
             <li>
-              <strong>Next Billing Date:</strong> {billingDate}
+              <strong>Next Renewal:</strong> {renewalLabel}
             </li>
             <li>
-              <strong>Status:</strong> Active
+              <strong>Status:</strong> {loadingSubscription ? "Loading…" : statusLabel}
             </li>
           </ul>
         </div>
 
-        {/* Tiers */}
         <h2 className="tier-title text-glow">💎 Choose Your Tier</h2>
         <div className="tier-container">
           {tiersUSD.map((tier) => {
             const tonEquivalent = tonPrice
               ? (tier.usd / tonPrice).toFixed(2)
               : "…";
-
-            const isActive = tier.name === currentTier;
-
+            const isActive = tier.tierKey === normalizedTier;
+            const isPending = pendingTier === tier.tierKey;
             return (
               <div key={tier.tierKey} className="tier-card">
-                {isActive && (
-                  <div className="active-ribbon">Active</div>
-                )}
+                {isActive && <div className="active-ribbon">Active</div>}
                 <h3>{tier.name}</h3>
                 <p className="tier-price">
                   ${tier.usd}{" "}
@@ -201,27 +286,28 @@ const Subscription = () => {
                 </p>
                 <p className="tier-boost">{tier.boost}</p>
                 <ul>
-                  {tier.benefits.map((b, i) => (
-                    <li key={i}>{b}</li>
+                  {tier.benefits.map((benefit, i) => (
+                    <li key={i}>{benefit}</li>
                   ))}
                 </ul>
                 <button
-                  className={`subscribe-btn ${
-                    isActive ? "active" : ""
-                  }`}
-                  disabled={isActive || !tonPrice}
-                  onClick={() =>
-                    subscribeToTier(tier, parseFloat(tonEquivalent))
-                  }
+                  className={`subscribe-btn ${isActive ? "active" : ""}`}
+                  disabled={isActive || isPending}
+                  onClick={() => handleSubscribe(tier)}
                 >
-                  {isActive ? "Active" : "Subscribe"}
+                  {isActive
+                    ? "Active"
+                    : isPending
+                    ? "Redirecting…"
+                    : isConnected
+                    ? "Subscribe"
+                    : "Connect to Subscribe"}
                 </button>
               </div>
             );
           })}
         </div>
 
-        {/* XP Modal */}
         {xpModalOpen && (
           <XPModal
             xpGained={recentXP}

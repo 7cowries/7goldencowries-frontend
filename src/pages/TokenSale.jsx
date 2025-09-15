@@ -2,7 +2,10 @@
 import React, { useEffect, useState } from "react";
 import "./TokenSale.css";
 import Page from "../components/Page";
-import { SALE_START_ISO, openCalendarReminder, inviteFriend } from "../utils/launch";
+import WalletConnect from "../components/WalletConnect";
+import { useWallet } from "../hooks/useWallet";
+import { startTokenSalePurchase } from "../utils/api";
+import { SALE_START_ISO, downloadSaleReminder, inviteFriend } from "../utils/launch";
 
 const TARGET = Date.UTC(2025, 9, 4, 0, 0, 0); // Oct 4, 2025 00:00:00 UTC
 
@@ -20,6 +23,11 @@ function getTimeLeft() {
 
 export default function TokenSale() {
   const [time, setTime] = useState(getTimeLeft());
+  const { wallet, isConnected } = useWallet();
+  const [amount, setAmount] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const id = setInterval(() => setTime(getTimeLeft()), 1000);
@@ -27,6 +35,39 @@ export default function TokenSale() {
   }, []);
 
   const { days, hours, mins, secs, finished } = time;
+  const parsedAmount = Number(amount);
+  const disableSubmit =
+    submitting || !amount || Number.isNaN(parsedAmount) || parsedAmount <= 0;
+
+  const shortWallet = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : "";
+
+  const handlePurchase = async (event) => {
+    event.preventDefault();
+    setFormError("");
+    setNotice("");
+    if (!isConnected || !wallet) {
+      setFormError("Connect your TON wallet to continue.");
+      return;
+    }
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      setFormError("Enter a positive amount in USD.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await startTokenSalePurchase({ wallet, amount: parsedAmount });
+      const paymentLink = res?.paymentLink;
+      if (paymentLink) {
+        window.location.href = paymentLink;
+      } else {
+        setNotice("Reservation created. Check your email to finish payment.");
+      }
+    } catch (e) {
+      setFormError(e?.message || "Failed to start purchase. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Page>
@@ -65,7 +106,7 @@ export default function TokenSale() {
           <div className="ts-cta">
             <button
               className="btn aqua ripple"
-              onClick={() => openCalendarReminder({ startIso: SALE_START_ISO })}
+              onClick={() => downloadSaleReminder({ startIso: SALE_START_ISO })}
             >
               Set Reminder
             </button>
@@ -74,12 +115,49 @@ export default function TokenSale() {
             </button>
           </div>
 
+          <div className="ts-wallet-row">
+            <WalletConnect />
+            <span className="ts-wallet-status">
+              {wallet ? `Connected: ${shortWallet}` : "No wallet connected"}
+            </span>
+          </div>
+
           {/* Decorative waves */}
           <div className="ts-waves">
             <span className="wave w1" />
             <span className="wave w2" />
             <span className="wave w3" />
           </div>
+        </section>
+
+        <section className="section card gradient-border pad-24 hover ts-purchase">
+          <h2 className="soft-title">Reserve Wave 1 Allocation</h2>
+          <p className="muted">
+            Enter the USD amount you wish to allocate. You&apos;ll be redirected to our
+            payment partner to complete checkout.
+          </p>
+          <form className="ts-form" onSubmit={handlePurchase}>
+            <label htmlFor="token-sale-amount">Amount (USD)</label>
+            <input
+              id="token-sale-amount"
+              type="number"
+              inputMode="decimal"
+              min="1"
+              step="1"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="250"
+            />
+            {formError ? <p className="form-error">{formError}</p> : null}
+            {notice ? <p className="form-notice">{notice}</p> : null}
+            <button
+              type="submit"
+              className="btn aqua ripple"
+              disabled={disableSubmit}
+            >
+              {submitting ? "Redirecting…" : "Proceed to Payment"}
+            </button>
+          </form>
         </section>
 
         {/* WHY / TOKENOMICS */}
