@@ -13,22 +13,24 @@ export default function ProofInput({ questId, requirement, setToast, onSubmitted
   const placeholders = {
     join_telegram: 'Paste Telegram message/channel link',
     join_discord: 'Paste Discord invite/message link',
-    tweet: 'Paste tweet link',
-    retweet: 'Paste retweet link',
-    quote: 'Paste quote link',
-    tweet_link: 'Paste tweet link',
+    tweet: 'Paste tweet/retweet/quote link',
+    retweet: 'Paste tweet/retweet/quote link',
+    quote: 'Paste tweet/retweet/quote link',
+    tweet_link: 'Paste tweet/retweet/quote link',
     default: 'Paste link here'
   };
 
   const placeholder = placeholders[requirement] || placeholders.default;
 
-  const handle = async () => {
+  const handle = async (e) => {
+    e.preventDefault();
     const wallet = localStorage.getItem('wallet');
-    if (!wallet || !url) return;
+    if (!url) return;
     setSubmitting(true);
     try {
       await submitProof(questId, { wallet, vendor: 'link', url });
       await claimQuest(questId);
+      setUrl('');
       setToast?.('Proof submitted');
       setTimeout(() => setToast?.(''), 3000);
       onSubmitted?.();
@@ -41,7 +43,7 @@ export default function ProofInput({ questId, requirement, setToast, onSubmitted
   };
 
   return (
-    <div className="inline-proof" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+    <form className="inline-proof" style={{ display: 'flex', gap: 8, marginTop: 8 }} onSubmit={handle}>
       <input
         type="url"
         value={url}
@@ -50,9 +52,9 @@ export default function ProofInput({ questId, requirement, setToast, onSubmitted
         className="input"
         style={{ flex: 1, minWidth: 220 }}
       />
-      <button className="btn primary" disabled={submitting || !url} onClick={handle}>
+      <button type="submit" className="btn primary" disabled={submitting || !url}>
         {submitting ? 'Submitting…' : 'Submit'}
       </button>
-    </div>
+    </form>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import useTilt from '../fx/useTilt';
 import { tierMultiplier } from '../utils/api';
 import ProofInput from './ProofInput';
@@ -7,7 +7,8 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
   const q = quest;
   const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
-  const claimable = !alreadyClaimed && (!needsProof || q.proofStatus === 'approved');
+  const [status, setStatus] = useState(q.proofStatus);
+  const claimable = !alreadyClaimed && (!needsProof || status === 'approved');
   const mult = tierMultiplier(me?.tier || me?.subscriptionTier);
   const projected = Math.round((q.xp || 0) * mult);
   const cardRef = useRef(null);
@@ -24,7 +25,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {alreadyClaimed ? (
               <span className="chip completed">✅ Completed</span>
-            ) : q.proofStatus === 'pending' ? (
+            ) : status === 'pending' ? (
               <span className="chip pending">🕒 Pending review</span>
             ) : null}
           <span className="xp-badge">
@@ -63,9 +64,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast }) {
           questId={q.id}
           requirement={q.requirement}
           setToast={setToast}
-          onSubmitted={() => {
-            q.proofStatus = 'pending';
-          }}
+          onSubmitted={() => setStatus('approved')}
         />
       )}
 
