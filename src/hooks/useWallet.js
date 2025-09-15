@@ -4,10 +4,16 @@ import { useWallet as useWalletContext } from "../context/WalletContext";
 
 const STORAGE_KEYS = ["wallet", "walletAddress", "ton_wallet"];
 
+function normalizeWallet(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
 function readStoredWallet() {
   if (typeof window === "undefined" || !window.localStorage) return null;
   for (const key of STORAGE_KEYS) {
-    const value = window.localStorage.getItem(key);
+    const value = normalizeWallet(window.localStorage.getItem(key));
     if (value) return value;
   }
   return null;
@@ -22,15 +28,20 @@ export function useWallet() {
 
   useEffect(() => {
     const stored = readStoredWallet();
+    if (!stored && wallet) {
+      setWallet(null);
+      return;
+    }
     if (stored && stored !== wallet) {
       setWallet(stored);
     }
   }, [wallet, setWallet]);
 
   useEffect(() => {
-    const next = tonWallet?.account?.address || null;
+    const next = normalizeWallet(tonWallet?.account?.address) || null;
     if (next && next !== wallet) {
       setWallet(next);
+      return;
     }
     if (!next && !readStoredWallet() && wallet) {
       setWallet(null);
@@ -40,8 +51,9 @@ export function useWallet() {
   useEffect(() => {
     if (typeof window === "undefined") return () => {};
     const syncFromStorage = (event) => {
-      if (event?.key && event.key !== "wallet") return;
-      const stored = readStoredWallet();
+      if (event?.key && !STORAGE_KEYS.includes(event.key)) return;
+      const storedDetail = normalizeWallet(event?.detail?.wallet);
+      const stored = storedDetail ?? readStoredWallet();
       if (!stored && wallet) {
         setWallet(null);
         return;

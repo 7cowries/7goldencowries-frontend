@@ -1,24 +1,14 @@
 // src/pages/History.js
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "../App.css";
 import "./History.css";
 import { getMe } from "../utils/api";
+import { useWallet } from "../hooks/useWallet";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-function useWallet() {
-  return useMemo(() => {
-    const cands = [
-      localStorage.getItem("wallet"),
-      localStorage.getItem("ton_wallet"),
-      localStorage.getItem("walletAddress"),
-    ].filter(Boolean);
-    return cands[0] || "";
-  }, []);
-}
-
 export default function History() {
-  const wallet = useWallet();
+  const { wallet } = useWallet();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quests, setQuests] = useState([]);
