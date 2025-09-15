@@ -4,6 +4,7 @@ import "./Isles.css";
 import "../App.css";
 import Page from "../components/Page";
 import { getMe } from "../utils/api"; // ✅ use session-aware profile first
+import { useWallet } from "../hooks/useWallet";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -49,24 +50,6 @@ function normalizeUser(raw, prev = {}) {
     nextXP,
     levelProgress: clamp01(levelProgress),
   };
-}
-
-function useWallet() {
-  return useMemo(() => {
-    const candidates = [
-      localStorage.getItem("wallet"),
-      localStorage.getItem("ton_wallet"),
-      localStorage.getItem("walletAddress"),
-    ].filter(Boolean);
-    const chosen = candidates[0] || "";
-    if (chosen) {
-      localStorage.setItem("wallet", chosen);
-      localStorage.setItem("ton_wallet", chosen);
-      localStorage.setItem("walletAddress", chosen);
-      window.dispatchEvent(new CustomEvent('wallet:changed', { detail: { wallet: chosen } }));
-    }
-    return chosen;
-  }, []);
 }
 
 /* ======================= Confetti ======================= */
@@ -269,7 +252,7 @@ function useProfile(address) {
 
 /* ======================= Page ======================= */
 export default function Isles() {
-  const address = useWallet();
+  const { wallet: address } = useWallet();
   const { profile, progressPct, loading } = useProfile(address);
 
   const currentIndex = useMemo(() => {

@@ -38,6 +38,51 @@
 /* CTA */
 .ts-cta { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
 
+.ts-wallet-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.ts-wallet-row .connect-buttons { margin: 0; }
+.ts-wallet-status { color: var(--ink-dim); font-size: 13px; }
+
+.ts-purchase { margin-top: 24px; }
+.ts-form {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+.ts-form label {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-0);
+}
+.ts-form input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(6, 19, 37, 0.6);
+  color: var(--ink-0);
+  font-size: 16px;
+}
+.ts-form input:focus {
+  outline: none;
+  border-color: rgba(102, 224, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(102, 224, 255, 0.25);
+}
+.form-error {
+  margin: 0;
+  font-size: 13px;
+  color: #ff9a9a;
+}
+.form-notice {
+  margin: 0;
+  font-size: 13px;
+  color: var(--aqua);
+}
+
 /* WHY / TOKENOMICS */
 .ts-why { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
 @media (max-width: 980px) { .ts-why { grid-template-columns: 1fr; } }

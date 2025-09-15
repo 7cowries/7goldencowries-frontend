@@ -1,6 +1,5 @@
 // src/pages/Profile.js
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useTonAddress } from "@tonconnect/ui-react";
 import "./Profile.css";
 import "../App.css";
 import Page from "../components/Page";
@@ -9,6 +8,7 @@ import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
 import { burstConfetti } from "../utils/confetti";
 import ConnectButtons from "../components/ConnectButtons";
+import { useWallet } from "../hooks/useWallet";
 
 // Telegram embed constants
 const TG_BOT_NAME =
@@ -86,7 +86,7 @@ function TelegramLoginWidget({ wallet }) {
 }
 
 export default function Profile() {
-  const tonWallet = useTonAddress();
+  const { wallet: tonWallet } = useWallet();
   const lsCandidates = useMemo(() => {
     const items = [
       localStorage.getItem("wallet"),
@@ -140,21 +140,15 @@ export default function Profile() {
     discord: false,
   });
 
-  // Prefer TonConnect address; persist for later visits
+  // Prefer connected wallet address; fallback to any stored value on load
   useEffect(() => {
-    if (tonWallet) {
+    if (tonWallet && tonWallet !== address) {
       setAddress(tonWallet);
-      localStorage.setItem("wallet", tonWallet);
-      localStorage.setItem("walletAddress", tonWallet);
-      localStorage.setItem("ton_wallet", tonWallet);
-      window.dispatchEvent(
-        new CustomEvent('wallet:changed', { detail: { wallet: tonWallet } })
-      );
-    } else if (!address) {
+    } else if (!tonWallet && !address) {
       setAddress(lsCandidates[0] || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tonWallet, lsCandidates]);
+  }, [tonWallet, lsCandidates, address]);
 
   // Bind wallet to backend session (helps /api/users/me)
   useEffect(() => {
