@@ -11,8 +11,8 @@
   z-index: 100;
   width: 42px; height: 36px;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(102,224,255,.35);
+  background: linear-gradient(135deg, rgba(102,224,255,.18), rgba(6,19,37,.7));
   backdrop-filter: blur(8px);
   display: grid; place-items: center;
   gap: 3px; padding: 6px 0;
@@ -20,7 +20,7 @@
 .nav-toggle .bar{
   display: block;
   width: 22px; height: 2px;
-  background: #cfe9ff; border-radius: 2px;
+  background: #e0f7ff; border-radius: 2px;
 }
 @media (min-width: 1025px){
   .nav-toggle{ display: none; }
@@ -50,6 +50,25 @@
   transition: transform .25s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.leftnav::before,
+.leftnav::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.leftnav::before{
+  background: radial-gradient(160% 60% at 20% 0%, rgba(102,224,255,0.22), transparent 60%),
+              radial-gradient(120% 70% at 80% 100%, rgba(122,125,255,0.18), transparent 65%);
+  opacity: .8;
+}
+
+.leftnav::after{
+  background: linear-gradient(0deg, rgba(6,19,37,0.25), transparent 35%);
 }
 
 /* Drawer behavior on small screens */
