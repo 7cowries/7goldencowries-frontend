@@ -3,23 +3,96 @@ const cors = require('cors');
 const { createRouter } = require('./src/routes/quests.js');
 const fs = require('fs');
 const crypto = require('crypto');
+const {
+  ensureProgression,
+  grantXP,
+} = require('./src/lib/progression');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
 
-// Default profile returned when no wallet/session
-const DEFAULT_ME = {
-  wallet: null,
-  xp: 0,
-  level: 'Shellborn',
-  levelName: 'Shellborn',
-  levelSymbol: '🐚',
-  nextXP: 100,
-  twitterHandle: null,
-  telegramId: null,
-  discordId: null,
-  subscriptionTier: 'Free',
-  questHistory: [],
-};
+function defaultSocials() {
+  return {
+    twitter: { connected: false, username: null, id: null },
+    telegram: { connected: false, username: null, id: null },
+    discord: { connected: false, username: null, id: null },
+  };
+}
+
+function createBaseProfile(overrides = {}) {
+  const profile = {
+    wallet: null,
+    subscriptionTier: 'Free',
+    tier: 'Free',
+    socials: defaultSocials(),
+    referralCount: 0,
+    questHistory: [],
+    authed: false,
+    ...overrides,
+  };
+  return ensureProgression(profile);
+}
+
+function serializeUser(user, { wallet, authed } = {}) {
+  const normalized = ensureProgression({ ...user });
+  const socials = defaultSocials();
+  if (normalized.socials && typeof normalized.socials === 'object') {
+    ['twitter', 'telegram', 'discord'].forEach((key) => {
+      if (normalized.socials[key]) {
+        socials[key] = { ...socials[key], ...normalized.socials[key] };
+      }
+    });
+  }
+  const referralCount =
+    normalized.referralCount ??
+    (normalized.referrals instanceof Set
+      ? normalized.referrals.size
+      : 0);
+
+  const questHistory = Array.isArray(normalized.questHistory)
+    ? normalized.questHistory
+    : [];
+
+  const payload = {
+    ...createBaseProfile(),
+    ...normalized,
+    wallet: wallet ?? normalized.wallet ?? null,
+    socials,
+    referralCount,
+    questHistory,
+  };
+
+  if (payload.tier == null && payload.subscriptionTier != null) {
+    payload.tier = payload.subscriptionTier;
+  }
+  payload.twitterHandle =
+    normalized.twitterHandle ?? socials.twitter?.username ?? null;
+  payload.telegramId =
+    normalized.telegramId ?? socials.telegram?.id ?? socials.telegram?.username ?? null;
+  payload.discordId =
+    normalized.discordId ?? socials.discord?.id ?? socials.discord?.username ?? null;
+
+  delete payload.referrals;
+  if (authed != null) {
+    payload.authed = Boolean(authed);
+  } else {
+    payload.authed = Boolean(payload.wallet);
+  }
+  return payload;
+}
+
+function getOrCreateUser(wallet) {
+  if (!wallet) return null;
+  let user = users.get(wallet);
+  if (!user) {
+    user = createBaseProfile({ wallet });
+  }
+  if (!user.socials) {
+    user.socials = defaultSocials();
+  }
+  const normalized = ensureProgression(user);
+  users.set(wallet, normalized);
+  return normalized;
+}
 
 // In‑memory stores for demo purposes
 const sessions = new Map();
@@ -126,11 +199,8 @@ app.post('/api/session/bind-wallet', (req, res) => {
 
   const cookies = parseCookies(req);
   const code = cookies.referral_code;
-  let user = users.get(w);
-  if (!user) {
-    user = { ...DEFAULT_ME, wallet: w };
-    users.set(w, user);
-  }
+  let user = getOrCreateUser(w);
+  users.set(w, user);
   sess.user = user;
 
   if (code && !user.referrerWallet) {
@@ -138,11 +208,12 @@ app.post('/api/session/bind-wallet', (req, res) => {
     if (refWallet && refWallet !== w) {
       user.referred_by = code;
       user.referrerWallet = refWallet;
-      const refUser = users.get(refWallet) || { ...DEFAULT_ME, wallet: refWallet };
+      let refUser = getOrCreateUser(refWallet);
       if (!refUser.referrals) refUser.referrals = new Set();
       if (!refUser.referrals.has(w)) {
         refUser.referrals.add(w);
-        refUser.xp = (refUser.xp || 0) + 50;
+        refUser.referralCount = (refUser.referralCount || 0) + 1;
+        refUser = grantXP(refUser, 50);
         users.set(refWallet, refUser);
       }
     }
@@ -158,19 +229,28 @@ app.post('/api/session/bind-wallet', (req, res) => {
 app.get('/api/users/me', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res.json(DEFAULT_ME);
+    return res.json(createBaseProfile());
   }
-  let user = users.get(sess.wallet);
-  if (!user) {
-    user = { ...DEFAULT_ME, wallet: sess.wallet };
-    users.set(sess.wallet, user);
-  }
+  let user = getOrCreateUser(sess.wallet);
   if (!user.referral_code) {
     user.referral_code = Math.random().toString(36).slice(2, 10);
     referralCodes.set(user.referral_code, sess.wallet);
   }
+  users.set(sess.wallet, user);
   sess.user = user;
-  res.json({ ...DEFAULT_ME, ...user, wallet: sess.wallet });
+  res.json(serializeUser(user, { wallet: sess.wallet, authed: true }));
+});
+
+app.get('/api/profile', (req, res) => {
+  const wallet = String(req.query.wallet || '').trim();
+  if (!wallet) {
+    return res.status(400).json({ error: 'wallet required' });
+  }
+  const user = getOrCreateUser(wallet);
+  if (!user) {
+    return res.status(404).json({ error: 'not-found' });
+  }
+  res.json({ profile: serializeUser(user, { wallet, authed: false }) });
 });
 
 // Referral status for current session
@@ -179,7 +259,7 @@ app.get('/api/referral/status', (req, res) => {
   if (!sess.wallet) {
     return res.json({ referral_code: null, referred_by: null, referrerWallet: null });
   }
-  const user = users.get(sess.wallet) || {};
+  const user = getOrCreateUser(sess.wallet) || {};
   if (user.referral_code) {
     referralCodes.set(user.referral_code, sess.wallet);
   }
