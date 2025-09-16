@@ -3,6 +3,7 @@ import { getLeaderboard } from '../utils/api';
 import { abbreviateWallet } from '../lib/format';
 import Page from '../components/Page';
 import './Leaderboard.css';
+import { levelBadgeSrc } from '../config/progression';
 
 const REFRESH_MS = 60000;
 
@@ -23,13 +24,6 @@ const tierSlug = (tier) =>
   prettifyTier(tier)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-');
-
-const levelBadgeSrc = (levelName) => {
-  const base = String(levelName || 'Shellborn')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-');
-  return `/images/badges/level-${base}.png`;
-};
 
 const TierBadge = ({ tier }) => {
   const label = prettifyTier(tier);

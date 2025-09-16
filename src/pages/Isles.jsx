@@ -5,20 +5,39 @@ import "../App.css";
 import Page from "../components/Page";
 import { getMe } from "../utils/api"; // ✅ use session-aware profile first
 import { useWallet } from "../hooks/useWallet";
+import { LEVELS as PROGRESSION_LEVELS } from "../config/progression";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 /* ======================= Levels / Isles ======================= */
-const LEVELS = [
-  { id: 1, key: "Shellborn",        name: "Shellborn",        emoji: "🐚", tagline: "Born from tide and shell, a humble beginning.", perks: ["Starter badge", "Access to basic quests"] },
-  { id: 2, key: "Wave Seeker",      name: "Wave Seeker",      emoji: "🌊", tagline: "Chaser of Naia’s whisper across waves.",        perks: ["Daily quests unlocked", "+2% XP boost"] },
-  { id: 3, key: "Tide Whisperer",   name: "Tide Whisperer",   emoji: "🌀", tagline: "Speaks the sea’s secrets, calm yet deep.",      perks: ["Partner quests unlocked", "+4% XP boost"] },
-  { id: 4, key: "Current Binder",   name: "Current Binder",   emoji: "🪙", tagline: "Bends the ocean’s will, quiet and strong.",     perks: ["Onchain quests unlocked", "+7% XP boost"] },
-  { id: 5, key: "Pearl Bearer",     name: "Pearl Bearer",     emoji: "🫧", tagline: "Carries hidden virtue within.",                  perks: ["Limited time quests", "+10% XP boost"] },
-  { id: 6, key: "Isle Champion",    name: "Isle Champion",    emoji: "🏝️", tagline: "Defender of the Isles, storm tested.",          perks: ["Exclusive drops", "+15% XP boost"] },
-  { id: 7, key: "Cowrie Ascendant", name: "Cowrie Ascendant", emoji: "👑", tagline: "Myth reborn. Tidewalker. Legend.",                perks: ["Mythic badge", "Priority perks", "Max XP boost"] },
-];
+const TAGLINES = {
+  'shellborn': "Born from tide and shell, a humble beginning.",
+  'wave-seeker': "Chaser of Naia’s whisper across waves.",
+  'tide-whisperer': "Speaks the sea’s secrets, calm yet deep.",
+  'current-binder': "Bends the ocean’s will, quiet and strong.",
+  'pearl-bearer': "Carries hidden virtue within.",
+  'isle-champion': "Defender of the Isles, storm tested.",
+  default: "Myth reborn. Tidewalker. Legend.",
+};
 
+const PERKS = {
+  'shellborn': ["Starter badge", "Access to basic quests"],
+  'wave-seeker': ["Daily quests unlocked", "+2% XP boost"],
+  'tide-whisperer': ["Partner quests unlocked", "+4% XP boost"],
+  'current-binder': ["Onchain quests unlocked", "+7% XP boost"],
+  'pearl-bearer': ["Limited time quests", "+10% XP boost"],
+  'isle-champion': ["Exclusive drops", "+15% XP boost"],
+  default: ["Mythic badge", "Priority perks", "Max XP boost"],
+};
+
+const LEVELS = PROGRESSION_LEVELS.map((level, index) => ({
+  id: index + 1,
+  key: level.name,
+  name: level.name,
+  emoji: level.emoji,
+  tagline: TAGLINES[level.key] ?? TAGLINES.default,
+  perks: PERKS[level.key] ?? PERKS.default,
+}));
 /* ======================= Helpers ======================= */
 function clamp01(n) {
   if (!Number.isFinite(n)) return 0;
@@ -33,16 +52,31 @@ function normalizeUser(raw, prev = {}) {
     raw;
 
   const levelName = base.levelName ?? base.level ?? prev.levelName ?? "Shellborn";
-  const totalXP = Number(base.totalXP ?? base.total_xp ?? prev.totalXP ?? base.xp ?? 0);
-  const xp = Number(base.xp ?? prev.xp ?? totalXP);
-  const nextXP = Number(base.nextXP ?? base.next_level_xp ?? base.nextLevelXP ?? prev.nextXP ?? 0);
+  const totalXPRaw =
+    base.totalXP ?? base.total_xp ?? prev.totalXP ?? prev.total_xp ?? base.xp ?? prev.xp ?? 0;
+  const totalXP = Math.max(0, Number(totalXPRaw) || 0);
+  const xpRaw = base.xp ?? prev.xp ?? totalXP;
+  const xp = Math.max(0, Number(xpRaw) || 0);
+  const rawNextXP =
+    base.nextXP ??
+    base.next_level_xp ??
+    base.nextLevelXP ??
+    prev.nextXP ??
+    prev.next_level_xp ??
+    null;
+  const hasNextXP = rawNextXP != null && rawNextXP !== Infinity;
+  const nextXP = hasNextXP ? Math.max(0, Number(rawNextXP) || 0) : null;
 
   let levelProgress =
-    typeof base.levelProgress === "number" ? base.levelProgress :
-    typeof base.progress === "number" ? base.progress :
-    nextXP > 0 ? xp / nextXP : 0;
+    typeof base.levelProgress === "number"
+      ? base.levelProgress
+      : typeof base.progress === "number"
+      ? base.progress
+      : nextXP && nextXP > 0
+      ? xp / nextXP
+      : 0;
 
-  if (levelProgress > 1) levelProgress = levelProgress / 100;
+  levelProgress = clamp01(levelProgress);
 
   return {
     wallet: base.wallet ?? base.address ?? prev.wallet ?? null,
@@ -51,7 +85,7 @@ function normalizeUser(raw, prev = {}) {
     nextXP,
     totalXP,
     levelTier: base.levelTier ?? prev.levelTier ?? null,
-    levelProgress: clamp01(levelProgress),
+    levelProgress,
   };
 }
 
@@ -262,6 +296,17 @@ export default function Isles() {
   const { wallet: address } = useWallet();
   const { profile, progressPct, loading } = useProfile(address);
 
+  const xpDisplay = useMemo(() => {
+    const value = Number(profile.xp);
+    return Number.isFinite(value) ? value.toLocaleString() : "0";
+  }, [profile.xp]);
+
+  const nextXPDisplay = useMemo(() => {
+    if (profile.nextXP == null) return "∞";
+    const value = Number(profile.nextXP);
+    return Number.isFinite(value) ? value.toLocaleString() : "∞";
+  }, [profile.nextXP]);
+
   const currentIndex = useMemo(() => {
     const idx = LEVELS.findIndex(
       (l) => (profile.levelName || "").toLowerCase() === l.key.toLowerCase()
@@ -305,9 +350,7 @@ export default function Isles() {
         <div className="profile-chip">
           <div className="chip-left">
             <span className="chip-title">{profile.levelName}</span>
-            <span className="chip-sub">
-              XP {profile.xp} / {profile.nextXP ?? "∞"}
-            </span>
+            <span className="chip-sub">XP {xpDisplay} / {nextXPDisplay}</span>
           </div>
           <Ring percent={progressPct} label="Level progress" />
         </div>

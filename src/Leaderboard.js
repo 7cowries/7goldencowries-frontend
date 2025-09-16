@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './Leaderboard.css';
 import { getLeaderboard } from './utils/api';
+import { levelBadgeSrc } from './config/progression';
 
 const lore = {
   "Shellborn": "Born from tide and shell — a humble beginning.",
@@ -44,46 +45,53 @@ const Leaderboard = () => {
         <p className="loading">Loading leaderboard...</p>
       ) : (
         <div className="leaderboard-list">
-          {leaders.map((user, i) => (
-            <div
-              key={user.wallet}
-              className={`leader-card ${
-                i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''
-              } ${user.wallet === currentWallet ? 'you' : ''}`}
-            >
-              <div className="rank-badge">#{user.rank}</div>
-              <div className="user-info">
-                {(() => {
-                  const lvl = (user.levelName || user.name || 'Shellborn');
-                  const slug = lvl.toLowerCase().replace(/\s+/g, '-');
-                  return (
-                    <img
-                      src={`/images/badges/level-${slug}.png`}
-                      alt={lvl}
-                      onError={(e) => (e.target.src = '/images/badges/unranked.png')}
-                      className="user-badge"
-                    />
-                  );
-                })()}
-                <div className="user-meta">
-                  <p>
-                    <strong>{shorten(user.wallet)}</strong>
-                    {user.twitterHandle ? <span> | 🐦 @{user.twitterHandle}</span> : null}
-                  </p>
-                  <div className="chips">
-                    <span className="chip">{user.tier}</span>
-                    <span className="chip">{user.levelName || 'Shellborn'}</span>
-                  </div>
-                  <div className="progress-container">
-                    <div className="bar-outer">
-                      <div className="bar-inner" style={{ width: `${((user.progress || 0) * 100).toFixed(1)}%` }} />
+          {leaders.map((entry, i) => {
+            const rank = entry.rank ?? i + 1;
+            const levelName = entry.levelName || entry.level || 'Shellborn';
+            const tier = entry.tier || entry.subscriptionTier || 'Free';
+            const progressValue = Number(entry.levelProgress ?? entry.progress ?? 0) || 0;
+            const progress = Math.max(0, Math.min(1, progressValue));
+            const progressPct = (progress * 100).toFixed(1);
+            const xpValue = Number(entry.xp ?? 0);
+            const xpDisplay = Number.isFinite(xpValue) ? xpValue.toLocaleString() : '0';
+            const badgeSrc = levelBadgeSrc(levelName);
+            const loreText = lore[levelName] || lore['Shellborn'];
+            const isYou = entry.wallet === currentWallet;
+            return (
+              <div
+                key={entry.wallet}
+                className={`leader-card ${
+                  i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''
+                } ${isYou ? 'you' : ''}`}
+              >
+                <div className="rank-badge">#{rank}</div>
+                <div className="user-info">
+                  <img
+                    src={badgeSrc}
+                    alt={levelName}
+                    onError={(e) => (e.target.src = '/images/badges/unranked.png')}
+                    className="user-badge"
+                  />
+                  <div className="user-meta">
+                    <p>
+                      <strong>{shorten(entry.wallet)}</strong>
+                      {entry.twitterHandle ? <span> | 🐦 @{entry.twitterHandle}</span> : null}
+                    </p>
+                    <div className="chips">
+                      <span className="chip">{tier}</span>
+                      <span className="chip">{levelName}</span>
                     </div>
-                    <small>{user.xp} XP — {lore[user.levelName || 'Shellborn']}</small>
+                    <div className="progress-container">
+                      <div className="bar-outer">
+                        <div className="bar-inner" style={{ width: `${progressPct}%` }} />
+                      </div>
+                      <small>{xpDisplay} XP — {loreText}</small>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
