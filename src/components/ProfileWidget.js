@@ -41,11 +41,14 @@ export default function ProfileWidget() {
     rawNext == null || rawNext === Infinity || !Number.isFinite(nextNumber)
       ? '∞'
       : nextNumber.toLocaleString();
-  const progressPct = clampProgress((me.levelProgress || 0) * 100);
-  const progressValue = Number.isFinite(progressPct)
-    ? Number(progressPct.toFixed(1))
+  const clampedProgress = clampProgress(me.levelProgress ?? 0);
+  const progress = Number.isFinite(clampedProgress)
+    ? Math.max(0, Math.min(1, clampedProgress))
     : 0;
-  const progressLabel = `${progressValue.toFixed(1)}% to next level`;
+  const pct = Math.round(progress * 1000) / 10;
+  const pctValue = Number.isFinite(pct) ? pct : 0;
+  const pctLabel = pctValue.toFixed(1);
+  const progressLabel = `${pctLabel}% to next level`;
 
   return (
     <div className="profile-widget">
@@ -69,11 +72,11 @@ export default function ProfileWidget() {
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={progressValue}
-        aria-label={`Level progress ${progressLabel}`}
+        aria-valuenow={pctValue}
+        aria-label={`Level progress ${pctLabel}% to next level`}
       >
         <div className="pw-bar">
-          <div className="pw-fill" style={{ width: `${progressPct}%` }} />
+          <div className="pw-fill" style={{ width: `${pctValue}%` }} />
         </div>
         <span className="pw-percent">{progressLabel}</span>
       </div>

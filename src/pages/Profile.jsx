@@ -311,10 +311,6 @@ export default function Profile() {
       setUnlinking((prev) => ({ ...prev, [provider]: true }));
       try {
         await unlinkSocial(provider);
-        clearUserCache();
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('profile-updated'));
-        }
         const label = PROVIDER_LABELS[provider] || provider;
         setToast(`${label} disconnected ✅`);
         window.setTimeout(() => setToast(''), 2600);
