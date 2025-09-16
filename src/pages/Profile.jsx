@@ -3,13 +3,20 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./Profile.css";
 import "../App.css";
 import Page from "../components/Page";
-import { API_BASE, API_URLS, getMe } from "../utils/api";
+import {
+  API_BASE,
+  API_URLS,
+  clearUserCache,
+  disconnectSession,
+  getMe,
+} from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
 import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
 import { levelBadgeSrc } from "../config/progression";
+import { unlinkSocial } from "../utils/socialLinks";
 
 // Telegram embed constants
 const TG_BOT_NAME =
@@ -24,6 +31,12 @@ const perksMap = {
   "Pearl Bearer": "Earn referral bonuses + badge",
   "Isle Champion": "Access secret quests and lore",
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
+};
+
+const PROVIDER_LABELS = {
+  twitter: "X (Twitter)",
+  telegram: "Telegram",
+  discord: "Discord",
 };
 
 
@@ -87,7 +100,7 @@ function TelegramLoginWidget({ wallet }) {
 }
 
 export default function Profile() {
-  const { wallet: tonWallet } = useWallet();
+  const { wallet: tonWallet, disconnect: disconnectWallet } = useWallet();
   const lsCandidates = useMemo(() => {
     const items = [
       localStorage.getItem("wallet"),
@@ -132,6 +145,12 @@ export default function Profile() {
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [unlinking, setUnlinking] = useState({
+    twitter: false,
+    telegram: false,
+    discord: false,
+  });
   const [hasProfile, setHasProfile] = useState(false);
 
   // Disable connect buttons while starting OAuth flows
@@ -260,6 +279,53 @@ export default function Profile() {
       setLoading(false);
     }
   }, [applyProfile]);
+
+  const handleDisconnectWallet = useCallback(async () => {
+    if (disconnecting) return;
+    setDisconnecting(true);
+    try {
+      await disconnectSession();
+      await disconnectWallet?.();
+      clearUserCache();
+      setAddress('');
+      setTier('Free');
+      setLevel({ name: 'Shellborn', symbol: '🐚', progress: 0, nextXP: 10000 });
+      setPerk(perksMap.Shellborn || '');
+      setReferralCode('');
+      setMe(DEFAULT_ME);
+      setHasProfile(false);
+      setToast('Wallet disconnected ✅');
+      window.setTimeout(() => setToast(''), 2600);
+      await loadMe({ force: true });
+    } catch (e) {
+      console.error(e);
+      setToast(e?.message || 'Failed to disconnect wallet');
+      window.setTimeout(() => setToast(''), 3200);
+    } finally {
+      setDisconnecting(false);
+    }
+  }, [disconnecting, disconnectWallet, loadMe]);
+
+  const handleUnlink = useCallback(
+    async (provider) => {
+      setUnlinking((prev) => ({ ...prev, [provider]: true }));
+      try {
+        await unlinkSocial(provider);
+        const label = PROVIDER_LABELS[provider] || provider;
+        setToast(`${label} disconnected ✅`);
+        window.setTimeout(() => setToast(''), 2600);
+        await loadMe({ force: true });
+      } catch (e) {
+        console.error(e);
+        const label = PROVIDER_LABELS[provider] || provider;
+        setToast(e?.message || `Failed to disconnect ${label}`);
+        window.setTimeout(() => setToast(''), 3200);
+      } finally {
+        setUnlinking((prev) => ({ ...prev, [provider]: false }));
+      }
+    },
+    [loadMe]
+  );
 
   useEffect(() => {
     const w = localStorage.getItem('wallet');
@@ -438,20 +504,29 @@ export default function Profile() {
             </div>
 
             <div className="profile-info">
-              <p>
+              <p className="wallet-line">
                 <strong>Wallet:</strong>{" "}
-                {address.slice(0, 6)}...{address.slice(-4)}{" "}
-                <button
-                  className="mini"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(address);
-                    setToast("Wallet copied ✅");
-                    setTimeout(() => setToast(""), 1500);
-                  }}
-                  style={{ marginLeft: 8 }}
-                >
-                  Copy
-                </button>
+                {address.slice(0, 6)}...{address.slice(-4)}
+                <span className="wallet-actions">
+                  <button
+                    className="mini"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(address);
+                      setToast("Wallet copied ✅");
+                      setTimeout(() => setToast(""), 1500);
+                    }}
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="mini danger"
+                    onClick={handleDisconnectWallet}
+                    disabled={disconnecting}
+                    title="Disconnect wallet"
+                  >
+                    {disconnecting ? "Disconnecting…" : "Disconnect"}
+                  </button>
+                </span>
               </p>
               <p>
                 <strong>Subscription:</strong> {tier ?? 'Free'}
@@ -511,7 +586,13 @@ export default function Profile() {
                     )}
                     <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
-                      <button className="mini" disabled title="Already connected">Connect</button>
+                      <button
+                        className="mini danger"
+                        onClick={() => handleUnlink('twitter')}
+                        disabled={unlinking.twitter}
+                      >
+                        {unlinking.twitter ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -551,7 +632,13 @@ export default function Profile() {
                     )}
                     <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
-                      <button className="mini" disabled title="Already connected">Connect</button>
+                      <button
+                        className="mini danger"
+                        onClick={() => handleUnlink('telegram')}
+                        disabled={unlinking.telegram}
+                      >
+                        {unlinking.telegram ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -594,7 +681,13 @@ export default function Profile() {
                           Copy
                         </button>
                       ) : null}
-                      <button className="mini" disabled title="Already connected">Connect</button>
+                      <button
+                        className="mini danger"
+                        onClick={() => handleUnlink('discord')}
+                        disabled={unlinking.discord}
+                      >
+                        {unlinking.discord ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
                     </div>
                   </>
                 ) : (

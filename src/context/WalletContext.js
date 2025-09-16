@@ -27,17 +27,37 @@ export default function WalletProvider({ children }) {
 
   // keep localStorage in sync
   useEffect(() => {
-    if (wallet) {
+    if (!wallet) {
+      try {
+        localStorage.removeItem("walletAddress");
+        localStorage.removeItem("wallet");
+        localStorage.removeItem("ton_wallet");
+      } catch (err) {
+        console.warn("[WalletContext] failed clearing wallet", err);
+      }
+      emitWalletChanged("");
+      return;
+    }
+    try {
       localStorage.setItem("walletAddress", wallet);
       localStorage.setItem("wallet", wallet);
-      emitWalletChanged(wallet);
+      localStorage.setItem("ton_wallet", wallet);
+    } catch (err) {
+      console.warn("[WalletContext] failed saving wallet", err);
     }
+    emitWalletChanged(wallet);
   }, [wallet]);
 
   // update wallet when TonConnect provides one
   useEffect(() => {
-    if (tonWallet) setWallet(tonWallet);
-  }, [tonWallet]);
+    if (tonWallet && tonWallet !== wallet) {
+      setWallet(tonWallet);
+      return;
+    }
+    if (!tonWallet && wallet) {
+      setWallet(null);
+    }
+  }, [tonWallet, wallet]);
 
   // bind wallet to backend session
   useEffect(() => {
@@ -48,18 +68,23 @@ export default function WalletProvider({ children }) {
     });
   }, [wallet]);
 
-  const disconnect = useCallback(async () => {
-    try {
-      await tonConnectUI.disconnect();
-    } catch (e) {
-      console.error("[WalletContext] disconnect error", e);
-      setError(e?.message || "Failed to disconnect");
-    }
-    setWallet(null);
-    localStorage.removeItem("walletAddress");
-    localStorage.removeItem("wallet");
-    emitWalletChanged("");
-  }, [tonConnectUI]);
+  const disconnect = useCallback(
+    async ({ skipTonDisconnect = false } = {}) => {
+      try {
+        if (!skipTonDisconnect) {
+          await tonConnectUI.disconnect();
+        }
+        setError(null);
+      } catch (e) {
+        console.error("[WalletContext] disconnect error", e);
+        setError(e?.message || "Failed to disconnect");
+        throw e;
+      } finally {
+        setWallet(null);
+      }
+    },
+    [setError, tonConnectUI]
+  );
 
   // also read any TON address that other code may have saved
   const value = useMemo(

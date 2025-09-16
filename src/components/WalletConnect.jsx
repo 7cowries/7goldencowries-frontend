@@ -1,68 +1,54 @@
-import { useEffect, useState } from "react";
-import Toast from "./Toast";
+import { useEffect, useRef } from "react";
+import {
+  TonConnectButton,
+  useTonAddress,
+  useTonWallet,
+  useTonConnectUI,
+} from "@tonconnect/ui-react";
 import "./ConnectButtons.css";
-import { useWallet } from "../hooks/useWallet";
+import { bindWallet } from "../utils/api";
 
-/**
- * WalletConnect component: shows a connect or disconnect button backed by the
- * shared `useWallet` hook. Errors surface as a temporary toast.
- */
 export default function WalletConnect({ className = "" }) {
-  const { wallet, connect, disconnect, connecting, error } = useWallet();
-  const [toast, setToast] = useState("");
+  const [tonConnectUI] = useTonConnectUI();
+  const userFriendlyAddress = useTonAddress();
+  const wallet = useTonWallet();
+  const lastAddressRef = useRef("");
 
   useEffect(() => {
-    if (!error) return;
-    setToast(error);
-    const id = window.setTimeout(() => setToast(""), 3200);
-    return () => window.clearTimeout(id);
-  }, [error]);
+    if (!tonConnectUI) return;
+    const address = wallet?.account?.address || userFriendlyAddress || "";
+    if (!address || lastAddressRef.current === address) return;
+    lastAddressRef.current = address;
 
-  const showError = (msg) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(""), 3200);
-  };
-
-  const handleConnect = async () => {
+    bindWallet(address).catch(() => {});
     try {
-      await connect();
-    } catch (e) {
-      if (e?.message) showError(e.message);
+      localStorage.setItem("wallet", address);
+      localStorage.setItem("walletAddress", address);
+      localStorage.setItem("ton_wallet", address);
+    } catch (err) {
+      console.warn("[WalletConnect] failed to persist wallet", err);
     }
-  };
+    window.dispatchEvent(new CustomEvent("wallet:changed", { detail: { wallet: address } }));
+  }, [tonConnectUI, wallet, userFriendlyAddress]);
 
-  const handleDisconnect = async () => {
+  useEffect(() => {
+    if (!tonConnectUI) return;
+    const address = wallet?.account?.address || userFriendlyAddress || "";
+    if (address || !lastAddressRef.current) return;
+    lastAddressRef.current = "";
     try {
-      await disconnect();
-    } catch (e) {
-      if (e?.message) showError(e.message);
+      localStorage.removeItem("wallet");
+      localStorage.removeItem("walletAddress");
+      localStorage.removeItem("ton_wallet");
+    } catch (err) {
+      console.warn("[WalletConnect] failed to clear wallet", err);
     }
-  };
-
-  const short = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : null;
+    window.dispatchEvent(new CustomEvent("wallet:changed", { detail: { wallet: "" } }));
+  }, [tonConnectUI, wallet, userFriendlyAddress]);
 
   return (
     <div className={`connect-buttons ${className}`.trim()}>
-      {wallet ? (
-        <button
-          type="button"
-          className="connect-btn"
-          onClick={handleDisconnect}
-          disabled={connecting}
-        >
-          Disconnect {short}
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="connect-btn"
-          onClick={handleConnect}
-          disabled={connecting}
-        >
-          {connecting ? "Opening…" : "Connect Wallet"}
-        </button>
-      )}
-      <Toast message={toast} />
+      <TonConnectButton />
     </div>
   );
 }
