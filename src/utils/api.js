@@ -1,16 +1,27 @@
+function normalizeBase(rawValue) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : "";
+  if (!value) return "";
+
+  const stripTrailing = (input) =>
+    input.endsWith("/") ? input.replace(/\/+$/, "") : input;
+
+  if (/^https?:\/\//i.test(value)) {
+    return stripTrailing(value);
+  }
+
+  if (value.startsWith("/")) {
+    return stripTrailing(value);
+  }
+
+  return stripTrailing(`/${value}`);
+}
+
 export const API_BASE = (() => {
   const raw =
     (typeof window !== "undefined" && window.__API_BASE) ||
     process.env.REACT_APP_API_URL ||
     "";
-  if (!raw) return "";
-  if (/^https?:\/\//i.test(raw)) {
-    console.warn(
-      "[api] Ignoring cross-origin API_BASE; falling back to same-origin requests."
-    );
-    return "";
-  }
-  return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  return normalizeBase(raw);
 })();
 
 export const API_URLS = {
@@ -33,7 +44,19 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function resolvePath(path = "") {
   if (!path) return path;
   if (/^https?:\/\//i.test(path)) return path;
-  if (path.startsWith("/")) return `${API_BASE}${path}` || path;
+  if (!API_BASE) return path;
+
+  if (API_BASE.startsWith("http")) {
+    if (path.startsWith("/")) {
+      return `${API_BASE}${path}`;
+    }
+    return `${API_BASE}/${path}`;
+  }
+
+  if (path.startsWith("/")) {
+    return `${API_BASE}${path}`;
+  }
+
   return `${API_BASE}/${path}`;
 }
 
@@ -62,6 +85,22 @@ async function buildHttpError(res) {
   return error;
 }
 
+const inflightRequests = new Map();
+
+function safeStringify(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (value instanceof URLSearchParams) return value.toString();
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch (err) {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 async function requestJSON(path, opts = {}) {
   const {
     method = "GET",
@@ -70,86 +109,111 @@ async function requestJSON(path, opts = {}) {
     signal,
     timeout = 15000,
     retries = 1,
+    dedupe = true,
+    dedupeKey,
     ...rest
   } = opts;
 
   const url = resolvePath(path);
-  let attempt = 0;
+  const methodName = String(method || "GET").toUpperCase();
+  const shouldDedupe = dedupe !== false && !signal;
+  const keyBody = body === undefined ? "" : safeStringify(body);
+  const key = shouldDedupe
+    ? dedupeKey || `${methodName}:${url}:${keyBody}`
+    : null;
 
-  while (attempt <= retries) {
-    const controller = signal ? null : new AbortController();
-    const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
-    const finalSignal = signal || controller?.signal;
+  if (key && inflightRequests.has(key)) {
+    return inflightRequests.get(key);
+  }
 
-    const options = {
-      method,
-      credentials: "include",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        ...(headers || {}),
-      },
-      signal: finalSignal,
-      ...rest,
-    };
+  const execute = async () => {
+    let attempt = 0;
 
-    if (body !== undefined) options.body = body;
+    while (attempt <= retries) {
+      const controller = signal ? null : new AbortController();
+      const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
+      const finalSignal = signal || controller?.signal;
 
-    try {
-      const res = await fetch(url, options);
+      const options = {
+        method: methodName,
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(headers || {}),
+        },
+        signal: finalSignal,
+        ...rest,
+      };
 
-      if (shouldRetry(res) && attempt < retries) {
-        attempt += 1;
-        if (timer) clearTimeout(timer);
-        await sleep(400);
-        continue;
-      }
+      if (body !== undefined) options.body = body;
 
-      if (res.status === 304) {
-        if (timer) clearTimeout(timer);
-        return null;
-      }
+      try {
+        const res = await fetch(url, options);
 
-      if (!res.ok) {
-        if (timer) clearTimeout(timer);
-        throw await buildHttpError(res);
-      }
-
-      if (res.status === 204) {
-        if (timer) clearTimeout(timer);
-        return null;
-      }
-
-      const data = await res.json();
-      if (timer) clearTimeout(timer);
-      return data;
-    } catch (err) {
-      if (timer) clearTimeout(timer);
-
-      if (err?.name === "AbortError") {
-        throw err;
-      }
-
-      if (err instanceof TypeError) {
-        if (attempt < retries) {
+        if (shouldRetry(res) && attempt < retries) {
           attempt += 1;
+          if (timer) clearTimeout(timer);
           await sleep(400);
           continue;
         }
-        const networkError = new Error("Network error: Failed to fetch");
-        networkError.cause = err;
-        throw networkError;
-      }
 
-      if (err instanceof Error) {
-        throw err;
-      }
+        if (res.status === 304) {
+          if (timer) clearTimeout(timer);
+          return null;
+        }
 
-      throw new Error(String(err));
+        if (!res.ok) {
+          if (timer) clearTimeout(timer);
+          throw await buildHttpError(res);
+        }
+
+        if (res.status === 204) {
+          if (timer) clearTimeout(timer);
+          return null;
+        }
+
+        const data = await res.json();
+        if (timer) clearTimeout(timer);
+        return data;
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+
+        if (err?.name === "AbortError") {
+          throw err;
+        }
+
+        if (err instanceof TypeError) {
+          if (attempt < retries) {
+            attempt += 1;
+            await sleep(400);
+            continue;
+          }
+          const networkError = new Error("Network error: Failed to fetch");
+          networkError.cause = err;
+          throw networkError;
+        }
+
+        if (err instanceof Error) {
+          throw err;
+        }
+
+        throw new Error(String(err));
+      }
     }
+
+    throw new Error("Request failed");
+  };
+
+  let pending = execute();
+  if (key) {
+    pending = pending.finally(() => {
+      inflightRequests.delete(key);
+    });
+    inflightRequests.set(key, pending);
   }
 
-  throw new Error("Request failed");
+  return pending;
 }
 
 // simple in-memory cache with 60s TTL
@@ -292,7 +356,7 @@ export function claimSubscriptionBonus(opts = {}) {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("profile-updated"));
     }
-    return res;
+    return normalizeResponse(res);
   });
 }
 
@@ -353,10 +417,6 @@ export function startTokenSalePurchase({ wallet, amount }, opts = {}) {
   );
 }
 
-export function getSubscription(opts = {}) {
-  return getJSON("/api/v1/subscription", opts);
-}
-
 export function getSubscriptionStatus(opts = {}) {
   return getJSON("/api/v1/subscription/status", opts);
 }
@@ -409,7 +469,6 @@ export const api = {
   bindWallet,
   disconnectSession,
   startTokenSalePurchase,
-  getSubscription,
   getSubscriptionStatus,
   subscribeToTier,
   claimSubscriptionBonus,

@@ -9,6 +9,62 @@ const {
 } = require('./src/lib/progression');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
+const SUBSCRIPTION_BONUS_XP = Math.max(
+  0,
+  Number(process.env.SUBSCRIPTION_BONUS_XP || 120)
+);
+
+function isSecureCookieEnv() {
+  if (process.env.COOKIE_SECURE === 'true') return true;
+  if (process.env.COOKIE_SECURE === 'false') return false;
+  return process.env.NODE_ENV === 'production';
+}
+
+function serializeCookie(name, value, options = {}) {
+  const parts = [];
+  const encodedValue = value == null ? '' : encodeURIComponent(value);
+  parts.push(`${name}=${encodedValue}`);
+
+  const {
+    maxAge,
+    path = '/',
+    httpOnly = true,
+    domain,
+    sameSite,
+    secure,
+    expires,
+  } = options;
+
+  if (path) parts.push(`Path=${path}`);
+  if (domain) parts.push(`Domain=${domain}`);
+  if (typeof maxAge === 'number') parts.push(`Max-Age=${maxAge}`);
+  if (expires instanceof Date) {
+    parts.push(`Expires=${expires.toUTCString()}`);
+  } else if (typeof expires === 'string') {
+    parts.push(`Expires=${expires}`);
+  }
+
+  if (httpOnly) parts.push('HttpOnly');
+
+  const secureFlag = secure ?? isSecureCookieEnv();
+  const sameSiteValue = sameSite ?? (secureFlag ? 'None' : 'Lax');
+  if (sameSiteValue) parts.push(`SameSite=${sameSiteValue}`);
+  if (secureFlag) parts.push('Secure');
+
+  return parts.join('; ');
+}
+
+function appendCookie(res, header) {
+  if (!header) return;
+  const prev = res.getHeader('Set-Cookie');
+  if (!prev) {
+    res.setHeader('Set-Cookie', header);
+  } else if (Array.isArray(prev)) {
+    res.setHeader('Set-Cookie', [...prev, header]);
+  } else {
+    res.setHeader('Set-Cookie', [prev, header]);
+  }
+}
 
 function defaultSocials() {
   return {
@@ -94,6 +150,28 @@ function getOrCreateUser(wallet) {
   return normalized;
 }
 
+function buildSubscriptionStatus(user, wallet) {
+  const profile = serializeUser(user || createBaseProfile(), {
+    wallet,
+    authed: Boolean(wallet),
+  });
+  const claimedAt = user?.subscriptionClaimedAt || null;
+  const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
+  return {
+    tier: profile.tier || 'Free',
+    levelName: profile.levelName || 'Shellborn',
+    levelSymbol: profile.levelSymbol || '🐚',
+    xp: profile.xp ?? 0,
+    xpIntoLevel: profile.xp ?? 0,
+    totalXP: profile.totalXP ?? 0,
+    nextXP: profile.nextXP ?? null,
+    wallet: profile.wallet ?? wallet ?? null,
+    canClaim: !claimedAt,
+    claimedAt,
+    lastClaimDelta,
+  };
+}
+
 // In‑memory stores for demo purposes
 const sessions = new Map();
 const users = new Map(); // wallet -> user profile
@@ -115,7 +193,7 @@ function getSession(req, res) {
   if (!sid || !sessions.has(sid)) {
     sid = crypto.randomUUID();
     sessions.set(sid, {});
-    res.setHeader('Set-Cookie', `sid=${sid}; Path=/; HttpOnly`);
+    appendCookie(res, serializeCookie('sid', sid, { httpOnly: true }));
   }
   return sessions.get(sid);
 }
@@ -124,16 +202,32 @@ const app = express();
 app.set('etag', false);
 
 // CORS configuration allowing production + local dev origins with credentials
-const allowedOrigins = [
-  FRONTEND_URL,
-  'https://7goldencowries.com',
-  'https://www.7goldencowries.com',
-  'http://localhost:3000',
-  'http://localhost:5173',
-].filter(Boolean);
+const allowedOrigins = new Set(
+  [
+    FRONTEND_URL,
+    'https://7goldencowries.com',
+    'https://www.7goldencowries.com',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ]
+    .filter(Boolean)
+    .map((origin) => origin.replace(/\/+$/, ''))
+);
+
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+      const normalized = origin.replace(/\/+$/, '');
+      if (allowedOrigins.has(normalized)) {
+        return callback(null, normalized);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   })
 );
@@ -180,9 +274,12 @@ app.get('/ref/:code', (req, res) => {
   if (!ownerWallet) {
     return res.status(404).send('Invalid referral code');
   }
-  res.setHeader(
-    'Set-Cookie',
-    `referral_code=${encodeURIComponent(code)}; Max-Age=2592000; Path=/; HttpOnly; SameSite=None; Secure`
+  appendCookie(
+    res,
+    serializeCookie('referral_code', code, {
+      maxAge: 2592000,
+      httpOnly: true,
+    })
   );
   const dest = FRONTEND_URL || 'https://7goldencowries.com';
   res.redirect(302, dest);
@@ -217,9 +314,12 @@ app.post('/api/session/bind-wallet', (req, res) => {
         users.set(refWallet, refUser);
       }
     }
-    res.setHeader(
-      'Set-Cookie',
-      'referral_code=; Max-Age=0; Path=/; HttpOnly; SameSite=None; Secure'
+    appendCookie(
+      res,
+      serializeCookie('referral_code', '', {
+        maxAge: 0,
+        httpOnly: true,
+      })
     );
   }
 
@@ -239,6 +339,64 @@ app.get('/api/users/me', (req, res) => {
   users.set(sess.wallet, user);
   sess.user = user;
   res.json(serializeUser(user, { wallet: sess.wallet, authed: true }));
+});
+
+app.get('/api/v1/subscription', (req, res) => {
+  res.redirect(301, '/api/v1/subscription/status');
+});
+
+app.get('/api/v1/subscription/status', (req, res) => {
+  const sess = getSession(req, res);
+  if (!sess.wallet) {
+    const status = buildSubscriptionStatus(null, null);
+    status.canClaim = false;
+    status.wallet = null;
+    status.claimedAt = null;
+    return res.json(status);
+  }
+  const user = getOrCreateUser(sess.wallet);
+  users.set(sess.wallet, user);
+  sess.user = user;
+  res.json(buildSubscriptionStatus(user, sess.wallet));
+});
+
+app.post('/api/v1/subscription/claim', (req, res) => {
+  const sess = getSession(req, res);
+  if (!sess.wallet) {
+    return res
+      .status(401)
+      .json({ error: 'unauthorized', message: 'Wallet session required' });
+  }
+
+  let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
+  let xpDelta = 0;
+  if (!user.subscriptionClaimedAt) {
+    const now = Date.now();
+    xpDelta = SUBSCRIPTION_BONUS_XP;
+    const history = Array.isArray(user.questHistory) ? [...user.questHistory] : [];
+    const updated = grantXP(user, xpDelta);
+    updated.subscriptionClaimedAt = now;
+    updated.subscriptionLastDelta = xpDelta;
+    history.push({
+      id: `subscription-${now}`,
+      title: 'Subscription bonus',
+      xp: xpDelta,
+      delta: xpDelta,
+      completed_at: new Date(now).toISOString(),
+    });
+    updated.questHistory = history;
+    user = updated;
+  } else {
+    user.subscriptionLastDelta = 0;
+  }
+
+  users.set(sess.wallet, user);
+  sess.user = user;
+
+  res.json({
+    xpDelta,
+    status: buildSubscriptionStatus(user, sess.wallet),
+  });
 });
 
 app.get('/api/profile', (req, res) => {

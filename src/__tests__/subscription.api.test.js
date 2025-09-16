@@ -1,0 +1,64 @@
+/**
+ * @jest-environment node
+ */
+
+const request = require('supertest');
+
+describe('subscription API', () => {
+  let app;
+  let agent;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    process.env.SUBSCRIPTION_BONUS_XP = '42';
+    app = require('../../backend/server');
+    agent = request.agent(app);
+  });
+
+  afterEach(() => {
+    delete process.env.SUBSCRIPTION_BONUS_XP;
+  });
+
+  test('returns default status without a wallet session', async () => {
+    const res = await agent.get('/api/v1/subscription/status').expect(200);
+    expect(res.body).toMatchObject({
+      tier: 'Free',
+      wallet: null,
+      canClaim: false,
+    });
+    expect(res.body.levelName).toBeTruthy();
+  });
+
+  test('claim endpoint awards XP once and is idempotent', async () => {
+    const wallet = 'EQTestWallet123';
+    await agent.post('/api/session/bind-wallet').send({ wallet }).expect(200);
+
+    const beforeClaim = await agent.get('/api/v1/subscription/status').expect(200);
+    expect(beforeClaim.body.wallet).toBe(wallet);
+    expect(beforeClaim.body.canClaim).toBe(true);
+
+    const claim = await agent.post('/api/v1/subscription/claim').send({}).expect(200);
+    expect(claim.body.xpDelta).toBe(42);
+    expect(claim.body.status.canClaim).toBe(false);
+    expect(claim.body.status.wallet).toBe(wallet);
+
+    const afterClaim = await agent.get('/api/v1/subscription/status').expect(200);
+    expect(afterClaim.body.canClaim).toBe(false);
+    expect(afterClaim.body.claimedAt).not.toBeNull();
+    expect(afterClaim.body.lastClaimDelta).toBe(42);
+    const xpAfterClaim = afterClaim.body.totalXP || afterClaim.body.xp;
+    expect(xpAfterClaim).toBeGreaterThanOrEqual(42);
+
+    const secondClaim = await agent.post('/api/v1/subscription/claim').send({}).expect(200);
+    expect(secondClaim.body.xpDelta).toBe(0);
+    expect(secondClaim.body.status.canClaim).toBe(false);
+    expect(secondClaim.body.status.lastClaimDelta).toBe(0);
+
+    const afterSecond = await agent.get('/api/v1/subscription/status').expect(200);
+    expect(afterSecond.body.canClaim).toBe(false);
+    expect(afterSecond.body.lastClaimDelta).toBe(0);
+    const xpAfterSecond = afterSecond.body.totalXP || afterSecond.body.xp;
+    expect(xpAfterSecond).toBe(xpAfterClaim);
+  });
+});

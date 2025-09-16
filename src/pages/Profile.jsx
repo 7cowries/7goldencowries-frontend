@@ -1,5 +1,5 @@
 // src/pages/Profile.js
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Profile.css";
 import "../App.css";
 import Page from "../components/Page";
@@ -221,7 +221,15 @@ export default function Profile() {
 
   // Bind wallet to backend session (helps /api/users/me)
   useEffect(() => {
-    if (tonWallet) ensureWalletBound(tonWallet);
+    if (!tonWallet) {
+      loadMeRef.current?.({ force: true });
+      return;
+    }
+    ensureWalletBound(tonWallet)
+      .catch(() => {})
+      .finally(() => {
+        loadMeRef.current?.({ force: true });
+      });
   }, [tonWallet]);
 
   const badgeSrc = useMemo(() => levelBadgeSrc(level.name), [level.name]);
@@ -263,22 +271,29 @@ export default function Profile() {
     [address]
   );
 
-  const loadMe = useCallback(async () => {
-    setError('');
-    setLoading(true);
-    try {
-      // force to bypass cache after OAuth/proof/claim
-      const apiMe = await getMe({ force: true });
-      applyProfile(apiMe);
-    } catch (e) {
-      console.error(e);
-      setError('Failed to load profile.');
-      setMe(DEFAULT_ME);
-      setHasProfile(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [applyProfile]);
+  const loadMe = useCallback(
+    async ({ force = false } = {}) => {
+      setError('');
+      setLoading(true);
+      try {
+        const apiMe = await getMe({ force });
+        applyProfile(apiMe);
+      } catch (e) {
+        console.error(e);
+        setError('Failed to load profile.');
+        setMe(DEFAULT_ME);
+        setHasProfile(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applyProfile]
+  );
+
+  const loadMeRef = useRef(loadMe);
+  useEffect(() => {
+    loadMeRef.current = loadMe;
+  }, [loadMe]);
 
   const handleDisconnectWallet = useCallback(async () => {
     if (disconnecting) return;
@@ -330,11 +345,15 @@ export default function Profile() {
   useEffect(() => {
     const w = localStorage.getItem('wallet');
     if (w) {
-      ensureWalletBound(w).finally(() => loadMe());
+      ensureWalletBound(w)
+        .catch(() => {})
+        .finally(() => {
+          loadMeRef.current?.({ force: true });
+        });
     } else {
-      loadMe();
+      loadMeRef.current?.();
     }
-  }, [loadMe]);
+  }, []);
 
   // Keep address in sync across tabs when wallet changes
   useEffect(() => {
@@ -342,29 +361,75 @@ export default function Profile() {
       const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       setAddress((a) => (a !== w ? w : a));
       if (w) {
-        ensureWalletBound(w).finally(() => loadMe());
+        ensureWalletBound(w)
+          .catch(() => {})
+          .finally(() => {
+            loadMeRef.current?.({ force: true });
+          });
       } else {
-        loadMe();
+        loadMeRef.current?.({ force: true });
       }
     };
     const onStorage = (e) => {
       if (e.key === 'wallet') update();
     };
-    window.addEventListener('wallet:changed', update);
+    window.addEventListener('wallet:changed', update, { once: false });
     window.addEventListener('storage', onStorage);
     return () => {
       window.removeEventListener('wallet:changed', update);
       window.removeEventListener('storage', onStorage);
     };
-  }, [loadMe]);
+  }, []);
 
   useEffect(() => {
-    const onProfileUpdated = () => loadMe();
+    const onProfileUpdated = () => {
+      loadMeRef.current?.({ force: true });
+    };
     window.addEventListener('profile-updated', onProfileUpdated);
     return () => {
       window.removeEventListener('profile-updated', onProfileUpdated);
     };
-  }, [loadMe]);
+  }, []);
+
+  useEffect(() => {
+    let timer = null;
+    let lastRefresh = 0;
+
+    const schedule = (isPassive = false) => {
+      if (isPassive) {
+        const now = Date.now();
+        if (now - lastRefresh < 60000) {
+          return;
+        }
+      }
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        lastRefresh = Date.now();
+        loadMeRef.current?.({ force: true });
+      }, 200);
+    };
+
+    const onFocus = () => schedule(false);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        schedule(true);
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   // Toast + brief polling when returning with ?connected=
   useEffect(() => {
@@ -539,7 +604,11 @@ export default function Profile() {
                 <strong>Referrals:</strong> {referralCount}
               </p>
 
-              <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadMe()}>
+              <button
+                className="connect-btn"
+                style={{ marginTop: 8 }}
+                onClick={() => loadMe({ force: true })}
+              >
                 🔄 Refresh
               </button>
             </div>
@@ -729,7 +798,10 @@ export default function Profile() {
               <h3>Link New Accounts</h3>
               <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-              <ConnectButtons address={address} onLinked={() => loadMe()} />
+              <ConnectButtons
+                address={address}
+                onLinked={() => loadMe({ force: true })}
+              />
 
               {/* Embedded Telegram button (preferred) */}
               <p className="muted" style={{ marginTop: 8 }}>

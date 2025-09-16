@@ -3,7 +3,18 @@
 ## Environment
 
 ```
-REACT_APP_API_URL=https://sevengoldencowries-backend.onrender.com
+# Leave blank to rely on the Vercel -> Render rewrite
+REACT_APP_API_URL=
+GENERATE_SOURCEMAP=false
+```
+
+Backend (Render):
+
+```
+PORT=4000
+FRONTEND_URL=https://7goldencowries.com
+SUBSCRIPTION_BONUS_XP=120
+COOKIE_SECURE=true
 ```
 
 ## Vercel
