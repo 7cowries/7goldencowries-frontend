@@ -1,14 +1,22 @@
-// src/utils/socialLinks.js
-// Helpers for linking/unlinking socials (Twitter, Telegram, Discord)
 import { clearUserCache, postJSON } from "./api";
 
-/**
- * Unlink a connected social account.
- * @param {'twitter'|'telegram'|'discord'} provider
- * @param {Object} [opts]
- * @param {Object} [opts.body]
- * @returns {Promise<any>}
- */
+function normalizeErrorCode(value) {
+  if (value == null) return value;
+  return String(value).trim().toLowerCase().replace(/_/g, "-");
+}
+
+function normalizeResponse(res) {
+  if (!res || typeof res !== "object") return res;
+  const next = { ...res };
+  if ("error" in next && next.error != null) {
+    next.error = normalizeErrorCode(next.error);
+  }
+  if ("code" in next && next.code != null) {
+    next.code = normalizeErrorCode(next.code);
+  }
+  return next;
+}
+
 export async function unlinkSocial(provider, opts = {}) {
   const { body, ...fetchOpts } = opts || {};
   const res = await postJSON(
@@ -20,15 +28,5 @@ export async function unlinkSocial(provider, opts = {}) {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("profile-updated"));
   }
-  return res;
-}
-
-/**
- * Resync (refresh) a connected social account.
- * Useful if handles change.
- * @param {'twitter'|'telegram'|'discord'} provider
- */
-export async function resyncSocial(provider, opts = {}) {
-  const { body, ...fetchOpts } = opts || {};
-  return postJSON(`/api/social/${provider}/resync`, body ?? {}, fetchOpts);
+  return normalizeResponse(res);
 }
