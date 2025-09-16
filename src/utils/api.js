@@ -242,6 +242,16 @@ export function submitProof(id, { url }, opts = {}) {
   });
 }
 
+export function disconnectSession(opts = {}) {
+  return postJSON('/api/session/disconnect', {}, opts).then((res) => {
+    clearUserCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profile-updated'));
+    }
+    return normalizeResponse(res);
+  });
+}
+
 // UI-only helper for showing projected XP; backend still awards the truth.
 export function tierMultiplier(tier) {
   const t = String(tier || '').toLowerCase();
@@ -315,6 +325,7 @@ export const api = {
   getLeaderboard,
   getMe,
   bindWallet,
+  disconnectSession,
   startTokenSalePurchase,
   getSubscription,
   subscribeToTier,

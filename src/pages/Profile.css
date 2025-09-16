@@ -87,6 +87,23 @@
   font-size: 1rem;
 }
 
+.wallet-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wallet-actions {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.wallet-actions .mini {
+  margin: 0;
+}
+
 /* ===== XP bar ===== */
 .xp-bar {
   background: var(--bar-bg);
@@ -216,6 +233,18 @@
 .mini:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.mini.danger {
+  background: rgba(255, 122, 122, 0.15);
+  border-color: rgba(255, 122, 122, 0.35);
+  color: #ffbcbc;
+}
+
+.mini.danger:hover:not(:disabled) {
+  background: rgba(255, 122, 122, 0.22);
+  border-color: rgba(255, 122, 122, 0.5);
+  color: #ffe1e1;
 }
 
 /* Inline link for Discord "Join" */
