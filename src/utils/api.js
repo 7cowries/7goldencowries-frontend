@@ -103,6 +103,23 @@ export function clearUserCache() {
   ["quests", "me"].forEach((k) => _cache.delete(userKey(k)));
 }
 
+function normalizeErrorCode(value) {
+  if (value == null) return value;
+  return String(value).trim().toLowerCase().replace(/_/g, '-');
+}
+
+function normalizeResponse(res) {
+  if (!res || typeof res !== 'object') return res;
+  const next = { ...res };
+  if ('error' in next && next.error != null) {
+    next.error = normalizeErrorCode(next.error);
+  }
+  if ('code' in next && next.code != null) {
+    next.code = normalizeErrorCode(next.code);
+  }
+  return next;
+}
+
 export async function jsonFetch(path, opts = {}) {
   const controller = opts.signal ? null : new AbortController();
   const id = controller ? setTimeout(() => controller.abort(), opts.timeout || 15000) : null;
@@ -183,7 +200,7 @@ export function claimQuest(id, opts = {}) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profile-updated'));
     }
-    return res;
+    return normalizeResponse(res);
   });
 }
 
@@ -197,7 +214,7 @@ export function claimSubscriptionReward({ questId } = {}, opts = {}) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profile-updated'));
     }
-    return res;
+    return normalizeResponse(res);
   });
 }
 
@@ -211,7 +228,7 @@ export function claimReferralReward({ questId } = {}, opts = {}) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profile-updated'));
     }
-    return res;
+    return normalizeResponse(res);
   });
 }
 
@@ -221,7 +238,7 @@ export function submitProof(id, { url }, opts = {}) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('profile-updated'));
     }
-    return res;
+    return normalizeResponse(res);
   });
 }
 

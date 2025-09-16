@@ -15,6 +15,33 @@ import '../App.css';
 import { burstConfetti } from '../utils/confetti';
 import { useWallet } from '../hooks/useWallet';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { detectSpecialClaimType } from '../lib/claimType';
+
+const PROOF_REQUIRED = 'proof-required';
+const TOAST_DISMISS_MS = process.env.NODE_ENV === 'test' ? 0 : 3000;
+
+function normalizeStatus(status) {
+  return String(status || '').toLowerCase();
+}
+
+function isProofRequired(value) {
+  const text = String(value || '').toLowerCase();
+  return text.includes('proof-required') || text.includes('proof_required');
+}
+
+function responseRequiresProof(res) {
+  if (!res) return false;
+  if (typeof res === 'string') return isProofRequired(res);
+  if (res instanceof Error) return isProofRequired(res.message);
+  if (typeof res === 'object') {
+    return (
+      isProofRequired(res.error) ||
+      isProofRequired(res.code) ||
+      isProofRequired(res.message)
+    );
+  }
+  return false;
+}
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
@@ -35,7 +62,7 @@ export default function Quests() {
     };
   }, []);
 
-  const loadQuests = useCallback(async (signal) => {
+  const loadQuests = useCallback(async ({ signal } = {}) => {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
     const items = data?.quests ?? [];
@@ -46,7 +73,7 @@ export default function Quests() {
       const next = { ...prev };
       items.forEach((quest) => {
         if (!quest || !next[quest.id]) return;
-        const status = String(quest.proofStatus || quest.proof_status || '').toLowerCase();
+        const status = normalizeStatus(quest.proofStatus || quest.proof_status);
         const finished = quest.completed || quest.claimed || quest.alreadyClaimed;
         if (finished || status === 'approved') {
           mutated = true;
@@ -57,25 +84,25 @@ export default function Quests() {
     });
   }, []);
 
-  const loadMe = useCallback(async () => {
+  const loadMe = useCallback(async (opts = {}) => {
     try {
-      const data = await getMe();
+      const data = await getMe(opts);
       if (mountedRef.current) setMe(data);
     } catch {}
   }, []);
 
-  const sync = useCallback(async () => {
-    setLoading(true);
+  const sync = useCallback(async ({ background } = {}) => {
+    if (!background) setLoading(true);
     const controller = new AbortController();
     try {
-      await loadQuests(controller.signal);
+      await loadQuests({ signal: controller.signal });
       if (mountedRef.current) setError(null);
     } catch (e) {
       if (!mountedRef.current) return;
       setError(e?.message || 'Failed to load quests. Please try again.');
       console.error('[Quests] load error:', e);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (!background && mountedRef.current) setLoading(false);
     }
   }, [loadQuests]);
 
@@ -92,8 +119,8 @@ export default function Quests() {
 
   useEffect(() => {
     const reload = () => {
-      loadMe();
-      sync();
+      loadMe({ force: true });
+      sync({ background: true });
     };
     window.addEventListener('profile-updated', reload);
     window.addEventListener('focus', reload);
@@ -102,40 +129,6 @@ export default function Quests() {
       window.removeEventListener('focus', reload);
     };
   }, [loadMe, sync]);
-
-  const detectSpecialClaimType = useCallback((quest) => {
-    if (!quest || typeof quest !== 'object') return null;
-    const pathy = [
-      quest.claimType,
-      quest.claim_type,
-      quest?.claim?.type,
-      quest?.action?.type,
-      quest?.actionType,
-    ]
-      .filter(Boolean)
-      .map((v) => String(v).toLowerCase());
-    const requirement = String(quest.requirement || quest.gate || '').toLowerCase();
-    const slug = String(quest.slug || quest.code || '').toLowerCase();
-    const tags = Array.isArray(quest.tags)
-      ? quest.tags.map((tag) => String(tag).toLowerCase())
-      : [];
-
-    const isSubscription =
-      pathy.some((p) => p.includes('subscription')) ||
-      requirement.includes('subscription') ||
-      tags.includes('subscription') ||
-      slug.includes('subscription');
-
-    const isReferral =
-      pathy.some((p) => p.includes('referral')) ||
-      requirement.includes('referral') ||
-      tags.includes('referral') ||
-      slug.includes('referral');
-
-    if (isSubscription) return 'subscription';
-    if (isReferral) return 'referral';
-    return null;
-  }, []);
 
   const handleClaim = useCallback(
     async (questLike) => {
@@ -148,13 +141,18 @@ export default function Quests() {
 
       if (!isConnected) {
         setToast('Connect your wallet to claim quests');
-        setTimeout(() => setToast(''), 3000);
+        setTimeout(() => setToast(''), TOAST_DISMISS_MS);
         return;
       }
       if (claiming[id]) return;
 
       setClaiming((c) => ({ ...c, [id]: true }));
-      setBlockedClaims((prev) => ({ ...prev, [id]: undefined }));
+      setBlockedClaims((prev) => {
+        if (!prev || !prev[id]) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
 
       try {
         const special = detectSpecialClaimType(quest);
@@ -172,9 +170,8 @@ export default function Quests() {
           console.log('claim_clicked', id, res);
         }
 
-        const errorCode = String(res?.error || res?.code || '').toLowerCase();
-        if (errorCode === 'proof-required' || errorCode === 'proof_required') {
-          setBlockedClaims((prev) => ({ ...prev, [id]: 'proof-required' }));
+        if (responseRequiresProof(res)) {
+          setBlockedClaims((prev) => ({ ...prev, [id]: PROOF_REQUIRED }));
           setToast('Submit proof to claim this quest');
           return;
         }
@@ -183,38 +180,58 @@ export default function Quests() {
         const delta = res?.xpDelta ?? res?.xp;
         setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
 
-        const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
-        if (mountedRef.current) {
-          setMe(meData);
-          const items = questsData?.quests ?? [];
-          setQuests(items);
-          setBlockedClaims((prev) => {
-            if (!prev || !prev[id]) return prev;
-            const next = { ...prev };
-            delete next[id];
-            return next;
-          });
-        }
+        await Promise.all([loadMe({ force: true }), loadQuests()]);
+        setBlockedClaims((prev) => {
+          if (!prev || !prev[id]) return prev;
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
       } catch (e) {
         const msg = e?.message || '';
-        if (msg.toLowerCase().includes('proof-required')) {
-          setBlockedClaims((prev) => ({ ...prev, [id]: 'proof-required' }));
+        if (responseRequiresProof(e)) {
+          setBlockedClaims((prev) => ({ ...prev, [id]: PROOF_REQUIRED }));
           setToast('Submit proof to claim this quest');
         } else {
           setToast(msg || 'Failed to claim quest');
         }
       } finally {
         setClaiming((c) => ({ ...c, [id]: false }));
-        setTimeout(() => setToast(''), 3000);
+        setTimeout(() => setToast(''), TOAST_DISMISS_MS);
       }
     },
-    [claiming, detectSpecialClaimType, isConnected, quests]
+    [claiming, isConnected, quests, loadMe, loadQuests]
   );
 
   const tabs = useMemo(
     () => ['all', 'daily', 'social', 'partner', 'insider', 'onchain'],
     []
   );
+
+  const handleProofStatusChange = useCallback(({ questId, status }) => {
+    if (!questId) return;
+    const normalized = normalizeStatus(status);
+    setQuests((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) return prev;
+      let mutated = false;
+      const next = prev.map((quest) => {
+        if (!quest || quest.id !== questId) return quest;
+        const current = normalizeStatus(quest.proofStatus || quest.proof_status);
+        if (current === normalized) return quest;
+        mutated = true;
+        return { ...quest, proofStatus: normalized };
+      });
+      return mutated ? next : prev;
+    });
+    if (normalized === 'approved') {
+      setBlockedClaims((prev) => {
+        if (!prev || !prev[questId]) return prev;
+        const next = { ...prev };
+        delete next[questId];
+        return next;
+      });
+    }
+  }, []);
 
   const shownQuests = useMemo(
     () =>
@@ -296,7 +313,8 @@ export default function Quests() {
                   claiming={!!claiming[q.id]}
                   setToast={setToast}
                   canClaim={isConnected}
-                  blockedReason={blockedClaims[q.id]}
+                  blockedReason={blockedClaims?.[q.id]}
+                  onProofStatusChange={handleProofStatusChange}
                 />
               ))
             )}
