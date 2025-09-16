@@ -358,20 +358,11 @@ export default function Profile() {
     };
   }, [loadMe]);
 
-  // Reload after OAuth tab becomes visible again
   useEffect(() => {
-    const onVis = () => document.visibilityState === "visible" && loadMe();
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [loadMe]);
-
-  useEffect(() => {
-    const onFocus = () => loadMe();
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('profile-updated', onFocus);
+    const onProfileUpdated = () => loadMe();
+    window.addEventListener('profile-updated', onProfileUpdated);
     return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('profile-updated', onFocus);
+      window.removeEventListener('profile-updated', onProfileUpdated);
     };
   }, [loadMe]);
 
@@ -405,21 +396,15 @@ export default function Profile() {
       window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
-    // Refresh now + brief polling
-    let tries = 0;
-    const id = setInterval(() => {
-      loadMe();
-      if (++tries >= 8) clearInterval(id);
-    }, 1000);
+    window.dispatchEvent(new Event('profile-updated'));
+
     const clear = setTimeout(() => {
-      clearInterval(id);
       setToast("");
     }, 8000);
     return () => {
-      clearInterval(id);
       clearTimeout(clear);
     };
-  }, [loadMe]);
+  }, []);
 
   const state = b64(address || "");
 
