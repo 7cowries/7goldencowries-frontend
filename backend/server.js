@@ -431,11 +431,19 @@ app.get('/api/referral/status', (req, res) => {
 // Placeholder: attach additional routes here
 // e.g., app.use('/api/quests', createRouter(db));
 
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    name: '7GoldenCowries API',
+    routes: ['/api/health', '/api/users/me', '/api/v1/subscription/status'],
+  });
+});
+
 module.exports = app;
 
 if (require.main === module) {
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 4000;
   app.listen(port, () => {
-    console.log(`Server listening on ${port}`);
+    console.log(`API listening on ${port}`);
   });
 }
