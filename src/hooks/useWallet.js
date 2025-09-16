@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
+import { useTonAddress, useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import { useWallet as useWalletContext } from "../context/WalletContext";
 
 const STORAGE_KEYS = ["wallet", "walletAddress", "ton_wallet"];
@@ -21,6 +21,7 @@ function readStoredWallet() {
 
 export function useWallet() {
   const tonWallet = useTonWallet();
+  const userAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   const { wallet, setWallet, disconnect: contextDisconnect, error, setError } =
     useWalletContext();
@@ -38,7 +39,8 @@ export function useWallet() {
   }, [wallet, setWallet]);
 
   useEffect(() => {
-    const next = normalizeWallet(tonWallet?.account?.address) || null;
+    const next =
+      normalizeWallet(userAddress || tonWallet?.account?.address) || null;
     if (next && next !== wallet) {
       setWallet(next);
       return;
@@ -46,7 +48,7 @@ export function useWallet() {
     if (!next && !readStoredWallet() && wallet) {
       setWallet(null);
     }
-  }, [tonWallet, wallet, setWallet]);
+  }, [tonWallet, userAddress, wallet, setWallet]);
 
   useEffect(() => {
     if (typeof window === "undefined") return () => {};
@@ -88,19 +90,25 @@ export function useWallet() {
     setConnecting(true);
     try {
       setError?.(null);
-      await contextDisconnect();
+      await tonConnectUI.disconnect();
     } catch (err) {
       console.error("[useWallet] disconnect error", err);
       setError?.(err?.message || "Failed to disconnect wallet");
       throw err;
     } finally {
+      try {
+        await contextDisconnect?.({ skipTonDisconnect: true });
+      } catch (ctxErr) {
+        console.error("[useWallet] context disconnect cleanup error", ctxErr);
+      }
       setConnecting(false);
     }
-  }, [contextDisconnect, setError]);
+  }, [contextDisconnect, setError, tonConnectUI]);
 
   const state = useMemo(
     () => ({
       wallet: wallet || null,
+      rawWallet: tonWallet || null,
       account: tonWallet?.account ?? null,
       isConnected: Boolean(wallet),
       connecting,
