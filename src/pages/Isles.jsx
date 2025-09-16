@@ -209,16 +209,18 @@ function useProfile(address) {
         // 1) Prefer session-aware /api/users/me
         const me = await getMe().catch(() => null);
         if (me?.authed) {
-          const norm = normalizeUser(me, profile);
-          if (!cancelled) setProfile(norm);
+          if (!cancelled) {
+            setProfile((prev) => normalizeUser(me, prev));
+          }
         } else if (address) {
           // 2) Fallback to legacy /api/profile?wallet=
           const url = `${API}/api/profile?wallet=${encodeURIComponent(address)}`;
           const res = await fetch(url, { credentials: "include" });
           if (res.ok) {
             const data = await res.json();
-            const norm = normalizeUser(data, profile);
-            if (!cancelled) setProfile(norm);
+            if (!cancelled) {
+              setProfile((prev) => normalizeUser(data, prev));
+            }
           }
         }
       } catch (e) {

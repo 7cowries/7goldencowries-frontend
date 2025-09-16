@@ -187,6 +187,34 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
+export function claimSubscriptionReward({ questId } = {}, opts = {}) {
+  return postJSON(
+    '/api/v1/subscription/claim',
+    questId ? { questId } : {},
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profile-updated'));
+    }
+    return res;
+  });
+}
+
+export function claimReferralReward({ questId } = {}, opts = {}) {
+  return postJSON(
+    '/api/referral/claim',
+    questId ? { questId } : {},
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('profile-updated'));
+    }
+    return res;
+  });
+}
+
 export function submitProof(id, { url }, opts = {}) {
   return postJSON(`/api/quests/${id}/proofs`, { url }, opts).then((res) => {
     clearUserCache();
@@ -277,6 +305,8 @@ export const api = {
   startDiscord,
   startTwitter,
   claimQuest,
+  claimSubscriptionReward,
+  claimReferralReward,
   submitProof,
   clearUserCache,
   getReferralInfo,

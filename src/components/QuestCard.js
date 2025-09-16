@@ -2,7 +2,15 @@ import React, { useState, useRef } from 'react';
 import useTilt from '../fx/useTilt';
 import { submitProof, tierMultiplier } from '../utils/api';
 
-export default function QuestCard({ quest, onClaim, claiming, me, setToast, canClaim = true }) {
+export default function QuestCard({
+  quest,
+  onClaim,
+  claiming,
+  me,
+  setToast,
+  canClaim = true,
+  blockedReason,
+}) {
   const q = quest;
   const needsProof = q.requirement && q.requirement !== 'none';
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
@@ -13,6 +21,10 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast, canC
   const projected = Math.round((q.xp || 0) * mult);
   const cardRef = useRef(null);
   useTilt(cardRef, 8);
+  const isBlocked = Boolean(blockedReason);
+  const blockedTooltip = blockedReason === 'proof-required'
+    ? 'Submit proof before claiming'
+    : blockedReason || '';
 
   return (
     <div ref={cardRef} className="glass quest-card fade-in">
@@ -104,21 +116,28 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast, canC
         {alreadyClaimed ? (
           <button className="btn success" disabled>Claimed</button>
         ) : (
-          <button
-            className="btn ghost"
-            onClick={() => onClaim(q.id)}
-            disabled={claiming || !claimable || !canClaim}
-            title={
-              !canClaim
-                ? 'Connect wallet to claim'
-                : !claimable && needsProof
-                ? 'Submit proof first'
-                : ''
-            }
-            aria-disabled={claiming || !claimable || !canClaim}
-          >
-            {claiming ? 'Claiming...' : 'Claim'}
-          </button>
+          <>
+            {isBlocked && blockedReason === 'proof-required' ? (
+              <p className="muted proof-note">Proof required — submit your link above.</p>
+            ) : null}
+            <button
+              className="btn ghost"
+              onClick={() => onClaim?.(q)}
+              disabled={claiming || !claimable || !canClaim || isBlocked}
+              title={
+                !canClaim
+                  ? 'Connect wallet to claim'
+                  : isBlocked
+                  ? blockedTooltip
+                  : !claimable && needsProof
+                  ? 'Submit proof first'
+                  : ''
+              }
+              aria-disabled={claiming || !claimable || !canClaim || isBlocked}
+            >
+              {claiming ? 'Claiming...' : 'Claim'}
+            </button>
+          </>
         )}
       </div>
     </div>

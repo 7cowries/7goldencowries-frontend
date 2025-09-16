@@ -127,6 +127,42 @@ describe('Quests page claiming', () => {
     expect(claimBtn).toBeDisabled();
     expect(claimBtn).toHaveAttribute('title', 'Connect wallet to claim');
   });
+
+  test('proof-required error disables claim until proof submitted', async () => {
+    getQuests.mockResolvedValueOnce({
+      quests: [
+        {
+          id: 1,
+          xp: 25,
+          active: 1,
+          requirement: 'none',
+        },
+      ],
+      completed: [],
+      xp: 0,
+    });
+    getMe.mockResolvedValueOnce({
+      wallet: 'w',
+      xp: 0,
+      level: '1',
+      levelProgress: 0,
+      socials: {},
+    });
+
+    render(<Quests />);
+
+    const claimBtn = await screen.findByRole('button', { name: 'Claim' });
+    claimQuest.mockResolvedValueOnce({ error: 'proof-required' });
+
+    await userEvent.click(claimBtn);
+
+    await waitFor(() => expect(claimQuest).toHaveBeenCalled());
+
+    const disabledBtn = await screen.findByRole('button', { name: 'Claim' });
+    expect(disabledBtn).toBeDisabled();
+    expect(disabledBtn).toHaveAttribute('title', 'Submit proof before claiming');
+    expect(screen.getByText(/Proof required/i)).toBeInTheDocument();
+  });
 });
 
 

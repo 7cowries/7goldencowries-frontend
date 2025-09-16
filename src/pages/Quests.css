@@ -152,6 +152,12 @@
   box-shadow: 0 16px 40px rgba(0,0,0,.35);
 }
 
+.proof-note {
+  font-size: 0.75rem;
+  color: rgba(173, 195, 224, 0.9);
+  margin: 0 0 6px;
+}
+
 .q-row {
   display: flex;
   align-items: center;
@@ -231,6 +237,20 @@
   background: linear-gradient(180deg, rgba(60, 190, 110, .22), rgba(60, 190, 110, .15));
   border-color: rgba(60, 190, 110, .45);
   color: #c7ffd8;
+}
+
+.q-fallback {
+  margin: clamp(48px, 12vw, 96px) auto;
+  padding: clamp(24px, 6vw, 48px);
+  border-radius: 20px;
+  max-width: 480px;
+  text-align: center;
+  display: grid;
+  gap: 12px;
+}
+
+.q-fallback.error {
+  border: 1px solid rgba(255, 106, 106, 0.35);
 }
 
 .actions {

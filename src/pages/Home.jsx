@@ -20,7 +20,7 @@ export default function Home() {
       <div className="aurora" aria-hidden="true" />
       <div className="bg-particles" aria-hidden="true">
         {particles.map((_, i) => (
-          <span key={i} style={{ ["--i"]: i }} />
+          <span key={i} style={{ '--i': i }} />
         ))}
       </div>
 

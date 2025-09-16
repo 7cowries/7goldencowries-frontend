@@ -6,7 +6,7 @@ import Page from "../components/Page";
 import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
-import { burstConfetti } from "../utils/confetti";
+import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
 
@@ -139,6 +139,33 @@ export default function Profile() {
     telegram: false,
     discord: false,
   });
+
+  const referralCount = useMemo(() => {
+    if (typeof me?.referralCount === 'number') return me.referralCount;
+    if (me?.referral_count != null) return Number(me.referral_count) || 0;
+    if (me?.referralStats && typeof me.referralStats.count === 'number') {
+      return me.referralStats.count;
+    }
+    if (me?.referral_stats && typeof me.referral_stats.count === 'number') {
+      return me.referral_stats.count;
+    }
+    if (Array.isArray(me?.referrals)) return me.referrals.length;
+    if (Array.isArray(me?.referralHistory)) return me.referralHistory.length;
+    return 0;
+  }, [me]);
+
+  const xpProgress = useMemo(() => {
+    const raw = level.progress ?? me?.levelProgress ?? 0;
+    return Math.max(0, Math.min(1, Number(raw) || 0));
+  }, [level.progress, me?.levelProgress]);
+
+  const xpPercent = useMemo(() => (xpProgress * 100).toFixed(1), [xpProgress]);
+
+  const xpTarget = useMemo(() => {
+    if (me?.nextXP != null) return me.nextXP;
+    if (level.nextXP != null) return level.nextXP;
+    return '∞';
+  }, [me?.nextXP, level.nextXP]);
 
   // Prefer connected wallet address; fallback to any stored value on load
   useEffect(() => {
@@ -420,13 +447,16 @@ export default function Profile() {
                 <div
                   className="xp-fill"
                   style={{
-                    width: `${((me.levelProgress || 0) * 100).toFixed(1)}%`,
-                    transition: "width 0.8s ease-in-out",
+                    width: `${xpPercent}%`,
                   }}
                 />
               </div>
               <p className="progress-label">
-                {((me.levelProgress || 0) * 100).toFixed(1)}% — XP {me.xp} / {me.nextXP}
+                {xpPercent}% — XP {me.xp ?? 0} / {xpTarget}
+              </p>
+
+              <p>
+                <strong>Referrals:</strong> {referralCount}
               </p>
 
               <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadMe()}>
@@ -459,6 +489,7 @@ export default function Profile() {
                     ) : (
                       <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ Connected</span>
                     )}
+                    <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
                       <button className="mini" disabled title="Already connected">Connect</button>
                     </div>
@@ -466,6 +497,7 @@ export default function Profile() {
                 ) : (
                   <>
                     <span className="not-connected">❌ Not Connected</span>
+                    <span className="proof-status warn">Proof pending</span>
                     <div className="social-actions">
                       <button
                         className="mini"
@@ -497,6 +529,7 @@ export default function Profile() {
                     ) : (
                       <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ Connected</span>
                     )}
+                    <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
                       <button className="mini" disabled title="Already connected">Connect</button>
                     </div>
@@ -504,6 +537,7 @@ export default function Profile() {
                 ) : (
                   <>
                     <span className="not-connected">❌ Not Connected</span>
+                    <span className="proof-status warn">Proof pending</span>
                     <div className="social-actions">
                       <button
                         className="mini"
@@ -522,7 +556,10 @@ export default function Profile() {
                 <span className="muted">Discord:</span>
                 {discordConnected ? (
                   <>
-                    <span style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ {discord}</span>
+                    <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>
+                      ✅ {discord || 'Connected'}
+                    </span>
+                    <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
                       {discord ? (
                         <button
@@ -543,6 +580,7 @@ export default function Profile() {
                 ) : (
                   <>
                     <span className="not-connected">❌ Not Connected</span>
+                    <span className="proof-status warn">Proof pending</span>
                     <div className="social-actions">
                       <button
                         className="mini"
