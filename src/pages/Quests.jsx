@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   getQuests,
   claimQuest,
@@ -35,7 +35,7 @@ export default function Quests() {
     };
   }, []);
 
-  async function loadQuests(signal) {
+  const loadQuests = useCallback(async (signal) => {
     const data = await getQuests({ signal });
     if (!mountedRef.current) return;
     const items = data?.quests ?? [];
@@ -55,16 +55,16 @@ export default function Quests() {
       });
       return mutated ? next : prev;
     });
-  }
+  }, []);
 
-  async function loadMe() {
+  const loadMe = useCallback(async () => {
     try {
       const data = await getMe();
       if (mountedRef.current) setMe(data);
     } catch {}
-  }
+  }, []);
 
-  async function sync() {
+  const sync = useCallback(async () => {
     setLoading(true);
     const controller = new AbortController();
     try {
@@ -77,12 +77,12 @@ export default function Quests() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }
+  }, [loadQuests]);
 
   useEffect(() => {
     sync();
     loadMe();
-  }, [wallet]);
+  }, [wallet, loadMe, sync]);
 
   useEffect(() => {
     if (!wallet && mountedRef.current) {
@@ -101,9 +101,9 @@ export default function Quests() {
       window.removeEventListener('profile-updated', reload);
       window.removeEventListener('focus', reload);
     };
-  }, []);
+  }, [loadMe, sync]);
 
-  const detectSpecialClaimType = (quest) => {
+  const detectSpecialClaimType = useCallback((quest) => {
     if (!quest || typeof quest !== 'object') return null;
     const pathy = [
       quest.claimType,
@@ -135,78 +135,81 @@ export default function Quests() {
     if (isSubscription) return 'subscription';
     if (isReferral) return 'referral';
     return null;
-  };
+  }, []);
 
-  const handleClaim = async (questLike) => {
-    const quest =
-      typeof questLike === 'object' && questLike
-        ? questLike
-        : quests.find((entry) => entry.id === questLike);
-    const id = quest?.id ?? questLike;
-    if (!id) return;
+  const handleClaim = useCallback(
+    async (questLike) => {
+      const quest =
+        typeof questLike === 'object' && questLike
+          ? questLike
+          : quests.find((entry) => entry.id === questLike);
+      const id = quest?.id ?? questLike;
+      if (!id) return;
 
-    if (!isConnected) {
-      setToast('Connect your wallet to claim quests');
-      setTimeout(() => setToast(''), 3000);
-      return;
-    }
-    if (claiming[id]) return;
-
-    setClaiming((c) => ({ ...c, [id]: true }));
-    setBlockedClaims((prev) => ({ ...prev, [id]: undefined }));
-
-    try {
-      const special = detectSpecialClaimType(quest);
-      let res;
-
-      if (special === 'subscription') {
-        res = await claimSubscriptionReward({ questId: id });
-      } else if (special === 'referral') {
-        res = await claimReferralReward({ questId: id });
-      } else {
-        res = await claimQuest(id);
-      }
-
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('claim_clicked', id, res);
-      }
-
-      const errorCode = String(res?.error || res?.code || '').toLowerCase();
-      if (errorCode === 'proof-required' || errorCode === 'proof_required') {
-        setBlockedClaims((prev) => ({ ...prev, [id]: 'proof-required' }));
-        setToast('Submit proof to claim this quest');
+      if (!isConnected) {
+        setToast('Connect your wallet to claim quests');
+        setTimeout(() => setToast(''), 3000);
         return;
       }
+      if (claiming[id]) return;
 
-      burstConfetti();
-      const delta = res?.xpDelta ?? res?.xp;
-      setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
+      setClaiming((c) => ({ ...c, [id]: true }));
+      setBlockedClaims((prev) => ({ ...prev, [id]: undefined }));
 
-      const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
-      if (mountedRef.current) {
-        setMe(meData);
-        const items = questsData?.quests ?? [];
-        setQuests(items);
-        setBlockedClaims((prev) => {
-          if (!prev || !prev[id]) return prev;
-          const next = { ...prev };
-          delete next[id];
-          return next;
-        });
+      try {
+        const special = detectSpecialClaimType(quest);
+        let res;
+
+        if (special === 'subscription') {
+          res = await claimSubscriptionReward({ questId: id });
+        } else if (special === 'referral') {
+          res = await claimReferralReward({ questId: id });
+        } else {
+          res = await claimQuest(id);
+        }
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('claim_clicked', id, res);
+        }
+
+        const errorCode = String(res?.error || res?.code || '').toLowerCase();
+        if (errorCode === 'proof-required' || errorCode === 'proof_required') {
+          setBlockedClaims((prev) => ({ ...prev, [id]: 'proof-required' }));
+          setToast('Submit proof to claim this quest');
+          return;
+        }
+
+        burstConfetti();
+        const delta = res?.xpDelta ?? res?.xp;
+        setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
+
+        const [meData, questsData] = await Promise.all([getMe(), getQuests()]);
+        if (mountedRef.current) {
+          setMe(meData);
+          const items = questsData?.quests ?? [];
+          setQuests(items);
+          setBlockedClaims((prev) => {
+            if (!prev || !prev[id]) return prev;
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        }
+      } catch (e) {
+        const msg = e?.message || '';
+        if (msg.toLowerCase().includes('proof-required')) {
+          setBlockedClaims((prev) => ({ ...prev, [id]: 'proof-required' }));
+          setToast('Submit proof to claim this quest');
+        } else {
+          setToast(msg || 'Failed to claim quest');
+        }
+      } finally {
+        setClaiming((c) => ({ ...c, [id]: false }));
+        setTimeout(() => setToast(''), 3000);
       }
-    } catch (e) {
-      const msg = e?.message || '';
-      if (msg.toLowerCase().includes('proof-required')) {
-        setBlockedClaims((prev) => ({ ...prev, [id]: 'proof-required' }));
-        setToast('Submit proof to claim this quest');
-      } else {
-        setToast(msg || 'Failed to claim quest');
-      }
-    } finally {
-      setClaiming((c) => ({ ...c, [id]: false }));
-      setTimeout(() => setToast(''), 3000);
-    }
-  };
+    },
+    [claiming, detectSpecialClaimType, isConnected, quests]
+  );
 
   const tabs = useMemo(
     () => ['all', 'daily', 'social', 'partner', 'insider', 'onchain'],
