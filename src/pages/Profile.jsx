@@ -6,7 +6,7 @@ import Page from "../components/Page";
 import { API_BASE, API_URLS, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
-import { burstConfetti } from "../utils/confetti";
+import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
 
