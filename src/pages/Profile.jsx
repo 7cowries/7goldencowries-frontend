@@ -9,6 +9,7 @@ import WalletConnect from "../components/WalletConnect";
 import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
+import { levelBadgeSrc } from "../config/progression";
 
 // Telegram embed constants
 const TG_BOT_NAME =
@@ -32,7 +33,7 @@ const DEFAULT_ME = {
   level: "Shellborn",
   levelName: "Shellborn",
   levelSymbol: "🐚",
-  nextXP: 100,
+  nextXP: 10000,
   twitterHandle: null,
   telegramId: null,
   discordId: null,
@@ -155,17 +156,39 @@ export default function Profile() {
   }, [me]);
 
   const xpProgress = useMemo(() => {
-    const raw = level.progress ?? me?.levelProgress ?? 0;
-    return Math.max(0, Math.min(1, Number(raw) || 0));
-  }, [level.progress, me?.levelProgress]);
+    const raw = me?.levelProgress ?? level.progress ?? 0;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return 0;
+    if (value <= 0) return 0;
+    if (value >= 1) return 1;
+    return value;
+  }, [me?.levelProgress, level.progress]);
 
   const xpPercent = useMemo(() => (xpProgress * 100).toFixed(1), [xpProgress]);
 
-  const xpTarget = useMemo(() => {
-    if (me?.nextXP != null) return me.nextXP;
-    if (level.nextXP != null) return level.nextXP;
-    return '∞';
+  const xpValue = useMemo(() => {
+    const raw = Number(me?.xp ?? 0);
+    return Number.isFinite(raw) ? raw : 0;
+  }, [me?.xp]);
+
+  const xpDisplay = useMemo(() => xpValue.toLocaleString(), [xpValue]);
+
+  const nextXPValue = useMemo(() => {
+    if (me?.nextXP != null) {
+      const raw = Number(me.nextXP);
+      return Number.isFinite(raw) && raw > 0 ? raw : null;
+    }
+    if (level.nextXP != null) {
+      const raw = Number(level.nextXP);
+      return Number.isFinite(raw) && raw > 0 ? raw : null;
+    }
+    return null;
   }, [me?.nextXP, level.nextXP]);
+
+  const nextXPDisplay = useMemo(
+    () => (nextXPValue == null ? "∞" : nextXPValue.toLocaleString()),
+    [nextXPValue]
+  );
 
   // Prefer connected wallet address; fallback to any stored value on load
   useEffect(() => {
@@ -182,10 +205,7 @@ export default function Profile() {
     if (tonWallet) ensureWalletBound(tonWallet);
   }, [tonWallet]);
 
-  const badgeSrc = useMemo(() => {
-    const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
-    return `/images/badges/level-${slug}.png`;
-  }, [level.name]);
+  const badgeSrc = useMemo(() => levelBadgeSrc(level.name), [level.name]);
 
   const applyProfile = useCallback(
     (raw) => {
@@ -212,7 +232,7 @@ export default function Profile() {
         name: lvlName,
         symbol: merged.levelSymbol || "🐚",
         progress: merged.levelProgress ?? 0,
-        nextXP: merged.nextXP ?? 100,
+        nextXP: merged.nextXP ?? 10000,
       });
       setPerk(perksMap[lvlName] || "");
 
@@ -440,7 +460,7 @@ export default function Profile() {
                 <strong>Level:</strong> {level.name ?? 'Shellborn'} {level.symbol ?? ''}
               </p>
               <p>
-                <strong>XP:</strong> {me.xp ?? 0} / {me.nextXP ?? "∞"}
+                <strong>XP:</strong> {xpDisplay} / {nextXPDisplay}
               </p>
 
               <div className="xp-bar">
@@ -452,7 +472,7 @@ export default function Profile() {
                 />
               </div>
               <p className="progress-label">
-                {xpPercent}% — XP {me.xp ?? 0} / {xpTarget}
+                {xpPercent}% — XP {xpDisplay} / {nextXPDisplay}
               </p>
 
               <p>
