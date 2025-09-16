@@ -33,8 +33,9 @@ function normalizeUser(raw, prev = {}) {
     raw;
 
   const levelName = base.levelName ?? base.level ?? prev.levelName ?? "Shellborn";
-  const xp = Number(base.xp ?? base.totalXP ?? base.total_xp ?? prev.xp ?? 0);
-  const nextXP = Number(base.nextXP ?? base.next_level_xp ?? base.nextLevelXP ?? prev.nextXP ?? 100);
+  const totalXP = Number(base.totalXP ?? base.total_xp ?? prev.totalXP ?? base.xp ?? 0);
+  const xp = Number(base.xp ?? prev.xp ?? totalXP);
+  const nextXP = Number(base.nextXP ?? base.next_level_xp ?? base.nextLevelXP ?? prev.nextXP ?? 0);
 
   let levelProgress =
     typeof base.levelProgress === "number" ? base.levelProgress :
@@ -48,6 +49,8 @@ function normalizeUser(raw, prev = {}) {
     levelName,
     xp,
     nextXP,
+    totalXP,
+    levelTier: base.levelTier ?? prev.levelTier ?? null,
     levelProgress: clamp01(levelProgress),
   };
 }
@@ -196,8 +199,10 @@ function useProfile(address) {
     wallet: null,
     levelName: "Shellborn",
     xp: 0,
-    nextXP: 100,
+    nextXP: null,
+    totalXP: 0,
     levelProgress: 0,
+    levelTier: "shellborn",
   });
   const [loading, setLoading] = useState(true);
 
@@ -300,7 +305,9 @@ export default function Isles() {
         <div className="profile-chip">
           <div className="chip-left">
             <span className="chip-title">{profile.levelName}</span>
-            <span className="chip-sub">XP {profile.xp} / {profile.nextXP}</span>
+            <span className="chip-sub">
+              XP {profile.xp} / {profile.nextXP ?? "∞"}
+            </span>
           </div>
           <Ring percent={progressPct} label="Level progress" />
         </div>
