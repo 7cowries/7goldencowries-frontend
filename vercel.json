@@ -1,6 +1,9 @@
 {
   "rewrites": [
-    { "source": "/auth/:match*", "destination": "https://sevengoldencowries-backend.onrender.com/auth/:match*" },
-    { "source": "/api/:match*",  "destination": "https://sevengoldencowries-backend.onrender.com/api/:match*" }
+    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" },
+    { "source": "/ref/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*" }
+  ],
+  "headers": [
+    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]
 }
