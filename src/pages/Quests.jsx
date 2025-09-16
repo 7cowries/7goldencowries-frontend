@@ -130,40 +130,6 @@ export default function Quests() {
     };
   }, [loadMe, sync]);
 
-  const detectSpecialClaimType = useCallback((quest) => {
-    if (!quest || typeof quest !== 'object') return null;
-    const pathy = [
-      quest.claimType,
-      quest.claim_type,
-      quest?.claim?.type,
-      quest?.action?.type,
-      quest?.actionType,
-    ]
-      .filter(Boolean)
-      .map((v) => String(v).toLowerCase());
-    const requirement = String(quest.requirement || quest.gate || '').toLowerCase();
-    const slug = String(quest.slug || quest.code || '').toLowerCase();
-    const tags = Array.isArray(quest.tags)
-      ? quest.tags.map((tag) => String(tag).toLowerCase())
-      : [];
-
-    const isSubscription =
-      pathy.some((p) => p.includes('subscription')) ||
-      requirement.includes('subscription') ||
-      tags.includes('subscription') ||
-      slug.includes('subscription');
-
-    const isReferral =
-      pathy.some((p) => p.includes('referral')) ||
-      requirement.includes('referral') ||
-      tags.includes('referral') ||
-      slug.includes('referral');
-
-    if (isSubscription) return 'subscription';
-    if (isReferral) return 'referral';
-    return null;
-  }, []);
-
   const handleClaim = useCallback(
     async (questLike) => {
       const quest =
