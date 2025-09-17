@@ -50,6 +50,7 @@ function loadDatabase() {
       subscriptionStatus TEXT,
       subscriptionActive INTEGER DEFAULT 0,
       lastPaymentAt INTEGER,
+      subscriptionPaidAt INTEGER,
       subscriptionClaimedAt INTEGER,
       subscriptionLastDelta INTEGER,
       xp INTEGER DEFAULT 0,
@@ -62,11 +63,20 @@ function loadDatabase() {
       ON user_state(paid);
   `);
 
+  try {
+    db.exec('ALTER TABLE user_state ADD COLUMN subscriptionPaidAt INTEGER;');
+  } catch (err) {
+    if (!err || !/duplicate column name/i.test(err.message || '')) {
+      throw err;
+    }
+  }
+
   statements = {
     getUser: db.prepare(`
       SELECT wallet, profile_json, paid, subscriptionTier, subscriptionStatus,
-             subscriptionActive, lastPaymentAt, subscriptionClaimedAt,
-             subscriptionLastDelta, xp, totalXP, updatedAt, createdAt
+             subscriptionActive, lastPaymentAt, subscriptionPaidAt,
+             subscriptionClaimedAt, subscriptionLastDelta, xp, totalXP,
+             updatedAt, createdAt
       FROM user_state
       WHERE wallet = ?
     `),
@@ -79,6 +89,7 @@ function loadDatabase() {
         subscriptionStatus,
         subscriptionActive,
         lastPaymentAt,
+        subscriptionPaidAt,
         subscriptionClaimedAt,
         subscriptionLastDelta,
         xp,
@@ -92,6 +103,7 @@ function loadDatabase() {
         @subscriptionStatus,
         @subscriptionActive,
         @lastPaymentAt,
+        @subscriptionPaidAt,
         @subscriptionClaimedAt,
         @subscriptionLastDelta,
         @xp,
@@ -105,6 +117,7 @@ function loadDatabase() {
         subscriptionStatus = excluded.subscriptionStatus,
         subscriptionActive = excluded.subscriptionActive,
         lastPaymentAt = excluded.lastPaymentAt,
+        subscriptionPaidAt = excluded.subscriptionPaidAt,
         subscriptionClaimedAt = excluded.subscriptionClaimedAt,
         subscriptionLastDelta = excluded.subscriptionLastDelta,
         xp = excluded.xp,
@@ -177,6 +190,9 @@ function hydrateUser(row) {
         : Boolean(profile.subscriptionActive),
     lastPaymentAt:
       numeric(row.lastPaymentAt) ?? (profile.lastPaymentAt != null ? Number(profile.lastPaymentAt) : null),
+    subscriptionPaidAt:
+      numeric(row.subscriptionPaidAt) ??
+      (profile.subscriptionPaidAt != null ? Number(profile.subscriptionPaidAt) : null),
     subscriptionClaimedAt:
       numeric(row.subscriptionClaimedAt) ??
       (profile.subscriptionClaimedAt != null ? Number(profile.subscriptionClaimedAt) : null),
@@ -224,6 +240,10 @@ function saveUser(user) {
       subscriptionStatus: user.subscriptionStatus ?? null,
       subscriptionActive: user.subscriptionActive ? 1 : 0,
       lastPaymentAt: user.lastPaymentAt ?? null,
+      subscriptionPaidAt:
+        user.subscriptionPaidAt != null
+          ? Number(user.subscriptionPaidAt)
+          : user.lastPaymentAt ?? null,
       subscriptionClaimedAt: user.subscriptionClaimedAt ?? null,
       subscriptionLastDelta: user.subscriptionLastDelta ?? 0,
       xp:

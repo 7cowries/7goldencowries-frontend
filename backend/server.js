@@ -63,6 +63,37 @@ function normalizeWalletAddress(value) {
   }
 }
 
+function normalizeErrorCode(value) {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim().toLowerCase();
+  if (!str) return null;
+  const normalized = str.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+  return normalized || null;
+}
+
+function sendError(res, status, code, message, extra = {}) {
+  const normalized = normalizeErrorCode(code) || 'request-failed';
+  const body = {
+    ...extra,
+    error: normalized,
+    code: normalized,
+    message: message || normalized,
+  };
+  return res.status(status).json(body);
+}
+
+function sendOk(res, payload = {}, { status = 200, message } = {}) {
+  const body = { ...payload };
+  body.error = null;
+  body.code = null;
+  if (message !== undefined) {
+    body.message = message;
+  } else if (!('message' in body)) {
+    body.message = null;
+  }
+  return res.status(status).json(body);
+}
+
 const TON_RECEIVE_ADDRESS = (process.env.TON_RECEIVE_ADDRESS || '').trim();
 const TON_MIN_PAYMENT_NANO = (() => {
   if (process.env.TON_MIN_AMOUNT_NANO) {
@@ -156,6 +187,7 @@ function createBaseProfile(overrides = {}) {
     subscriptionStatus: 'inactive',
     subscriptionActive: false,
     subscriptionSubscribedAt: null,
+    subscriptionPaidAt: null,
     subscriptionClaimedAt: null,
     subscriptionLastDelta: 0,
     ...overrides,
@@ -224,6 +256,9 @@ function normalizeUserShape(rawUser = {}, wallet = null) {
   if (merged.subscriptionSubscribedAt == null) {
     merged.subscriptionSubscribedAt = null;
   }
+  if (merged.subscriptionPaidAt == null) {
+    merged.subscriptionPaidAt = merged.lastPaymentAt ?? null;
+  }
   merged.lastPaymentAt = merged.lastPaymentAt ?? null;
 
   return merged;
@@ -276,6 +311,10 @@ function serializeUser(user, { wallet, authed } = {}) {
   }
   payload.paid = Boolean(payload.paid);
   payload.lastPaymentAt = payload.lastPaymentAt ?? null;
+  payload.subscriptionPaidAt =
+    payload.subscriptionPaidAt != null
+      ? Number(payload.subscriptionPaidAt)
+      : payload.lastPaymentAt ?? null;
   return payload;
 }
 
@@ -313,7 +352,12 @@ function buildSubscriptionStatus(user, wallet) {
   const claimedAt = user?.subscriptionClaimedAt || null;
   const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
   const paid = Boolean(user?.paid);
-  const lastPaymentAt = user?.lastPaymentAt || null;
+  const lastPaymentAt =
+    user?.subscriptionPaidAt ??
+    user?.lastPaymentAt ??
+    (profile.subscriptionPaidAt != null
+      ? Number(profile.subscriptionPaidAt)
+      : profile.lastPaymentAt ?? null);
   const tier = (() => {
     const rawTier =
       user?.subscriptionTier ||
@@ -334,6 +378,11 @@ function buildSubscriptionStatus(user, wallet) {
     wallet: profile.wallet ?? wallet ?? null,
     paid,
     lastPaymentAt,
+    subscriptionPaidAt:
+      user?.subscriptionPaidAt ??
+      (profile.subscriptionPaidAt != null
+        ? Number(profile.subscriptionPaidAt)
+        : lastPaymentAt ?? null),
     canClaim: paid && !claimedAt,
     claimedAt,
     lastClaimDelta,
@@ -515,28 +564,32 @@ app.get('/api/users/me', (req, res) => {
 app.get('/api/v1/payments/status', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res.json({ paid: false, lastPaymentAt: null });
+    return sendOk(res, {
+      paid: false,
+      lastPaymentAt: null,
+      subscriptionPaidAt: null,
+    });
   }
   const user = getOrCreateUser(sess.wallet);
   sess.user = user;
-  res.json({
+  sendOk(res, {
     paid: Boolean(user.paid),
-    lastPaymentAt: user.lastPaymentAt || null,
+    lastPaymentAt:
+      user.subscriptionPaidAt ?? user.lastPaymentAt ?? null,
+    subscriptionPaidAt: user.subscriptionPaidAt ?? null,
   });
 });
 
 app.post('/api/v1/payments/verify', async (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res
-      .status(401)
-      .json({ verified: false, error: 'unauthorized', message: 'Wallet session required' });
+    return sendError(res, 401, 'unauthorized', 'Wallet session required', {
+      verified: false,
+    });
   }
   if (!TON_RECEIVE_ADDRESS) {
-    return res.status(500).json({
+    return sendError(res, 500, 'not-configured', 'TON_RECEIVE_ADDRESS not configured', {
       verified: false,
-      error: 'not-configured',
-      message: 'TON_RECEIVE_ADDRESS not configured',
     });
   }
 
@@ -544,7 +597,9 @@ app.post('/api/v1/payments/verify', async (req, res) => {
   const txHash = typeof body.txHash === 'string' ? body.txHash.trim() : '';
   const comment = typeof body.comment === 'string' ? body.comment.trim() : '';
   if (!txHash) {
-    return res.status(400).json({ verified: false, error: 'txhash-required' });
+    return sendError(res, 400, 'txhash-required', 'Transaction hash required', {
+      verified: false,
+    });
   }
 
   try {
@@ -555,15 +610,17 @@ app.post('/api/v1/payments/verify', async (req, res) => {
       comment: comment || '7GC-SUB',
     });
     if (!verification?.verified) {
-      return res.status(422).json({ verified: false, detail: verification || null });
+      return sendError(res, 422, 'payment-not-verified', 'Payment not verified', {
+        verified: false,
+        details: verification || null,
+      });
     }
 
     const normalizedSessionWallet = normalizeWalletAddress(sess.wallet);
     const normalizedSender = normalizeWalletAddress(verification.from);
     if (!normalizedSender || normalizedSender !== normalizedSessionWallet) {
-      return res.status(403).json({
+      return sendError(res, 403, 'wallet-mismatch', 'Payment wallet mismatch', {
         verified: false,
-        error: 'wallet-mismatch',
         from: verification?.from || null,
       });
     }
@@ -572,6 +629,7 @@ app.post('/api/v1/payments/verify', async (req, res) => {
       getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
     user.paid = true;
     user.lastPaymentAt = Date.now();
+    user.subscriptionPaidAt = user.lastPaymentAt;
     if (!user.subscriptionTier || user.subscriptionTier === 'Free') {
       user.subscriptionTier = 'Premium';
     }
@@ -586,16 +644,21 @@ app.post('/api/v1/payments/verify', async (req, res) => {
     user = rememberUser(sess.wallet, user);
     sess.user = user;
 
-    res.json({
-      verified: true,
-      paid: true,
-      lastPaymentAt: user.lastPaymentAt,
-    });
+    sendOk(
+      res,
+      {
+        verified: true,
+        paid: true,
+        lastPaymentAt: user.lastPaymentAt,
+        subscriptionPaidAt: user.subscriptionPaidAt ?? user.lastPaymentAt ?? null,
+      },
+      { message: 'Payment verified' }
+    );
   } catch (err) {
     console.error('TON verification failed', err);
-    res.status(400).json({
+    const message = err?.message || 'Payment verification failed';
+    sendError(res, 400, err?.code || 'verification-failed', message, {
       verified: false,
-      error: err?.message || 'verification-failed',
     });
   }
 });
@@ -613,26 +676,22 @@ app.get('/api/v1/subscription/status', (req, res) => {
     status.claimedAt = null;
     status.paid = false;
     status.lastPaymentAt = null;
-    return res.json(status);
+    return sendOk(res, status);
   }
   const user = getOrCreateUser(sess.wallet);
   sess.user = user;
-  res.json(buildSubscriptionStatus(user, sess.wallet));
+  sendOk(res, buildSubscriptionStatus(user, sess.wallet));
 });
 
 app.post('/api/v1/subscription/claim', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res
-      .status(401)
-      .json({ error: 'unauthorized', message: 'Wallet session required' });
+    return sendError(res, 401, 'unauthorized', 'Wallet session required');
   }
 
   let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
   if (!user.paid) {
-    return res
-      .status(402)
-      .json({ error: 'payment-required', message: 'Active subscription required' });
+    return sendError(res, 402, 'payment-required', 'Active subscription required');
   }
   let xpDelta = 0;
   if (!user.subscriptionClaimedAt) {
@@ -658,18 +717,22 @@ app.post('/api/v1/subscription/claim', (req, res) => {
   user = rememberUser(sess.wallet, user);
   sess.user = user;
 
-  res.json({
-    xpDelta,
-    status: buildSubscriptionStatus(user, sess.wallet),
-  });
+  const status = buildSubscriptionStatus(user, sess.wallet);
+  const message = xpDelta > 0 ? 'Subscription bonus granted' : 'Subscription bonus already claimed';
+  sendOk(
+    res,
+    {
+      xpDelta,
+      status,
+    },
+    { message }
+  );
 });
 
 app.post('/api/v1/subscription/subscribe', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    return res
-      .status(401)
-      .json({ error: 'unauthorized', message: 'Wallet session required' });
+    return sendError(res, 401, 'unauthorized', 'Wallet session required');
   }
 
   const body = req.body || {};
@@ -693,10 +756,14 @@ app.post('/api/v1/subscription/subscribe', (req, res) => {
   user = rememberUser(sess.wallet, user);
   sess.user = user;
 
-  res.json({
-    ok: true,
-    status: buildSubscriptionStatus(user, sess.wallet),
-  });
+  sendOk(
+    res,
+    {
+      ok: true,
+      status: buildSubscriptionStatus(user, sess.wallet),
+    },
+    { message: 'Subscription updated' }
+  );
 });
 
 app.get('/api/profile', (req, res) => {
