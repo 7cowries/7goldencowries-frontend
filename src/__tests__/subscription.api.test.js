@@ -27,6 +27,7 @@ describe('subscription API', () => {
       verified: true,
       amount: '500000000',
       to: process.env.TON_RECEIVE_ADDRESS,
+      from: 'EQTestWallet123',
       comment: '7GC-SUB:123456',
     });
     app = require('../../backend/server');
@@ -110,5 +111,27 @@ describe('subscription API', () => {
     expect(afterSecond.body.lastClaimDelta).toBe(0);
     const xpAfterSecond = afterSecond.body.totalXP || afterSecond.body.xp;
     expect(xpAfterSecond).toBe(xpAfterClaim);
+  });
+
+  test('rejects verification when sender wallet differs from session wallet', async () => {
+    const wallet = 'EQTestWallet123';
+    await agent.post('/api/session/bind-wallet').send({ wallet }).expect(200);
+
+    verifyTonPayment.mockResolvedValueOnce({
+      verified: true,
+      amount: '500000000',
+      to: process.env.TON_RECEIVE_ADDRESS,
+      from: 'EQAnotherWallet456',
+      comment: '7GC-SUB:987654',
+    });
+
+    const mismatch = await agent
+      .post('/api/v1/payments/verify')
+      .send({ txHash: 'mismatch-hash', comment: '7GC-SUB:987654' })
+      .expect(403);
+    expect(mismatch.body).toMatchObject({ verified: false, error: 'wallet-mismatch' });
+
+    const status = await agent.get('/api/v1/payments/status').expect(200);
+    expect(status.body).toMatchObject({ paid: false });
   });
 });

@@ -14,6 +14,17 @@ function normalizeAddress(value) {
   return String(value).trim();
 }
 
+function resolveSender(tx) {
+  const inMsg = tx?.in_msg || tx?.inMessage || tx || {};
+  const source =
+    inMsg.source?.address ||
+    inMsg.source ||
+    tx?.source?.address ||
+    tx?.source ||
+    null;
+  return normalizeAddress(source);
+}
+
 function decodeComment(message) {
   if (!message) return "";
   if (typeof message.comment === "string" && message.comment) {
@@ -158,6 +169,7 @@ async function verifyTonPayment({ txHash, to, minAmount = 0, comment }) {
     verified: true,
     amount: amount.toString(),
     to: expectedTo,
+    from: resolveSender(match) || null,
     comment: memo,
   };
 }

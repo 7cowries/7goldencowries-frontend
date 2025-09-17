@@ -8,6 +8,7 @@ const {
   grantXP,
 } = require('./src/lib/progression');
 const { verifyTonPayment } = require('./src/lib/ton');
+const { Address } = require('@ton/core');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
 const SUBSCRIPTION_BONUS_XP = Math.max(
@@ -39,6 +40,26 @@ function parseTonToNano(value) {
     }
   }
   return total;
+}
+
+function normalizeWalletAddress(value) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  try {
+    const friendly = Address.parseFriendly(raw);
+    return friendly.address.toRawString();
+  } catch (err) {
+    try {
+      return Address.parse(raw).toRawString();
+    } catch (err2) {
+      try {
+        return Address.parseRaw(raw).toRawString();
+      } catch (err3) {
+        return raw;
+      }
+    }
+  }
 }
 
 const TON_RECEIVE_ADDRESS = (process.env.TON_RECEIVE_ADDRESS || '').trim();
@@ -446,6 +467,16 @@ app.post('/api/v1/payments/verify', async (req, res) => {
     });
     if (!verification?.verified) {
       return res.status(422).json({ verified: false, detail: verification || null });
+    }
+
+    const normalizedSessionWallet = normalizeWalletAddress(sess.wallet);
+    const normalizedSender = normalizeWalletAddress(verification.from);
+    if (!normalizedSender || normalizedSender !== normalizedSessionWallet) {
+      return res.status(403).json({
+        verified: false,
+        error: 'wallet-mismatch',
+        from: verification?.from || null,
+      });
     }
 
     let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
