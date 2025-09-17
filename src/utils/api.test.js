@@ -2,6 +2,21 @@
  * @jest-environment jsdom
  */
 
+function createResponse({ ok = true, status = 200, jsonData = {}, textData = '' } = {}) {
+  const response = {
+    ok,
+    status,
+    headers: { get: () => null },
+    json: jest.fn(() =>
+      jsonData instanceof Error ? Promise.reject(jsonData) : Promise.resolve(jsonData)
+    ),
+    text: jest.fn(() => Promise.resolve(textData)),
+  };
+  response.clone = () =>
+    createResponse({ ok, status, jsonData, textData });
+  return response;
+}
+
 describe('api utilities', () => {
   afterEach(() => {
     delete global.fetch;
@@ -87,5 +102,76 @@ describe('api utilities', () => {
     ]);
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  test('wraps HTTP errors with ApiError and normalized payload', async () => {
+    jest.resetModules();
+    process.env.REACT_APP_API_URL = '';
+    const payload = { error: 'PAYMENT_REQUIRED', message: 'Active subscription required' };
+    global.fetch = jest.fn(() =>
+      Promise.resolve(createResponse({ ok: false, status: 402, jsonData: payload }))
+    );
+    const { getJSON, ApiError } = require('./api');
+
+    let caught;
+    try {
+      await getJSON('/api/v1/subscription/claim');
+    } catch (err) {
+      caught = err;
+    }
+
+    expect(caught).toBeInstanceOf(ApiError);
+    expect(caught).toMatchObject({
+      code: 'payment-required',
+      error: 'payment-required',
+      message: 'Active subscription required',
+      status: 402,
+    });
+    expect(caught.details).toMatchObject({
+      error: 'payment-required',
+      message: 'Active subscription required',
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('wraps network errors with ApiError', async () => {
+    jest.resetModules();
+    process.env.REACT_APP_API_URL = '';
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    const { getJSON, ApiError } = require('./api');
+
+    let caught;
+    try {
+      await getJSON('/api/test');
+    } catch (err) {
+      caught = err;
+    }
+
+    expect(caught).toBeInstanceOf(ApiError);
+    expect(caught).toMatchObject({
+      message: 'Network error: Failed to fetch',
+      code: 'network-error',
+      error: 'network-error',
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  test('cleans up dedupe entries after failures', async () => {
+    jest.resetModules();
+    process.env.REACT_APP_API_URL = '';
+    global.fetch = jest
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(createResponse({ jsonData: { ok: true } }));
+    const { getJSON } = require('./api');
+
+    await expect(getJSON('/api/test')).rejects.toMatchObject({
+      message: 'Network error: Failed to fetch',
+    });
+
+    const data = await getJSON('/api/test');
+    expect(data).toEqual({ ok: true });
+    expect(global.fetch).toHaveBeenCalledTimes(3);
   });
 });

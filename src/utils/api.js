@@ -16,6 +16,44 @@ function normalizeBase(rawValue) {
   return stripTrailing(`/${value}`);
 }
 
+function normalizeErrorCode(value) {
+  if (value == null) return undefined;
+  const str = String(value).trim();
+  if (!str) return undefined;
+  return str.toLowerCase().replace(/[\s_]+/g, "-");
+}
+
+export class ApiError extends Error {
+  constructor({ message, code, error, status, details, cause } = {}) {
+    const fallbackMessage = message || "Request failed";
+    super(fallbackMessage);
+    this.name = "ApiError";
+    const normalizedCode =
+      normalizeErrorCode(code || error) || "request-failed";
+    this.code = normalizedCode;
+    this.error = normalizedCode;
+    if (status != null) {
+      this.status = status;
+    }
+    if (cause) {
+      this.cause = cause;
+    }
+    if (details !== undefined) {
+      this.details = details;
+    }
+    this.message = fallbackMessage;
+  }
+
+  toJSON() {
+    return {
+      error: this.error,
+      code: this.code,
+      message: this.message,
+      status: this.status ?? null,
+    };
+  }
+}
+
 export const API_BASE = (() => {
   const raw =
     (typeof window !== "undefined" && window.__API_BASE) ||
@@ -64,25 +102,67 @@ function shouldRetry(res) {
   return !!res && (res.status === 502 || res.status === 503 || res.status === 504);
 }
 
-async function buildHttpError(res) {
-  let msg = `HTTP ${res.status}`;
+async function readErrorBody(res) {
+  if (!res) {
+    return { data: null, text: "" };
+  }
   try {
-    const data = await res.clone().json();
-    const detail = data?.error ?? data?.message ?? JSON.stringify(data);
-    if (detail && detail !== "{}" && detail !== "null") {
-      msg += `: ${detail}`;
-    }
-  } catch (err) {
+    const clone = typeof res.clone === "function" ? res.clone() : res;
+    const data = await clone.json();
+    return { data, text: "" };
+  } catch (_) {
     try {
-      const text = await res.clone().text();
-      if (text) msg += `: ${text}`;
-    } catch (_) {
-      /* ignore */
+      const clone = typeof res.clone === "function" ? res.clone() : res;
+      const text = await clone.text();
+      return { data: null, text };
+    } catch (err) {
+      return { data: null, text: "" };
     }
   }
-  const error = new Error(msg);
-  error.status = res.status;
-  return error;
+}
+
+async function buildHttpError(res) {
+  const status = res?.status ?? 0;
+  const { data, text } = await readErrorBody(res);
+  let details = null;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    details = normalizeResponse(data);
+  }
+
+  const payloadMessage = (() => {
+    if (details) {
+      const fields = ["message", "detail", "error"];
+      for (const field of fields) {
+        const value = details[field];
+        if (typeof value === "string" && value.trim()) {
+          return value.trim();
+        }
+      }
+    }
+    if (typeof text === "string" && text.trim()) {
+      return text.trim();
+    }
+    if (typeof data === "string" && data.trim()) {
+      return data.trim();
+    }
+    return "";
+  })();
+
+  const derivedCode =
+    (details && (details.code || details.error)) ||
+    (status ? `http-${status}` : "request-failed");
+  const normalizedCode = normalizeErrorCode(derivedCode) || "request-failed";
+  const message =
+    payloadMessage ||
+    (status ? `Request failed with status ${status}` : "Request failed");
+
+  return new ApiError({
+    message,
+    code: normalizedCode,
+    error: normalizedCode,
+    status,
+    details: details || (text ? { text } : null),
+  });
 }
 
 const inflightRequests = new Map();
@@ -174,12 +254,17 @@ async function requestJSON(path, opts = {}) {
         }
 
         const data = await res.json();
+        const normalized = normalizeResponse(data);
         if (timer) clearTimeout(timer);
-        return data;
+        return normalized;
       } catch (err) {
         if (timer) clearTimeout(timer);
 
         if (err?.name === "AbortError") {
+          throw err;
+        }
+
+        if (err instanceof ApiError) {
           throw err;
         }
 
@@ -189,20 +274,28 @@ async function requestJSON(path, opts = {}) {
             await sleep(400);
             continue;
           }
-          const networkError = new Error("Network error: Failed to fetch");
-          networkError.cause = err;
-          throw networkError;
+          throw new ApiError({
+            message: "Network error: Failed to fetch",
+            code: "network-error",
+            error: "network-error",
+            cause: err,
+          });
         }
 
         if (err instanceof Error) {
-          throw err;
+          throw new ApiError({
+            message: err.message,
+            code: err.code,
+            error: err.error,
+            cause: err,
+          });
         }
 
-        throw new Error(String(err));
+        throw new ApiError({ message: String(err) });
       }
     }
 
-    throw new Error("Request failed");
+    throw new ApiError({ message: "Request failed" });
   };
 
   let pending = execute();
@@ -246,13 +339,9 @@ export function clearUserCache() {
   ["quests", "me"].forEach((k) => _cache.delete(userKey(k)));
 }
 
-function normalizeErrorCode(value) {
-  if (value == null) return value;
-  return String(value).trim().toLowerCase().replace(/_/g, "-");
-}
-
 function normalizeResponse(res) {
   if (!res || typeof res !== "object") return res;
+  if (Array.isArray(res)) return res;
   const next = { ...res };
   if ("error" in next && next.error != null) {
     next.error = normalizeErrorCode(next.error);
@@ -490,4 +579,5 @@ export const api = {
   getJSON,
   post: postJSON,
   withSignal,
+  ApiError,
 };

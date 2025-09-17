@@ -85,6 +85,14 @@ describe('subscription API', () => {
 
     const afterPayment = await agent.get('/api/v1/subscription/status').expect(200);
     expect(afterPayment.body.canClaim).toBe(true);
+    expect(afterPayment.body.tier).toBe('Premium');
+
+    const subscribeRes = await agent
+      .post('/api/v1/subscription/subscribe')
+      .send({ tier: 'premium' })
+      .expect(200);
+    expect(subscribeRes.body).toMatchObject({ ok: true });
+    expect(subscribeRes.body.status).toMatchObject({ tier: 'Premium', canClaim: true });
 
     const paymentStatusAfter = await agent.get('/api/v1/payments/status').expect(200);
     expect(paymentStatusAfter.body).toMatchObject({ paid: true });

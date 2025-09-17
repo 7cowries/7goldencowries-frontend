@@ -232,8 +232,17 @@ function buildSubscriptionStatus(user, wallet) {
   const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
   const paid = Boolean(user?.paid);
   const lastPaymentAt = user?.lastPaymentAt || null;
+  const tier = (() => {
+    const rawTier =
+      user?.subscriptionTier ||
+      profile.subscriptionTier ||
+      profile.tier;
+    if (rawTier) return rawTier;
+    return paid ? 'Premium' : 'Free';
+  })();
+
   return {
-    tier: profile.tier || 'Free',
+    tier,
     levelName: profile.levelName || 'Shellborn',
     levelSymbol: profile.levelSymbol || '🐚',
     xp: profile.xp ?? 0,
@@ -279,18 +288,29 @@ const app = express();
 app.set('etag', false);
 
 // CORS configuration allowing production + local dev origins with credentials
+const normalizeOrigin = (origin) => origin.replace(/\/+$/, '');
+
+const devOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+];
+
+if (FRONTEND_URL && /localhost|127\.0\.0\.1/.test(FRONTEND_URL)) {
+  devOrigins.push(FRONTEND_URL);
+}
+
+const productionOrigins = [
+  FRONTEND_URL || 'https://7goldencowries.com',
+  'https://7goldencowries.com',
+  'https://www.7goldencowries.com',
+];
+
 const allowedOrigins = new Set(
-  [
-    FRONTEND_URL,
-    'https://7goldencowries.com',
-    'https://www.7goldencowries.com',
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5173',
-  ]
+  [...devOrigins, ...productionOrigins]
     .filter(Boolean)
-    .map((origin) => origin.replace(/\/+$/, ''))
+    .map((origin) => normalizeOrigin(origin))
 );
 
 app.use(
@@ -299,7 +319,7 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-      const normalized = origin.replace(/\/+$/, '');
+      const normalized = normalizeOrigin(origin);
       if (allowedOrigins.has(normalized)) {
         return callback(null, normalized);
       }
@@ -479,9 +499,21 @@ app.post('/api/v1/payments/verify', async (req, res) => {
       });
     }
 
-    let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
+    let user =
+      getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
     user.paid = true;
     user.lastPaymentAt = Date.now();
+    if (!user.subscriptionTier || user.subscriptionTier === 'Free') {
+      user.subscriptionTier = 'Premium';
+    }
+    user.subscriptionStatus = 'active';
+    user.subscriptionActive = true;
+    if (!user.subscriptionSubscribedAt) {
+      user.subscriptionSubscribedAt = user.lastPaymentAt;
+    }
+    if (!user.tier || user.tier === 'Free') {
+      user.tier = user.subscriptionTier;
+    }
     users.set(sess.wallet, user);
     sess.user = user;
 
@@ -560,6 +592,41 @@ app.post('/api/v1/subscription/claim', (req, res) => {
 
   res.json({
     xpDelta,
+    status: buildSubscriptionStatus(user, sess.wallet),
+  });
+});
+
+app.post('/api/v1/subscription/subscribe', (req, res) => {
+  const sess = getSession(req, res);
+  if (!sess.wallet) {
+    return res
+      .status(401)
+      .json({ error: 'unauthorized', message: 'Wallet session required' });
+  }
+
+  const body = req.body || {};
+  const tierRaw = typeof body.tier === 'string' ? body.tier.trim() : '';
+  const normalizedTier = tierRaw ? tierRaw.toLowerCase() : 'premium';
+  const prettyTier =
+    normalizedTier.charAt(0).toUpperCase() + normalizedTier.slice(1).toLowerCase();
+
+  let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
+  user.subscriptionTier = prettyTier;
+  user.tier = prettyTier;
+  user.subscriptionStatus = 'active';
+  user.subscriptionActive = true;
+  if (!user.subscriptionSubscribedAt) {
+    user.subscriptionSubscribedAt = Date.now();
+  }
+  if (!user.paid) {
+    user.paid = true;
+  }
+
+  users.set(sess.wallet, user);
+  sess.user = user;
+
+  res.json({
+    ok: true,
     status: buildSubscriptionStatus(user, sess.wallet),
   });
 });
