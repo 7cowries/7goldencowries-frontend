@@ -47,7 +47,9 @@ describe("Paywall integration", () => {
 
   test("successful TonConnect payment verifies and unlocks content", async () => {
     getJSON.mockResolvedValueOnce({ paid: false }).mockResolvedValueOnce({ paid: true });
-    postJSON.mockResolvedValue({ verified: true });
+    postJSON
+      .mockResolvedValueOnce({ verified: true })
+      .mockResolvedValueOnce({ ok: true });
     mockSendTransaction.mockResolvedValue({ transaction: { hash: "hash123" } });
 
     const dispatchSpy = jest.spyOn(window, "dispatchEvent");
@@ -63,11 +65,16 @@ describe("Paywall integration", () => {
       fireEvent.click(button);
     });
 
-    await waitFor(() => expect(postJSON).toHaveBeenCalledTimes(1));
-    const payload = postJSON.mock.calls[0][1];
+    await waitFor(() => expect(postJSON).toHaveBeenCalledTimes(2));
+    const [verifyPath, payload] = postJSON.mock.calls[0];
+    expect(verifyPath).toBe("/api/v1/payments/verify");
     expect(payload.to).toBe("EQTestReceiveAddress999");
     expect(payload.txHash).toBe("hash123");
     expect(payload.comment).toMatch(/^7GC-SUB:/);
+    const [subscribePath, subscribeBody, subscribeOpts] = postJSON.mock.calls[1];
+    expect(subscribePath).toBe("/api/v1/subscription/subscribe");
+    expect(subscribeBody).toMatchObject({ tier: "premium" });
+    expect(subscribeOpts).toMatchObject({ dedupe: false });
     expect(dispatchSpy).toHaveBeenCalledTimes(1);
     await advancePromises();
     expect(await screen.findByTestId("paid")).toBeInTheDocument();
@@ -91,7 +98,8 @@ describe("Paywall integration", () => {
       fireEvent.click(button);
     });
 
-    await waitFor(() => expect(screen.getByText(/payment cancelled/i)).toBeInTheDocument());
+    const messages = await screen.findAllByText(/payment cancelled/i);
+    expect(messages.length).toBeGreaterThanOrEqual(1);
     expect(postJSON).not.toHaveBeenCalled();
   });
 });

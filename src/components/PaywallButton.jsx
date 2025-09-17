@@ -69,6 +69,7 @@ export default function PaywallButton({ onSuccess }) {
   const tonWallet = useTonWallet();
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ state: "idle", message: "" });
   const timeoutRef = useRef(null);
 
   const receiveAddress = useMemo(() => {
@@ -106,17 +107,24 @@ export default function PaywallButton({ onSuccess }) {
     }, 3200);
   }, []);
 
+  const updateStatus = useCallback((state, message = "") => {
+    setStatus({ state, message });
+  }, []);
+
   const requestPayment = useCallback(async () => {
     if (loading) return;
     if (!tonConnectUI) {
       showToast("TonConnect UI unavailable");
+      updateStatus("error", "TonConnect UI unavailable");
       return;
     }
     if (!receiveAddress || receiveAddress === PLACEHOLDER_ADDRESS) {
       showToast("Payment address not configured");
+      updateStatus("error", "Payment address not configured");
       return;
     }
     setLoading(true);
+    updateStatus("pending", "Confirm the transaction in your TonConnect wallet…");
 
     const comment = `7GC-SUB:${Date.now()}`;
     const payload = encodeComment(comment);
@@ -140,6 +148,8 @@ export default function PaywallButton({ onSuccess }) {
         throw new Error("Transaction hash unavailable");
       }
 
+      updateStatus("verifying", "Verifying payment on-chain…");
+
       const verifyResponse = await postJSON("/api/v1/payments/verify", {
         txHash,
         amount: amountNano,
@@ -151,7 +161,18 @@ export default function PaywallButton({ onSuccess }) {
         throw new Error("Payment verification failed");
       }
 
+      try {
+        await postJSON(
+          "/api/v1/subscription/subscribe",
+          { tier: "premium" },
+          { dedupe: false }
+        );
+      } catch (subscribeErr) {
+        console.warn("[PaywallButton] subscribe call failed", subscribeErr);
+      }
+
       window.dispatchEvent(new Event("profile-updated"));
+      updateStatus("success", "Subscription unlocked! 🎉");
       showToast("Payment verified 🎉");
       onSuccess?.();
     } catch (err) {
@@ -161,16 +182,34 @@ export default function PaywallButton({ onSuccess }) {
         (typeof err?.message === "string" &&
           err.message.toLowerCase().includes("reject"));
       if (rejected) {
-        showToast("Payment cancelled");
+        const message = "Payment cancelled";
+        showToast(message);
+        updateStatus("cancelled", message);
       } else {
         const message = err?.message || "Payment failed";
         showToast(message.startsWith("Network error") ? message : `${message}`);
+        updateStatus("error", message);
       }
       console.warn("[PaywallButton] payment failed", err);
     } finally {
       setLoading(false);
     }
-  }, [amountNano, loading, onSuccess, receiveAddress, showToast, tonConnectUI]);
+  }, [
+    amountNano,
+    loading,
+    onSuccess,
+    receiveAddress,
+    showToast,
+    tonConnectUI,
+    updateStatus,
+  ]);
+
+  const buttonLabel = useMemo(() => {
+    if (!loading) return "Unlock with TonConnect";
+    if (status.state === "pending") return "Confirm in TonConnect…";
+    if (status.state === "verifying") return "Verifying payment…";
+    return "Processing…";
+  }, [loading, status.state]);
 
   const walletLabel = tonWallet?.account?.address
     ? `${tonWallet.account.address.slice(0, 4)}…${tonWallet.account.address.slice(-4)}`
@@ -187,8 +226,16 @@ export default function PaywallButton({ onSuccess }) {
         </p>
       ) : null}
       <button className="btn" onClick={requestPayment} disabled={loading}>
-        {loading ? "Processing…" : `Unlock with TonConnect`}
+        {buttonLabel}
       </button>
+      {status.message ? (
+        <p
+          className={`muted payment-status payment-status-${status.state}`}
+          style={{ marginTop: 12 }}
+        >
+          {status.message}
+        </p>
+      ) : null}
       <Toast message={toast} />
     </div>
   );
