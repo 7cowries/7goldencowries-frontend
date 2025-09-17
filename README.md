@@ -35,8 +35,12 @@ Backend configuration lives in `backend/.env.example` for local reference; produ
 | `SUBSCRIPTION_BONUS_XP` | XP granted on the first successful subscription claim. |
 | `COOKIE_SECURE` | Enable `Secure; SameSite=None` cookies in production (set to `true`). |
 | `SESSION_SECRET` | 64–128 character random string used for session signing. |
-| `SQLITE_FILE` | Absolute path to the SQLite database file on Render. |
+| `SQLITE_FILE` | Absolute path to the SQLite database file on Render (auto-migrated on boot when present). |
 | Optional social / Ton settings | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `TELEGRAM_BOT_TOKEN`, `TON_RECEIVE_ADDRESS`, `TON_MIN_AMOUNT_NANO`, etc. |
+
+### Persistence
+
+When `SQLITE_FILE` points to an accessible path and `better-sqlite3` is available, the backend bootstraps a lightweight `user_state` table (`wallet`, `paid`, `subscriptionTier`, `xp`, `subscriptionClaimedAt`, `subscriptionLastDelta`, etc.) and persists wallet sessions, payments, and subscription claims. If the driver is missing the API gracefully falls back to in-memory state, so local development stays zero-dependency.
 
 ## TonConnect subscription flow
 
@@ -66,7 +70,7 @@ Coverage includes:
 
 1. API utility behaviours (base URL resolution, dedupe, timeout/error normalisation, cache cleanup).
 2. TonConnect paywall flow (successful unlock, cancellation, subscribe hand-off, UI events).
-3. Supertest integration hitting the backend: wallet bind → payment verify → subscription status → claim → idempotent re-claim, plus mismatch guards.
+3. Supertest integration hitting the backend: wallet bind → payments status (`false`) → payment verify → payments status (`true`) → subscription status → claim → idempotent re-claim, plus mismatch guards.
 
 ## Deployment
 

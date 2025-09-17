@@ -46,6 +46,7 @@ describe('subscription API', () => {
       tier: 'Free',
       wallet: null,
       canClaim: false,
+      paid: false,
     });
     expect(res.body.levelName).toBeTruthy();
   });
@@ -57,6 +58,7 @@ describe('subscription API', () => {
     const beforeClaim = await agent.get('/api/v1/subscription/status').expect(200);
     expect(beforeClaim.body.wallet).toBe(wallet);
     expect(beforeClaim.body.canClaim).toBe(false);
+    expect(beforeClaim.body.paid).toBe(false);
 
     const paymentStatusBefore = await agent.get('/api/v1/payments/status').expect(200);
     expect(paymentStatusBefore.body).toMatchObject({ paid: false });
@@ -86,13 +88,18 @@ describe('subscription API', () => {
     const afterPayment = await agent.get('/api/v1/subscription/status').expect(200);
     expect(afterPayment.body.canClaim).toBe(true);
     expect(afterPayment.body.tier).toBe('Premium');
+    expect(afterPayment.body.paid).toBe(true);
 
     const subscribeRes = await agent
       .post('/api/v1/subscription/subscribe')
       .send({ tier: 'premium' })
       .expect(200);
     expect(subscribeRes.body).toMatchObject({ ok: true });
-    expect(subscribeRes.body.status).toMatchObject({ tier: 'Premium', canClaim: true });
+    expect(subscribeRes.body.status).toMatchObject({
+      tier: 'Premium',
+      canClaim: true,
+      paid: true,
+    });
 
     const paymentStatusAfter = await agent.get('/api/v1/payments/status').expect(200);
     expect(paymentStatusAfter.body).toMatchObject({ paid: true });
@@ -106,6 +113,7 @@ describe('subscription API', () => {
     expect(afterClaim.body.canClaim).toBe(false);
     expect(afterClaim.body.claimedAt).not.toBeNull();
     expect(afterClaim.body.lastClaimDelta).toBe(42);
+    expect(afterClaim.body.paid).toBe(true);
     const xpAfterClaim = afterClaim.body.totalXP || afterClaim.body.xp;
     expect(xpAfterClaim).toBeGreaterThanOrEqual(42);
 
@@ -113,10 +121,12 @@ describe('subscription API', () => {
     expect(secondClaim.body.xpDelta).toBe(0);
     expect(secondClaim.body.status.canClaim).toBe(false);
     expect(secondClaim.body.status.lastClaimDelta).toBe(0);
+    expect(secondClaim.body.status.paid).toBe(true);
 
     const afterSecond = await agent.get('/api/v1/subscription/status').expect(200);
     expect(afterSecond.body.canClaim).toBe(false);
     expect(afterSecond.body.lastClaimDelta).toBe(0);
+    expect(afterSecond.body.paid).toBe(true);
     const xpAfterSecond = afterSecond.body.totalXP || afterSecond.body.xp;
     expect(xpAfterSecond).toBe(xpAfterClaim);
   });
