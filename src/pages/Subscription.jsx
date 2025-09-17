@@ -45,6 +45,16 @@ export default function SubscriptionPage() {
   }, [wallet, fetchStatus]);
 
   useEffect(() => {
+    const onProfileUpdated = () => {
+      fetchStatus();
+    };
+    window.addEventListener('profile-updated', onProfileUpdated);
+    return () => {
+      window.removeEventListener('profile-updated', onProfileUpdated);
+    };
+  }, [fetchStatus]);
+
+  useEffect(() => {
     return () => {
       abortRef.current?.abort();
       if (toastTimerRef.current) {
@@ -65,7 +75,15 @@ export default function SubscriptionPage() {
         clearTimeout(toastTimerRef.current);
       }
       toastTimerRef.current = setTimeout(() => setToast(''), 2200);
-      fetchStatus();
+      setStatus((prev) => {
+        if (res && typeof res === 'object' && res.status) {
+          return res.status;
+        }
+        if (gained > 0) {
+          return { ...prev, canClaim: false };
+        }
+        return prev;
+      });
     } catch (e) {
       const message =
         typeof e?.message === 'string' && e.message.toLowerCase().includes('failed to fetch')
@@ -75,10 +93,11 @@ export default function SubscriptionPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchStatus]);
+  }, []);
 
   const levelLabel = useMemo(() => status.levelName ?? 'Shellborn', [status.levelName]);
   const tierLabel = useMemo(() => status.tier ?? 'Free', [status.tier]);
+  const canClaim = status?.canClaim !== false;
 
   return (
     <Page>
@@ -114,8 +133,16 @@ export default function SubscriptionPage() {
                 <strong>Subscription Tier:</strong> {tierLabel}
               </p>
               <div style={{ marginTop: 10 }}>
-                <button className="btn" onClick={onClaim} disabled={loading}>
-                  {loading ? 'Working…' : 'Claim Subscription XP Bonus'}
+                <button
+                  className="btn"
+                  onClick={onClaim}
+                  disabled={loading || !canClaim}
+                >
+                  {loading
+                    ? 'Working…'
+                    : canClaim
+                    ? 'Claim Subscription XP Bonus'
+                    : 'Bonus Already Claimed'}
                 </button>
               </div>
             </div>
