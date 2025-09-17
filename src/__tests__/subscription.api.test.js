@@ -61,7 +61,13 @@ describe('subscription API', () => {
     expect(beforeClaim.body.paid).toBe(false);
 
     const paymentStatusBefore = await agent.get('/api/v1/payments/status').expect(200);
-    expect(paymentStatusBefore.body).toMatchObject({ paid: false });
+    expect(paymentStatusBefore.body).toMatchObject({
+      paid: false,
+      error: null,
+      code: null,
+      message: null,
+      subscriptionPaidAt: null,
+    });
 
     const verifyResponse = await agent
       .post('/api/v1/payments/verify')
@@ -72,11 +78,17 @@ describe('subscription API', () => {
         comment: '7GC-SUB:123456',
       })
       .expect(200);
-    expect(verifyResponse.body).toEqual({
+    expect(verifyResponse.body).toMatchObject({
       verified: true,
       paid: true,
-      lastPaymentAt: expect.any(Number),
+      error: null,
+      code: null,
+      message: 'Payment verified',
     });
+    expect(verifyResponse.body.lastPaymentAt).toEqual(expect.any(Number));
+    expect(verifyResponse.body.subscriptionPaidAt).toEqual(
+      verifyResponse.body.lastPaymentAt
+    );
 
     expect(verifyTonPayment).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -94,7 +106,12 @@ describe('subscription API', () => {
       .post('/api/v1/subscription/subscribe')
       .send({ tier: 'premium' })
       .expect(200);
-    expect(subscribeRes.body).toMatchObject({ ok: true });
+    expect(subscribeRes.body).toMatchObject({
+      ok: true,
+      error: null,
+      code: null,
+      message: 'Subscription updated',
+    });
     expect(subscribeRes.body.status).toMatchObject({
       tier: 'Premium',
       canClaim: true,
@@ -102,9 +119,21 @@ describe('subscription API', () => {
     });
 
     const paymentStatusAfter = await agent.get('/api/v1/payments/status').expect(200);
-    expect(paymentStatusAfter.body).toMatchObject({ paid: true });
+    expect(paymentStatusAfter.body).toMatchObject({
+      paid: true,
+      error: null,
+      code: null,
+    });
+    expect(paymentStatusAfter.body.subscriptionPaidAt).toEqual(
+      paymentStatusAfter.body.lastPaymentAt
+    );
 
     const claim = await agent.post('/api/v1/subscription/claim').send({}).expect(200);
+    expect(claim.body).toMatchObject({
+      error: null,
+      code: null,
+      message: 'Subscription bonus granted',
+    });
     expect(claim.body.xpDelta).toBe(42);
     expect(claim.body.status.canClaim).toBe(false);
     expect(claim.body.status.wallet).toBe(wallet);
@@ -118,6 +147,11 @@ describe('subscription API', () => {
     expect(xpAfterClaim).toBeGreaterThanOrEqual(42);
 
     const secondClaim = await agent.post('/api/v1/subscription/claim').send({}).expect(200);
+    expect(secondClaim.body).toMatchObject({
+      error: null,
+      code: null,
+      message: 'Subscription bonus already claimed',
+    });
     expect(secondClaim.body.xpDelta).toBe(0);
     expect(secondClaim.body.status.canClaim).toBe(false);
     expect(secondClaim.body.status.lastClaimDelta).toBe(0);
@@ -147,9 +181,14 @@ describe('subscription API', () => {
       .post('/api/v1/payments/verify')
       .send({ txHash: 'mismatch-hash', comment: '7GC-SUB:987654' })
       .expect(403);
-    expect(mismatch.body).toMatchObject({ verified: false, error: 'wallet-mismatch' });
+    expect(mismatch.body).toMatchObject({
+      verified: false,
+      error: 'wallet-mismatch',
+      code: 'wallet-mismatch',
+      message: 'Payment wallet mismatch',
+    });
 
     const status = await agent.get('/api/v1/payments/status').expect(200);
-    expect(status.body).toMatchObject({ paid: false });
+    expect(status.body).toMatchObject({ paid: false, error: null, code: null });
   });
 });
