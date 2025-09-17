@@ -28,7 +28,7 @@ Deploy on Vercel with custom domains:
 - 7goldencowries.com
 - www.7goldencowries.com
 
-The default `vercel.json` rewrites `/api/*` and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
 
 ## Manual Test Steps
 
