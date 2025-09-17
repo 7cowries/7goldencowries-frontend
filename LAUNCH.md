@@ -15,6 +15,8 @@ X_REQUIRED_HASHTAG=#7GC
 # REACT_APP_TON_RECEIVE_ADDRESS=EQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+> Configure these in Vercel project settings. Leave `REACT_APP_API_URL` blank in production so the same-origin rewrite handles `/api`.
+
 ## Backend (Render env vars)
 
 ```
@@ -31,6 +33,8 @@ SQLITE_FILE=/data/7gc.sqlite
 # DISCORD_CLIENT_SECRET=...
 # TELEGRAM_BOT_TOKEN=...
 ```
+
+> Configure these in Render environment settings; cookies stay `SameSite=None; Secure` when `COOKIE_SECURE=true`.
 
 ## Vercel configuration
 

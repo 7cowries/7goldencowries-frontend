@@ -1,6 +1,6 @@
 # 7GoldenCowries Frontend
 
-A production-ready Create React App powering the 7GoldenCowries experience. The UI leans into an ocean-inspired glassmorphism theme, celebrates achievements with confetti bursts, and talks to the backend in `backend/` exclusively through same-origin `/api` requests (rewritten by Vercel).
+A production-ready Create React App powering the 7GoldenCowries experience. The UI leans into an ocean-inspired glassmorphism theme, celebrates achievements with confetti bursts, and talks to the backend in `backend/` exclusively through same-origin `/api` requests (rewritten by Vercel). Leave `REACT_APP_API_URL` blank in production so those rewrites keep all calls on-origin.
 
 ## Getting Started
 
@@ -22,11 +22,11 @@ A production-ready Create React App powering the 7GoldenCowries experience. The 
 | `REACT_APP_TON_RECEIVE_ADDRESS` | Optional override for the TonConnect paywall destination wallet when testing locally. |
 | `X_TARGET_HANDLE`, `X_TARGET_TWEET_URL`, `X_REQUIRED_HASHTAG` | Targets used by social quests and verification flows. |
 
-`/.env.example` lists the full set for development. `/.env.production` ships the exact production values requested (blank API base, disabled source maps, manifest URL, Telegram bot, and X quest targets).
+`/.env.example` lists the full set for development. In production, set these values inside the Vercel project (see `LAUNCH.md`) and keep `REACT_APP_API_URL` blank so the same-origin rewrite handles `/api` calls.
 
 ### Backend environment
 
-Backend configuration lives in `backend/.env.example` and `backend/.env.production`.
+Backend configuration lives in `backend/.env.example` for local reference; production values belong in the Render service settings.
 
 | Variable | Purpose |
 | --- | --- |
@@ -73,12 +73,12 @@ Coverage includes:
 ### Vercel frontend
 
 - Deploy the CRA build, honouring the repo-root `vercel.json`. Rewrites proxy `/api/*` and `/ref/*` to `https://sevengoldencowries-backend.onrender.com` and disable caching for API routes.
-- Use `.env.production` for production variables (blank API base, disabled source maps, TonConnect manifest URL, Telegram bot name, and X quest metadata).
+- Configure the Vercel Environment Variables with the values from `LAUNCH.md`. Leave `REACT_APP_API_URL` blank so production requests flow through the rewrite.
 
 ### Render backend
 
 - Run `node backend/server.js`.
-- Use `backend/.env.production` (PORT `4000`, `FRONTEND_URL=https://7goldencowries.com`, `SUBSCRIPTION_BONUS_XP=120`, `COOKIE_SECURE=true`, generated `SESSION_SECRET`, `SQLITE_FILE=/data/7gc.sqlite`).
+- Use the Render service Environment Variables (PORT `4000`, `FRONTEND_URL=https://7goldencowries.com`, `SUBSCRIPTION_BONUS_XP=120`, `COOKIE_SECURE=true`, generated `SESSION_SECRET`, `SQLITE_FILE=/data/7gc.sqlite`).
 - CORS is limited to local development origins; production traffic must originate from the Vercel rewrite to avoid cross-origin storms.
 - The `/ref/:code` endpoint manages secure cookies and redirects to `FRONTEND_URL`.
 - Health checks: `GET /api/health` and `GET /api/health/db`.
