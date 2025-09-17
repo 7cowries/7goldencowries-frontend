@@ -10,6 +10,8 @@
 # env (NEVER COMMIT)
 /.env
 /.env.*
+!.env.production
+!backend/.env.production
 !.env.example
 
 # misc

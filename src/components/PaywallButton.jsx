@@ -184,7 +184,7 @@ export default function PaywallButton({ onSuccess }) {
       if (rejected) {
         const message = "Payment cancelled";
         showToast(message);
-        updateStatus("cancelled", message);
+        updateStatus("error", message);
       } else {
         const message = err?.message || "Payment failed";
         showToast(message.startsWith("Network error") ? message : `${message}`);
@@ -205,11 +205,19 @@ export default function PaywallButton({ onSuccess }) {
   ]);
 
   const buttonLabel = useMemo(() => {
-    if (!loading) return "Unlock with TonConnect";
-    if (status.state === "pending") return "Confirm in TonConnect…";
-    if (status.state === "verifying") return "Verifying payment…";
-    return "Processing…";
-  }, [loading, status.state]);
+    if (loading) {
+      if (status.state === "pending") return "Confirm in TonConnect…";
+      if (status.state === "verifying") return "Verifying payment…";
+      return "Processing…";
+    }
+    if (status.state === "success") {
+      return "Unlocked! 🎉";
+    }
+    if (status.state === "error" && status.message) {
+      return status.message;
+    }
+    return "Unlock with TonConnect";
+  }, [loading, status.message, status.state]);
 
   const walletLabel = tonWallet?.account?.address
     ? `${tonWallet.account.address.slice(0, 4)}…${tonWallet.account.address.slice(-4)}`

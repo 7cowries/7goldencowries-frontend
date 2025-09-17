@@ -50,6 +50,7 @@ function loadDatabase() {
       subscriptionStatus TEXT,
       subscriptionActive INTEGER DEFAULT 0,
       lastPaymentAt INTEGER,
+      subscriptionPaidAt INTEGER,
       subscriptionClaimedAt INTEGER,
       subscriptionLastDelta INTEGER,
       xp INTEGER DEFAULT 0,
@@ -65,7 +66,7 @@ function loadDatabase() {
   statements = {
     getUser: db.prepare(`
       SELECT wallet, profile_json, paid, subscriptionTier, subscriptionStatus,
-             subscriptionActive, lastPaymentAt, subscriptionClaimedAt,
+             subscriptionActive, lastPaymentAt, subscriptionPaidAt, subscriptionClaimedAt,
              subscriptionLastDelta, xp, totalXP, updatedAt, createdAt
       FROM user_state
       WHERE wallet = ?
@@ -79,6 +80,7 @@ function loadDatabase() {
         subscriptionStatus,
         subscriptionActive,
         lastPaymentAt,
+        subscriptionPaidAt,
         subscriptionClaimedAt,
         subscriptionLastDelta,
         xp,
@@ -106,6 +108,7 @@ function loadDatabase() {
         subscriptionActive = excluded.subscriptionActive,
         lastPaymentAt = excluded.lastPaymentAt,
         subscriptionClaimedAt = excluded.subscriptionClaimedAt,
+        subscriptionPaidAt = excluded.subscriptionPaidAt,
         subscriptionLastDelta = excluded.subscriptionLastDelta,
         xp = excluded.xp,
         totalXP = excluded.totalXP,
@@ -177,6 +180,13 @@ function hydrateUser(row) {
         : Boolean(profile.subscriptionActive),
     lastPaymentAt:
       numeric(row.lastPaymentAt) ?? (profile.lastPaymentAt != null ? Number(profile.lastPaymentAt) : null),
+    subscriptionPaidAt:
+      numeric(row.subscriptionPaidAt) ??
+      (profile.subscriptionPaidAt != null
+        ? Number(profile.subscriptionPaidAt)
+        : profile.lastPaymentAt != null
+        ? Number(profile.lastPaymentAt)
+        : null),
     subscriptionClaimedAt:
       numeric(row.subscriptionClaimedAt) ??
       (profile.subscriptionClaimedAt != null ? Number(profile.subscriptionClaimedAt) : null),
@@ -224,6 +234,12 @@ function saveUser(user) {
       subscriptionStatus: user.subscriptionStatus ?? null,
       subscriptionActive: user.subscriptionActive ? 1 : 0,
       lastPaymentAt: user.lastPaymentAt ?? null,
+      subscriptionPaidAt:
+        user.subscriptionPaidAt != null
+          ? user.subscriptionPaidAt
+          : user.lastPaymentAt != null
+          ? user.lastPaymentAt
+          : null,
       subscriptionClaimedAt: user.subscriptionClaimedAt ?? null,
       subscriptionLastDelta: user.subscriptionLastDelta ?? 0,
       xp:
