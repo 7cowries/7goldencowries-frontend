@@ -28,11 +28,16 @@ Deploy on Vercel with custom domains:
 - 7goldencowries.com
 - www.7goldencowries.com
 
+ codex/implement-phase-1-production-hardening
+The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+
+
  codex/align-monorepo-repos-and-produce-prs-q9xnvc
 The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
 
 The default `vercel.json` rewrites `/api/*` and `/auth/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
  main
+
 
 ## Manual Test Steps
 
@@ -47,6 +52,20 @@ The default `vercel.json` rewrites `/api/*` and `/auth/*` to the Render backend 
    - List re-sorts/refreshes within 60s and when wallet changes.
 
 ## How to test
+ codex/implement-phase-1-production-hardening
+
+1. Connect a TON wallet via the header connect button.
+2. Visit `/token-sale`:
+   - Download the Wave 1 reminder `.ics` file using **Set Reminder**.
+   - Enter a purchase amount and submit to confirm a POST to `/api/v1/token-sale/purchase`.
+3. Visit `/subscription`:
+   - Ensure your connected wallet and tier info load without refreshing.
+   - Start a tier checkout; verify the UI disables the selected tier until the `/api/v1/subscription/subscribe` response arrives.
+   - Append `?status=success` to the URL to see the callback banner and refreshed renewal date.
+   - Claim the **Subscription XP Bonus** and confirm the toast reflects the returned `xpDelta`.
+
+### Useful scripts
+
 
 - `npm start` – run development server
 - `npm test` – run unit, integration, and API smoke tests (includes subscription flow coverage via supertest)
