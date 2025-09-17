@@ -54,7 +54,7 @@ The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Rend
    - Append `?status=success` to the URL to see the callback banner and refreshed renewal date.
    - Claim the **Subscription XP Bonus** and confirm the toast reflects the returned `xpDelta`.
 
-## Scripts
+### Useful scripts
 
 - `npm start` – run development server
 - `npm test` – run unit, integration, and API smoke tests (includes subscription flow coverage via supertest)
