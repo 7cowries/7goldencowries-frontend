@@ -1,7 +1,10 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" },
+ codex/align-monorepo-repos-and-produce-prs-q9xnvc
     { "source": "/auth/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/auth/:path*" },
+
+ main
     { "source": "/ref/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*" }
   ],
   "headers": [
