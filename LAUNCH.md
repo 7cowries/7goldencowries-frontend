@@ -34,7 +34,7 @@ SQLITE_FILE=/data/7gc.sqlite
 # TELEGRAM_BOT_TOKEN=...
 ```
 
-> Configure these in Render environment settings; cookies stay `SameSite=None; Secure` when `COOKIE_SECURE=true`.
+> Configure these in Render environment settings; cookies stay `SameSite=None; Secure` when `COOKIE_SECURE=true`. If `SQLITE_FILE` points to an existing path and `better-sqlite3` is present, the lightweight `user_state` table migrates automatically on boot.
 
 ## Vercel configuration
 

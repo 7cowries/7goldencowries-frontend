@@ -7,6 +7,7 @@ const {
   ensureProgression,
   grantXP,
 } = require('./src/lib/progression');
+const storage = require('./src/lib/storage');
 const { verifyTonPayment } = require('./src/lib/ton');
 const { Address } = require('@ton/core');
 
@@ -76,6 +77,10 @@ const TON_MIN_PAYMENT_NANO = (() => {
   }
   return 0n;
 })();
+
+const sessions = new Map();
+const users = new Map();
+const referralCodes = new Map();
 
 function isSecureCookieEnv() {
   if (process.env.COOKIE_SECURE === 'true') return true;
@@ -148,9 +153,80 @@ function createBaseProfile(overrides = {}) {
     authed: false,
     paid: false,
     lastPaymentAt: null,
+    subscriptionStatus: 'inactive',
+    subscriptionActive: false,
+    subscriptionSubscribedAt: null,
+    subscriptionClaimedAt: null,
+    subscriptionLastDelta: 0,
     ...overrides,
   };
   return ensureProgression(profile);
+}
+
+function normalizeSocials(input) {
+  const socials = defaultSocials();
+  if (input && typeof input === 'object') {
+    ['twitter', 'telegram', 'discord'].forEach((key) => {
+      if (input[key]) {
+        socials[key] = { ...socials[key], ...input[key] };
+      }
+    });
+  }
+  return socials;
+}
+
+function normalizeUserShape(rawUser = {}, wallet = null) {
+  const base = createBaseProfile({ wallet });
+  const merged = {
+    ...base,
+    ...rawUser,
+    wallet: wallet ?? rawUser.wallet ?? base.wallet ?? null,
+  };
+
+  if (Array.isArray(rawUser.questHistory)) {
+    merged.questHistory = rawUser.questHistory.map((entry) => ({ ...entry }));
+  }
+
+  if (Array.isArray(merged.referrals)) {
+    merged.referrals = new Set(merged.referrals);
+  } else if (merged.referrals instanceof Set) {
+    // keep as-is
+  } else if (merged.referrals != null) {
+    merged.referrals = new Set([merged.referrals]);
+  } else {
+    merged.referrals = new Set();
+  }
+
+  merged.referralCount = merged.referrals.size;
+  merged.socials = normalizeSocials(merged.socials);
+  merged.subscriptionActive = Boolean(merged.subscriptionActive);
+  merged.paid = Boolean(
+    merged.paid != null ? merged.paid : merged.subscriptionActive ?? false
+  );
+
+  if (!merged.subscriptionTier) {
+    merged.subscriptionTier = merged.tier || (merged.paid ? 'Premium' : 'Free');
+  }
+  if (!merged.tier) {
+    merged.tier = merged.subscriptionTier;
+  }
+
+  if (merged.subscriptionStatus == null && merged.subscriptionActive) {
+    merged.subscriptionStatus = 'active';
+  }
+
+  if (merged.subscriptionClaimedAt == null) {
+    merged.subscriptionClaimedAt = null;
+  }
+  if (merged.subscriptionLastDelta == null) {
+    merged.subscriptionLastDelta = 0;
+  }
+  if (merged.subscriptionSubscribedAt == null) {
+    merged.subscriptionSubscribedAt = null;
+  }
+  merged.lastPaymentAt = merged.lastPaymentAt ?? null;
+
+  return merged;
 }
 
 function serializeUser(user, { wallet, authed } = {}) {
@@ -207,19 +283,25 @@ function getOrCreateUser(wallet) {
   if (!wallet) return null;
   let user = users.get(wallet);
   if (!user) {
-    user = createBaseProfile({ wallet });
+    const persisted = storage.getUser(wallet);
+    user = persisted || {};
   }
-  if (!user.socials) {
-    user.socials = defaultSocials();
-  }
-  if (user.paid == null) {
-    user.paid = false;
-  }
-  if (user.lastPaymentAt == null) {
-    user.lastPaymentAt = null;
-  }
-  const normalized = ensureProgression(user);
+  const normalized = ensureProgression(normalizeUserShape(user, wallet));
   users.set(wallet, normalized);
+  if (normalized.referral_code) {
+    referralCodes.set(normalized.referral_code, wallet);
+  }
+  return normalized;
+}
+
+function rememberUser(wallet, user) {
+  if (!wallet || !user) return user;
+  const normalized = ensureProgression(normalizeUserShape(user, wallet));
+  users.set(wallet, normalized);
+  if (normalized.referral_code) {
+    referralCodes.set(normalized.referral_code, wallet);
+  }
+  storage.saveUser(normalized);
   return normalized;
 }
 
@@ -258,11 +340,6 @@ function buildSubscriptionStatus(user, wallet) {
   };
 }
 
-// In‑memory stores for demo purposes
-const sessions = new Map();
-const users = new Map(); // wallet -> user profile
-const referralCodes = new Map(); // code -> wallet
-
 function parseCookies(req) {
   const hdr = req.headers.cookie || '';
   const out = {};
@@ -287,7 +364,7 @@ function getSession(req, res) {
 const app = express();
 app.set('etag', false);
 
-// CORS configuration allowing production + local dev origins with credentials
+// CORS configuration allowing only local development origins with credentials
 const normalizeOrigin = (origin) => origin.replace(/\/+$/, '');
 
 const devOrigins = [
@@ -301,17 +378,7 @@ if (FRONTEND_URL && /localhost|127\.0\.0\.1/.test(FRONTEND_URL)) {
   devOrigins.push(FRONTEND_URL);
 }
 
-const productionOrigins = [
-  FRONTEND_URL || 'https://7goldencowries.com',
-  'https://7goldencowries.com',
-  'https://www.7goldencowries.com',
-];
-
-const allowedOrigins = new Set(
-  [...devOrigins, ...productionOrigins]
-    .filter(Boolean)
-    .map((origin) => normalizeOrigin(origin))
-);
+const allowedOrigins = new Set(devOrigins.filter(Boolean).map((origin) => normalizeOrigin(origin)));
 
 app.use(
   cors({
@@ -398,8 +465,6 @@ app.post('/api/session/bind-wallet', (req, res) => {
   const cookies = parseCookies(req);
   const code = cookies.referral_code;
   let user = getOrCreateUser(w);
-  users.set(w, user);
-  sess.user = user;
 
   if (code && !user.referrerWallet) {
     const refWallet = referralCodes.get(code);
@@ -407,12 +472,14 @@ app.post('/api/session/bind-wallet', (req, res) => {
       user.referred_by = code;
       user.referrerWallet = refWallet;
       let refUser = getOrCreateUser(refWallet);
-      if (!refUser.referrals) refUser.referrals = new Set();
+      if (!(refUser.referrals instanceof Set)) {
+        refUser.referrals = new Set();
+      }
       if (!refUser.referrals.has(w)) {
         refUser.referrals.add(w);
-        refUser.referralCount = (refUser.referralCount || 0) + 1;
+        refUser.referralCount = refUser.referrals.size;
         refUser = grantXP(refUser, 50);
-        users.set(refWallet, refUser);
+        refUser = rememberUser(refWallet, refUser);
       }
     }
     appendCookie(
@@ -423,6 +490,9 @@ app.post('/api/session/bind-wallet', (req, res) => {
       })
     );
   }
+
+  user = rememberUser(w, user);
+  sess.user = user;
 
   res.json({ ok: true });
 });
@@ -437,7 +507,7 @@ app.get('/api/users/me', (req, res) => {
     user.referral_code = Math.random().toString(36).slice(2, 10);
     referralCodes.set(user.referral_code, sess.wallet);
   }
-  users.set(sess.wallet, user);
+  user = rememberUser(sess.wallet, user);
   sess.user = user;
   res.json(serializeUser(user, { wallet: sess.wallet, authed: true }));
 });
@@ -448,7 +518,6 @@ app.get('/api/v1/payments/status', (req, res) => {
     return res.json({ paid: false, lastPaymentAt: null });
   }
   const user = getOrCreateUser(sess.wallet);
-  users.set(sess.wallet, user);
   sess.user = user;
   res.json({
     paid: Boolean(user.paid),
@@ -514,7 +583,7 @@ app.post('/api/v1/payments/verify', async (req, res) => {
     if (!user.tier || user.tier === 'Free') {
       user.tier = user.subscriptionTier;
     }
-    users.set(sess.wallet, user);
+    user = rememberUser(sess.wallet, user);
     sess.user = user;
 
     res.json({
@@ -547,7 +616,6 @@ app.get('/api/v1/subscription/status', (req, res) => {
     return res.json(status);
   }
   const user = getOrCreateUser(sess.wallet);
-  users.set(sess.wallet, user);
   sess.user = user;
   res.json(buildSubscriptionStatus(user, sess.wallet));
 });
@@ -587,7 +655,7 @@ app.post('/api/v1/subscription/claim', (req, res) => {
     user.subscriptionLastDelta = 0;
   }
 
-  users.set(sess.wallet, user);
+  user = rememberUser(sess.wallet, user);
   sess.user = user;
 
   res.json({
@@ -622,7 +690,7 @@ app.post('/api/v1/subscription/subscribe', (req, res) => {
     user.paid = true;
   }
 
-  users.set(sess.wallet, user);
+  user = rememberUser(sess.wallet, user);
   sess.user = user;
 
   res.json({
