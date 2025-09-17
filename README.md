@@ -1,82 +1,52 @@
 # 7GoldenCowries Frontend
 
-Minimal React app for the 7GoldenCowries launch.
+Create React App that powers the 7GoldenCowries experience. The app talks to the backend in `backend/` via same-origin `/api` requests (proxied on Vercel) and ships with an end-to-end TonConnect paywall for the subscription flow.
 
 ## Setup
 
-1. Install dependencies: `npm install`
-2. Copy `.env.example` to `.env`. Leave `REACT_APP_API_URL` blank to use the same origin `/api` routes through the provided Vercel rewrite, or set it to `http://localhost:4000` when running the backend separately.
-3. Ensure `GENERATE_SOURCEMAP=false` is present in `.env` for production builds to silence node_modules source-map warnings during deployment.
-4. Start the development server: `npm start`
+1. Install dependencies: `npm install`.
+2. Copy `.env.example` to `.env` and adjust as needed:
+   - Leave `REACT_APP_API_URL` blank to rely on the Vercel rewrite. Set it to `http://localhost:4000` when running the backend locally without the CRA proxy.
+   - `GENERATE_SOURCEMAP=false` silences noisy warnings in production builds.
+   - `REACT_APP_TONCONNECT_MANIFEST_URL` is optional; the default serves `/tonconnect-manifest.json` from the same origin.
+   - `REACT_APP_TON_NETWORK` defaults to `mainnet`. Set `REACT_APP_TON_RECEIVE_ADDRESS` if you need to override the TON destination wallet during local testing.
+3. Start the development server: `npm start`. The CRA proxy forwards `/api` requests to `http://localhost:4000` so the backend can run alongside the frontend during development.
 
-The CRA proxy is set to `http://localhost:4000` so local requests automatically forward to the backend during development. To target a remote backend from the browser (e.g. Render), set `REACT_APP_API_URL` to the absolute URL instead.
+## TonConnect paywall
 
-TonConnect manifest is served from the same origin at `/tonconnect-manifest.json`. `www` permanently (308) redirects to the apex domain.
+- `public/tonconnect-manifest.json` advertises the dApp name and icon. Override it with `REACT_APP_TONCONNECT_MANIFEST_URL` when hosting the manifest elsewhere.
+- `PaymentGuard` wraps premium CTAs and consults `/api/v1/payments/status`. If `paid: false`, it renders the `PaywallButton`, which initiates a TonConnect transfer to `REACT_APP_TON_RECEIVE_ADDRESS` (or the fallback placeholder), tags it with `7GC-SUB:<timestamp>`, and then posts to `/api/v1/payments/verify`.
+- A successful verification dispatches a single `profile-updated` event so the rest of the app can refresh without triggering `/api/users/me` storms.
 
-## API
+## Key API endpoints
 
-The frontend talks to the backend REST API. Key endpoints:
+- `GET /api/users/me` – session profile (wallet, XP, socials, paid flag).
+- `GET /api/v1/payments/status` – current wallet payment state.
+- `POST /api/v1/payments/verify` – server-side TON verification; marks the session wallet as paid.
+- `GET /api/v1/subscription/status` – subscription tier, level metadata, `canClaim`, and `paid`.
+- `POST /api/v1/subscription/claim` – claim the subscription XP bonus (idempotent; requires a verified payment).
 
-- `GET /api/users/me` – session profile (wallet, XP, socials)
-- `GET /api/v1/subscription/status` – subscription tier/level metadata
-- `POST /api/v1/subscription/claim` – claim the subscription XP bonus (idempotent)
-- `POST /api/quests/:id/claim` – claim quest XP; returns the normalized response payload
+## Deployment (Vercel)
 
-## Vercel
+- Custom domains: `7goldencowries.com` and `www.7goldencowries.com`.
+- Use the repo-root `vercel.json`. It rewrites `/api/*` and `/ref/*` to `https://sevengoldencowries-backend.onrender.com`, and disables caching for API responses.
+- Production builds run with a blank `REACT_APP_API_URL`, `GENERATE_SOURCEMAP=false`, `REACT_APP_TONCONNECT_MANIFEST_URL=` (same origin), and `REACT_APP_TON_NETWORK=mainnet`.
 
-Deploy on Vercel with custom domains:
-- 7goldencowries.com
-- www.7goldencowries.com
+## Tests
 
- codex/implement-phase-1-production-hardening
-The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+`npm test -- --watchAll=false`
 
+The suite covers:
 
- codex/align-monorepo-repos-and-produce-prs-q9xnvc
-The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+1. API base URL normalisation and fetch de-duplication to keep `/api/users/me` requests under control.
+2. TonConnect paywall behaviour (success + cancellation) including the verification POST payload and event dispatches.
+3. End-to-end backend flow (wallet bind → payment status → verification → subscription status → claim → idempotent re-claim) using supertest.
 
-The default `vercel.json` rewrites `/api/*` and `/auth/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
- main
+## Manual QA checklist
 
-
-## Manual Test Steps
-
-1. Set wallet to `UQTestWallet123` in the header input.
-2. Claim "Join our Telegram" → XP +40; re-claim → "Already claimed".
-3. Connect a social (Twitter/Discord/Telegram) and confirm the profile toast fires once, the confetti animation appears, and `/api/users/me` only fires a single request per focus event.
-4. Visit /subscription. Confirm tier data loads, then trigger **Claim Subscription XP Bonus**. The toast should show the `+N XP` delta, `/api/v1/subscription/claim` should return `xpDelta`, and the profile updates once via the `profile-updated` event.
-5. Visit /leaderboard. Verify:
-   - Top 3 show as large cards with progress bars.
-   - Your wallet row is highlighted when `localStorage.wallet` is set.
-   - Progress bars reflect server `levelProgress`.
-   - List re-sorts/refreshes within 60s and when wallet changes.
-
-## How to test
- codex/implement-phase-1-production-hardening
-
-1. Connect a TON wallet via the header connect button.
-2. Visit `/token-sale`:
-   - Download the Wave 1 reminder `.ics` file using **Set Reminder**.
-   - Enter a purchase amount and submit to confirm a POST to `/api/v1/token-sale/purchase`.
-3. Visit `/subscription`:
-   - Ensure your connected wallet and tier info load without refreshing.
-   - Start a tier checkout; verify the UI disables the selected tier until the `/api/v1/subscription/subscribe` response arrives.
-   - Append `?status=success` to the URL to see the callback banner and refreshed renewal date.
-   - Claim the **Subscription XP Bonus** and confirm the toast reflects the returned `xpDelta`.
-
-### Useful scripts
-
-
-- `npm start` – run development server
-- `npm test` – run unit, integration, and API smoke tests (includes subscription flow coverage via supertest)
-- `npm run build` – production build (honors `GENERATE_SOURCEMAP=false`)
-
-### Automated smoke checks
-
-`npm test` now exercises:
-
-1. API base URL handling and fetch de-duplication logic (prevents `/api/users/me` storms on focus).
-2. End-to-end subscription flow via supertest (wallet bind → status fetch → claim bonus → idempotent re-claim with consistent XP).
-
-These checks complement the manual steps above and catch regressions in the profile refresh and subscription reward flows.
-See [LAUNCH.md](LAUNCH.md) for deployment notes and extended manual scenarios.
+1. Connect a TON wallet via the header button. Verify only one `/api/users/me` call fires on focus thanks to the debounced listener.
+2. Visit `/subscription` with an unpaid wallet – the `PaywallButton` should render. Complete the TonConnect payment, confirm the “Payment verified 🎉” toast, and ensure `/api/v1/payments/status` flips to `paid: true`.
+3. After paying, claim the **Subscription XP Bonus** once to see the `+N XP` toast, and verify the button switches to “Bonus Already Claimed”. A second click should return `0` without additional XP.
+4. Link and unlink a social account from `/profile`. You should see a single toast plus confetti, and only one profile refresh.
+5. Switch tabs or refocus the page – the profile refresh debounces for 200 ms and rate-limits passive refreshes to ≤1/minute.
+6. Run `npm run build` and confirm the output honours `GENERATE_SOURCEMAP=false` with no CORS issues thanks to the same-origin rewrites.

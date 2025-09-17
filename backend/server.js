@@ -7,12 +7,75 @@ const {
   ensureProgression,
   grantXP,
 } = require('./src/lib/progression');
+const { verifyTonPayment } = require('./src/lib/ton');
+const { Address } = require('@ton/core');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
 const SUBSCRIPTION_BONUS_XP = Math.max(
   0,
   Number(process.env.SUBSCRIPTION_BONUS_XP || 120)
 );
+
+function parseTonToNano(value) {
+  if (value == null) return 0n;
+  const raw = String(value).trim();
+  if (!raw) return 0n;
+  const sanitized = raw.replace(/[^0-9.]/g, '');
+  if (!sanitized) return 0n;
+  const [whole, fractional = ''] = sanitized.split('.');
+  let total = 0n;
+  if (whole) {
+    try {
+      total += BigInt(whole) * 1000000000n;
+    } catch (err) {
+      return 0n;
+    }
+  }
+  if (fractional) {
+    const frac = fractional.slice(0, 9).padEnd(9, '0');
+    try {
+      total += BigInt(frac);
+    } catch (err) {
+      return total;
+    }
+  }
+  return total;
+}
+
+function normalizeWalletAddress(value) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  try {
+    const friendly = Address.parseFriendly(raw);
+    return friendly.address.toRawString();
+  } catch (err) {
+    try {
+      return Address.parse(raw).toRawString();
+    } catch (err2) {
+      try {
+        return Address.parseRaw(raw).toRawString();
+      } catch (err3) {
+        return raw;
+      }
+    }
+  }
+}
+
+const TON_RECEIVE_ADDRESS = (process.env.TON_RECEIVE_ADDRESS || '').trim();
+const TON_MIN_PAYMENT_NANO = (() => {
+  if (process.env.TON_MIN_AMOUNT_NANO) {
+    try {
+      return BigInt(process.env.TON_MIN_AMOUNT_NANO);
+    } catch (err) {
+      return 0n;
+    }
+  }
+  if (process.env.TON_MIN_TON) {
+    return parseTonToNano(process.env.TON_MIN_TON);
+  }
+  return 0n;
+})();
 
 function isSecureCookieEnv() {
   if (process.env.COOKIE_SECURE === 'true') return true;
@@ -83,6 +146,8 @@ function createBaseProfile(overrides = {}) {
     referralCount: 0,
     questHistory: [],
     authed: false,
+    paid: false,
+    lastPaymentAt: null,
     ...overrides,
   };
   return ensureProgression(profile);
@@ -133,6 +198,8 @@ function serializeUser(user, { wallet, authed } = {}) {
   } else {
     payload.authed = Boolean(payload.wallet);
   }
+  payload.paid = Boolean(payload.paid);
+  payload.lastPaymentAt = payload.lastPaymentAt ?? null;
   return payload;
 }
 
@@ -144,6 +211,12 @@ function getOrCreateUser(wallet) {
   }
   if (!user.socials) {
     user.socials = defaultSocials();
+  }
+  if (user.paid == null) {
+    user.paid = false;
+  }
+  if (user.lastPaymentAt == null) {
+    user.lastPaymentAt = null;
   }
   const normalized = ensureProgression(user);
   users.set(wallet, normalized);
@@ -157,6 +230,8 @@ function buildSubscriptionStatus(user, wallet) {
   });
   const claimedAt = user?.subscriptionClaimedAt || null;
   const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
+  const paid = Boolean(user?.paid);
+  const lastPaymentAt = user?.lastPaymentAt || null;
   return {
     tier: profile.tier || 'Free',
     levelName: profile.levelName || 'Shellborn',
@@ -166,7 +241,9 @@ function buildSubscriptionStatus(user, wallet) {
     totalXP: profile.totalXP ?? 0,
     nextXP: profile.nextXP ?? null,
     wallet: profile.wallet ?? wallet ?? null,
-    canClaim: !claimedAt,
+    paid,
+    lastPaymentAt,
+    canClaim: paid && !claimedAt,
     claimedAt,
     lastClaimDelta,
   };
@@ -236,6 +313,10 @@ app.use(express.json());
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
+});
+
+app.get('/healthz', (req, res) => {
+  res.json({ ok: true, uptime: process.uptime(), timestamp: Date.now() });
 });
 
 app.get('/api/health', (req, res) => {
@@ -341,6 +422,83 @@ app.get('/api/users/me', (req, res) => {
   res.json(serializeUser(user, { wallet: sess.wallet, authed: true }));
 });
 
+app.get('/api/v1/payments/status', (req, res) => {
+  const sess = getSession(req, res);
+  if (!sess.wallet) {
+    return res.json({ paid: false, lastPaymentAt: null });
+  }
+  const user = getOrCreateUser(sess.wallet);
+  users.set(sess.wallet, user);
+  sess.user = user;
+  res.json({
+    paid: Boolean(user.paid),
+    lastPaymentAt: user.lastPaymentAt || null,
+  });
+});
+
+app.post('/api/v1/payments/verify', async (req, res) => {
+  const sess = getSession(req, res);
+  if (!sess.wallet) {
+    return res
+      .status(401)
+      .json({ verified: false, error: 'unauthorized', message: 'Wallet session required' });
+  }
+  if (!TON_RECEIVE_ADDRESS) {
+    return res.status(500).json({
+      verified: false,
+      error: 'not-configured',
+      message: 'TON_RECEIVE_ADDRESS not configured',
+    });
+  }
+
+  const body = req.body || {};
+  const txHash = typeof body.txHash === 'string' ? body.txHash.trim() : '';
+  const comment = typeof body.comment === 'string' ? body.comment.trim() : '';
+  if (!txHash) {
+    return res.status(400).json({ verified: false, error: 'txhash-required' });
+  }
+
+  try {
+    const verification = await verifyTonPayment({
+      txHash,
+      to: TON_RECEIVE_ADDRESS,
+      minAmount: TON_MIN_PAYMENT_NANO,
+      comment: comment || '7GC-SUB',
+    });
+    if (!verification?.verified) {
+      return res.status(422).json({ verified: false, detail: verification || null });
+    }
+
+    const normalizedSessionWallet = normalizeWalletAddress(sess.wallet);
+    const normalizedSender = normalizeWalletAddress(verification.from);
+    if (!normalizedSender || normalizedSender !== normalizedSessionWallet) {
+      return res.status(403).json({
+        verified: false,
+        error: 'wallet-mismatch',
+        from: verification?.from || null,
+      });
+    }
+
+    let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
+    user.paid = true;
+    user.lastPaymentAt = Date.now();
+    users.set(sess.wallet, user);
+    sess.user = user;
+
+    res.json({
+      verified: true,
+      paid: true,
+      lastPaymentAt: user.lastPaymentAt,
+    });
+  } catch (err) {
+    console.error('TON verification failed', err);
+    res.status(400).json({
+      verified: false,
+      error: err?.message || 'verification-failed',
+    });
+  }
+});
+
 app.get('/api/v1/subscription', (req, res) => {
   res.redirect(301, '/api/v1/subscription/status');
 });
@@ -352,6 +510,8 @@ app.get('/api/v1/subscription/status', (req, res) => {
     status.canClaim = false;
     status.wallet = null;
     status.claimedAt = null;
+    status.paid = false;
+    status.lastPaymentAt = null;
     return res.json(status);
   }
   const user = getOrCreateUser(sess.wallet);
@@ -369,6 +529,11 @@ app.post('/api/v1/subscription/claim', (req, res) => {
   }
 
   let user = getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
+  if (!user.paid) {
+    return res
+      .status(402)
+      .json({ error: 'payment-required', message: 'Active subscription required' });
+  }
   let xpDelta = 0;
   if (!user.subscriptionClaimedAt) {
     const now = Date.now();
@@ -435,7 +600,13 @@ app.get('/', (req, res) => {
   res.json({
     ok: true,
     name: '7GoldenCowries API',
-    routes: ['/api/health', '/api/users/me', '/api/v1/subscription/status'],
+    routes: [
+      '/healthz',
+      '/api/health',
+      '/api/users/me',
+      '/api/v1/payments/status',
+      '/api/v1/subscription/status',
+    ],
   });
 });
 

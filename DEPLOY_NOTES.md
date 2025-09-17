@@ -6,6 +6,11 @@
 - `SESSION_SECRET` – session signing secret.
 - `SUBSCRIPTION_BONUS_XP` – XP granted the first time `/api/v1/subscription/claim` succeeds.
 - `COOKIE_SECURE=true` when serving through HTTPS proxies so cookies include `SameSite=None; Secure`.
+- `TON_NETWORK` – `mainnet` or `testnet` for TonCenter requests.
+- `TON_RECEIVE_ADDRESS` – wallet that collects subscription payments.
+- `TON_VERIFIER=toncenter` – current verification backend.
+- `TON_MIN_AMOUNT_NANO` – minimum accepted payment in nanoton (e.g. `500000000` for 0.5 TON).
+- `TONCENTER_API_KEY` – TonCenter API key used during verification.
 - Social (optional): `TWITTER_CLIENT_ID`, `TELEGRAM_BOT_TOKEN`, `DISCORD_CLIENT_ID`, etc.
 
 ## One-time Database Checks
