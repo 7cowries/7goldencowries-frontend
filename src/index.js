@@ -13,7 +13,14 @@ import { initHeroVideo } from './utils/video';
 import { setupWalletSync } from './utils/init';
 import { captureReferralFromQuery } from './utils/referral';
 
-const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
+const manifestEnv = process.env.REACT_APP_TONCONNECT_MANIFEST_URL || "";
+const manifestUrl = manifestEnv.trim()
+  ? manifestEnv.trim()
+  : `${window.location.origin}/tonconnect-manifest.json`;
+
+if (typeof window !== "undefined") {
+  window.__TON_NETWORK = process.env.REACT_APP_TON_NETWORK || "mainnet";
+}
 
 captureReferralFromQuery();
 initTheme();

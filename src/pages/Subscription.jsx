@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Page from "../components/Page";
 import WalletConnect from "../components/WalletConnect";
 import XPModal from "../components/XPModal";
+import PaymentGuard from "../components/PaymentGuard";
 import { useWallet } from "../hooks/useWallet";
 import {
   getMe,
@@ -131,7 +132,7 @@ export default function SubscriptionPage() {
           null
       );
       setLevel(data?.levelName || data?.level || "Shellborn");
-      setCanClaimBonus(data?.canClaim !== false);
+      setCanClaimBonus(Boolean(data?.canClaim));
       setError("");
     } catch (err) {
       if (err?.name === "AbortError") return;
@@ -285,7 +286,9 @@ export default function SubscriptionPage() {
     setError("");
     try {
       const res = await claimSubscriptionBonus();
+      const status = (res && res.status) || {};
       const gained = Number(res?.xpDelta ?? res?.xp ?? 0);
+      setCanClaimBonus(Boolean(status.canClaim ?? res?.canClaim));
       if (gained > 0) {
         setRecentXP(gained);
         setXPModalOpen(true);
@@ -357,17 +360,28 @@ export default function SubscriptionPage() {
             </li>
           </ul>
           <div style={{ marginTop: 16 }}>
-            <button
-              className="btn"
-              onClick={handleClaimBonus}
-              disabled={!canClaimBonus || claimingBonus || !isConnected}
+            <PaymentGuard
+              loadingFallback={<p style={{ marginBottom: 12 }}>Checking subscription status…</p>}
             >
-              {claimingBonus
-                ? "Working…"
-                : canClaimBonus && isConnected
-                ? "Claim Subscription XP Bonus"
-                : "Bonus Already Claimed"}
-            </button>
+              <>
+                <button
+                  className="btn"
+                  onClick={handleClaimBonus}
+                  disabled={!canClaimBonus || claimingBonus || !isConnected}
+                >
+                  {claimingBonus
+                    ? "Working…"
+                    : canClaimBonus && isConnected
+                    ? "Claim Subscription XP Bonus"
+                    : "Bonus Already Claimed"}
+                </button>
+                {!canClaimBonus ? (
+                  <p className="muted" style={{ marginTop: 8 }}>
+                    Bonus available once per subscription cycle.
+                  </p>
+                ) : null}
+              </>
+            </PaymentGuard>
           </div>
         </div>
 

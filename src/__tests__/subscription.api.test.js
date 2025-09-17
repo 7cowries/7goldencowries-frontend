@@ -4,20 +4,39 @@
 
 const request = require('supertest');
 
+jest.mock('../../backend/src/lib/ton', () => ({
+  verifyTonPayment: jest.fn(),
+}));
+
+let verifyTonPayment;
+
 describe('subscription API', () => {
   let app;
   let agent;
 
   beforeEach(() => {
     jest.resetModules();
+    const tonModule = require('../../backend/src/lib/ton');
+    verifyTonPayment = jest.fn();
+    tonModule.verifyTonPayment = verifyTonPayment;
     process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.SUBSCRIPTION_BONUS_XP = '42';
+    process.env.TON_RECEIVE_ADDRESS = 'EQTestReceiveWallet123';
+    process.env.TON_MIN_AMOUNT_NANO = '500000000';
+    verifyTonPayment.mockResolvedValue({
+      verified: true,
+      amount: '500000000',
+      to: process.env.TON_RECEIVE_ADDRESS,
+      comment: '7GC-SUB:123456',
+    });
     app = require('../../backend/server');
     agent = request.agent(app);
   });
 
   afterEach(() => {
     delete process.env.SUBSCRIPTION_BONUS_XP;
+    delete process.env.TON_RECEIVE_ADDRESS;
+    delete process.env.TON_MIN_AMOUNT_NANO;
   });
 
   test('returns default status without a wallet session', async () => {
@@ -36,7 +55,38 @@ describe('subscription API', () => {
 
     const beforeClaim = await agent.get('/api/v1/subscription/status').expect(200);
     expect(beforeClaim.body.wallet).toBe(wallet);
-    expect(beforeClaim.body.canClaim).toBe(true);
+    expect(beforeClaim.body.canClaim).toBe(false);
+
+    const paymentStatusBefore = await agent.get('/api/v1/payments/status').expect(200);
+    expect(paymentStatusBefore.body).toMatchObject({ paid: false });
+
+    const verifyResponse = await agent
+      .post('/api/v1/payments/verify')
+      .send({
+        txHash: 'abc123',
+        amount: '500000000',
+        to: process.env.TON_RECEIVE_ADDRESS,
+        comment: '7GC-SUB:123456',
+      })
+      .expect(200);
+    expect(verifyResponse.body).toEqual({
+      verified: true,
+      paid: true,
+      lastPaymentAt: expect.any(Number),
+    });
+
+    expect(verifyTonPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        txHash: 'abc123',
+        to: process.env.TON_RECEIVE_ADDRESS,
+      })
+    );
+
+    const afterPayment = await agent.get('/api/v1/subscription/status').expect(200);
+    expect(afterPayment.body.canClaim).toBe(true);
+
+    const paymentStatusAfter = await agent.get('/api/v1/payments/status').expect(200);
+    expect(paymentStatusAfter.body).toMatchObject({ paid: true });
 
     const claim = await agent.post('/api/v1/subscription/claim').send({}).expect(200);
     expect(claim.body.xpDelta).toBe(42);
