@@ -300,7 +300,6 @@ export default function SubscriptionPage() {
         loadSubscription(),
         getMe({ force: true }).catch(() => null),
       ]);
-      window.dispatchEvent(new Event("profile-updated"));
     } catch (err) {
       const message =
         typeof err?.message === "string" && err.message.toLowerCase().includes("failed to fetch")

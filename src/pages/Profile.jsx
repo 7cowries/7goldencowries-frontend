@@ -328,8 +328,8 @@ export default function Profile() {
         await unlinkSocial(provider);
         const label = PROVIDER_LABELS[provider] || provider;
         setToast(`${label} disconnected ✅`);
+        burstConfetti({count:80,duration:1800});
         window.setTimeout(() => setToast(''), 2600);
-        await loadMe({ force: true });
       } catch (e) {
         console.error(e);
         const label = PROVIDER_LABELS[provider] || provider;
@@ -339,7 +339,7 @@ export default function Profile() {
         setUnlinking((prev) => ({ ...prev, [provider]: false }));
       }
     },
-    [loadMe]
+    []
   );
 
   useEffect(() => {

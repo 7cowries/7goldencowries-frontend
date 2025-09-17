@@ -20,18 +20,20 @@ X_REQUIRED_HASHTAG=#7GC
 ## Backend (Render env vars)
 
 ```
+NODE_ENV=production
 PORT=4000
 FRONTEND_URL=https://7goldencowries.com
-SUBSCRIPTION_BONUS_XP=120
-COOKIE_SECURE=true
+SQLITE_FILE=/var/data/7gc.sqlite
 SESSION_SECRET=<64-128 char random string>
-SQLITE_FILE=/data/7gc.sqlite
-# optional integrations
-# TON_RECEIVE_ADDRESS=EQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-# TON_MIN_AMOUNT_NANO=500000000
-# DISCORD_CLIENT_ID=...
-# DISCORD_CLIENT_SECRET=...
-# TELEGRAM_BOT_TOKEN=...
+COOKIE_SECURE=true
+SUBSCRIPTION_BONUS_XP=120
+TON_NETWORK=mainnet
+TON_RECEIVE_ADDRESS=<TON wallet>
+TON_MIN_PAYMENT_TON=0.5
+TON_VERIFIER=toncenter
+TONCENTER_API_KEY=<toncenter api key>
+SUBSCRIPTION_WEBHOOK_SECRET=<optional>
+TOKEN_SALE_WEBHOOK_SECRET=<optional>
 ```
 
 > Configure these in Render environment settings; cookies stay `SameSite=None; Secure` when `COOKIE_SECURE=true`. If `SQLITE_FILE` points to an existing path and `better-sqlite3` is present, the lightweight `user_state` table migrates automatically on boot.

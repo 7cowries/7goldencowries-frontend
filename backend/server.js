@@ -153,6 +153,7 @@ function createBaseProfile(overrides = {}) {
     authed: false,
     paid: false,
     lastPaymentAt: null,
+    subscriptionPaidAt: null,
     subscriptionStatus: 'inactive',
     subscriptionActive: false,
     subscriptionSubscribedAt: null,
@@ -275,7 +276,8 @@ function serializeUser(user, { wallet, authed } = {}) {
     payload.authed = Boolean(payload.wallet);
   }
   payload.paid = Boolean(payload.paid);
-  payload.lastPaymentAt = payload.lastPaymentAt ?? null;
+  payload.subscriptionPaidAt = payload.subscriptionPaidAt ?? payload.lastPaymentAt ?? null;
+  payload.lastPaymentAt = payload.subscriptionPaidAt ?? payload.lastPaymentAt ?? null;
   return payload;
 }
 
@@ -313,7 +315,7 @@ function buildSubscriptionStatus(user, wallet) {
   const claimedAt = user?.subscriptionClaimedAt || null;
   const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
   const paid = Boolean(user?.paid);
-  const lastPaymentAt = user?.lastPaymentAt || null;
+  const lastPaymentAt = user?.subscriptionPaidAt || user?.lastPaymentAt || null;
   const tier = (() => {
     const rawTier =
       user?.subscriptionTier ||
@@ -334,6 +336,7 @@ function buildSubscriptionStatus(user, wallet) {
     wallet: profile.wallet ?? wallet ?? null,
     paid,
     lastPaymentAt,
+    subscriptionPaidAt: lastPaymentAt,
     canClaim: paid && !claimedAt,
     claimedAt,
     lastClaimDelta,
@@ -521,7 +524,8 @@ app.get('/api/v1/payments/status', (req, res) => {
   sess.user = user;
   res.json({
     paid: Boolean(user.paid),
-    lastPaymentAt: user.lastPaymentAt || null,
+    lastPaymentAt: user.subscriptionPaidAt || user.lastPaymentAt || null,
+    subscriptionPaidAt: user.subscriptionPaidAt || user.lastPaymentAt || null,
   });
 });
 
@@ -572,6 +576,7 @@ app.post('/api/v1/payments/verify', async (req, res) => {
       getOrCreateUser(sess.wallet) || createBaseProfile({ wallet: sess.wallet });
     user.paid = true;
     user.lastPaymentAt = Date.now();
+    user.subscriptionPaidAt = user.lastPaymentAt;
     if (!user.subscriptionTier || user.subscriptionTier === 'Free') {
       user.subscriptionTier = 'Premium';
     }
