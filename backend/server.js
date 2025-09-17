@@ -288,6 +288,8 @@ const app = express();
 app.set('etag', false);
 
 // CORS configuration allowing production + local dev origins with credentials
+const normalizeOrigin = (origin) => origin.replace(/\/+$/, '');
+
 const devOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
@@ -299,8 +301,16 @@ if (FRONTEND_URL && /localhost|127\.0\.0\.1/.test(FRONTEND_URL)) {
   devOrigins.push(FRONTEND_URL);
 }
 
+const productionOrigins = [
+  FRONTEND_URL || 'https://7goldencowries.com',
+  'https://7goldencowries.com',
+  'https://www.7goldencowries.com',
+];
+
 const allowedOrigins = new Set(
-  devOrigins.map((origin) => origin.replace(/\/+$/, ''))
+  [...devOrigins, ...productionOrigins]
+    .filter(Boolean)
+    .map((origin) => normalizeOrigin(origin))
 );
 
 app.use(
@@ -309,7 +319,7 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-      const normalized = origin.replace(/\/+$/, '');
+      const normalized = normalizeOrigin(origin);
       if (allowedOrigins.has(normalized)) {
         return callback(null, normalized);
       }
