@@ -4,6 +4,8 @@
 - `FRONTEND_URL` – allowed origin for CORS and referral redirects.
 - `DATABASE_URL` or `SQLITE_FILE` – path/connection string for SQLite database.
 - `SESSION_SECRET` – session signing secret.
+- `SUBSCRIPTION_BONUS_XP` – XP granted the first time `/api/v1/subscription/claim` succeeds.
+- `COOKIE_SECURE=true` when serving through HTTPS proxies so cookies include `SameSite=None; Secure`.
 - Social (optional): `TWITTER_CLIENT_ID`, `TELEGRAM_BOT_TOKEN`, `DISCORD_CLIENT_ID`, etc.
 
 ## One-time Database Checks

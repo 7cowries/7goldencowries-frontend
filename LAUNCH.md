@@ -3,7 +3,18 @@
 ## Environment
 
 ```
-REACT_APP_API_URL=https://sevengoldencowries-backend.onrender.com
+# Leave blank to rely on the Vercel -> Render rewrite
+REACT_APP_API_URL=
+GENERATE_SOURCEMAP=false
+```
+
+Backend (Render):
+
+```
+PORT=4000
+FRONTEND_URL=https://7goldencowries.com
+SUBSCRIPTION_BONUS_XP=120
+COOKIE_SECURE=true
 ```
 
 ## Vercel
@@ -11,6 +22,8 @@ REACT_APP_API_URL=https://sevengoldencowries-backend.onrender.com
 Add the domains:
 - 7goldencowries.com
 - www.7goldencowries.com
+
+Ensure the project uses the repo-root `vercel.json` so `/api/*` and `/ref/*` requests proxy to the Render backend and API responses include `Cache-Control: no-store` headers.
 
 ## Manual Test Steps
 

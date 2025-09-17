@@ -1,18 +1,18 @@
-// src/pages/Subscription.js
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import "./Subscription.css";
 import Page from "../components/Page";
-import "../App.css";
-import XPModal from "../components/XPModal";
 import WalletConnect from "../components/WalletConnect";
+import XPModal from "../components/XPModal";
+import { useWallet } from "../hooks/useWallet";
 import {
   getMe,
-  getSubscription,
+  getSubscriptionStatus,
   subscribeToTier,
   tierMultiplier,
+  claimSubscriptionBonus,
 } from "../utils/api";
-import { useWallet } from "../hooks/useWallet";
+import "./Subscription.css";
+import "../App.css";
 
 const tiersUSD = [
   {
@@ -49,7 +49,7 @@ const tiersUSD = [
   },
 ];
 
-const Subscription = () => {
+export default function SubscriptionPage() {
   const { wallet, isConnected } = useWallet();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tonPrice, setTonPrice] = useState(null);
@@ -64,10 +64,24 @@ const Subscription = () => {
   const [messageTone, setMessageTone] = useState("info");
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [error, setError] = useState("");
+  const [canClaimBonus, setCanClaimBonus] = useState(false);
+  const [claimingBonus, setClaimingBonus] = useState(false);
+  const abortRef = useRef(null);
+  const toastTimerRef = useRef(null);
 
-  const showMessage = useCallback((text, tone = "info") => {
+  const showMessage = useCallback((text, tone = "info", autoHide = false) => {
     setMessage(text);
     setMessageTone(tone);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    if (autoHide && text) {
+      toastTimerRef.current = window.setTimeout(() => {
+        setMessage("");
+        toastTimerRef.current = null;
+      }, 3200);
+    }
   }, []);
 
   useEffect(() => {
@@ -86,23 +100,49 @@ const Subscription = () => {
   }, []);
 
   const loadSubscription = useCallback(async () => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
     if (!wallet) {
       setCurrentTier("free");
       setSubscriptionStatus("inactive");
       setNextRenewal(null);
+      setCanClaimBonus(false);
       return;
     }
     setLoadingSubscription(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const data = await getSubscription();
+      const data = await getSubscriptionStatus({ signal: controller.signal });
       const tierValue = (data?.tier || data?.subscriptionTier || "free").toLowerCase();
       setCurrentTier(tierValue);
-      setSubscriptionStatus((data?.status || data?.state || "active").toLowerCase());
-      setNextRenewal(data?.nextRenewal || data?.renewalDate || data?.nextBillingDate || null);
+      const statusValue = (data?.status || data?.state || data?.subscriptionStatus || "active")
+        .toString()
+        .toLowerCase();
+      setSubscriptionStatus(statusValue);
+      setNextRenewal(
+        data?.nextRenewal ||
+          data?.renewalDate ||
+          data?.nextBillingDate ||
+          data?.renewal ||
+          null
+      );
+      setLevel(data?.levelName || data?.level || "Shellborn");
+      setCanClaimBonus(data?.canClaim !== false);
       setError("");
     } catch (err) {
-      setError(err?.message || "Failed to load subscription details.");
+      if (err?.name === "AbortError") return;
+      const message =
+        typeof err?.message === "string" && err.message.toLowerCase().includes("failed to fetch")
+          ? "Network error: Failed to fetch"
+          : err?.message || "Failed to load subscription details.";
+      setError(message);
     } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
       setLoadingSubscription(false);
     }
   }, [wallet]);
@@ -112,6 +152,16 @@ const Subscription = () => {
   }, [loadSubscription]);
 
   useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     if (!wallet) {
       setLevel("Shellborn");
@@ -119,7 +169,7 @@ const Subscription = () => {
     }
     getMe({ force: true })
       .then((data) => {
-        if (!active) return;
+        if (!active || !data) return;
         setLevel(data?.levelName || data?.level || "Shellborn");
         if (data?.subscriptionTier) {
           setCurrentTier(String(data.subscriptionTier).toLowerCase());
@@ -133,14 +183,24 @@ const Subscription = () => {
     };
   }, [wallet]);
 
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      loadSubscription();
+    };
+    window.addEventListener('profile-updated', onProfileUpdated);
+    return () => {
+      window.removeEventListener('profile-updated', onProfileUpdated);
+    };
+  }, [loadSubscription]);
+
   const statusParam = searchParams.get("status");
   useEffect(() => {
     if (!statusParam) return;
     if (statusParam === "success") {
-      showMessage("Subscription confirmed! Welcome to your new tier.", "success");
+      showMessage("Subscription confirmed! Welcome to your new tier.", "success", true);
       loadSubscription();
     } else if (statusParam === "cancel") {
-      showMessage("Checkout cancelled. You can try again any time.", "warn");
+      showMessage("Checkout cancelled. You can try again any time.", "warn", true);
     } else if (statusParam === "error") {
       showMessage(
         "We could not verify the subscription session. Please try again.",
@@ -187,12 +247,12 @@ const Subscription = () => {
 
   const handleSubscribe = async (tier) => {
     if (!wallet) {
-      showMessage("Connect your wallet to pick a tier.", "warn");
+      showMessage("Connect your wallet to pick a tier.", "warn", true);
       return;
     }
     const targetKey = tier.tierKey;
     if (targetKey === normalizedTier) {
-      showMessage("You are already on this tier.", "info");
+      showMessage("You are already on this tier.", "info", true);
       return;
     }
     setPendingTier(targetKey);
@@ -206,13 +266,46 @@ const Subscription = () => {
       setRecentXP(tier.xp);
       setXPModalOpen(true);
       await loadSubscription();
-      showMessage(`Subscription updated to ${tier.name}.`, "success");
+      showMessage(`Subscription updated to ${tier.name}.`, "success", true);
     } catch (err) {
       showMessage(err?.message || "Failed to start subscription.", "error");
     } finally {
       setPendingTier("");
     }
   };
+
+  const handleClaimBonus = useCallback(async () => {
+    if (claimingBonus) return;
+    if (!wallet) {
+      showMessage("Connect your wallet to claim the bonus.", "warn", true);
+      return;
+    }
+    setClaimingBonus(true);
+    setError("");
+    try {
+      const res = await claimSubscriptionBonus();
+      const gained = Number(res?.xpDelta ?? res?.xp ?? 0);
+      if (gained > 0) {
+        setRecentXP(gained);
+        setXPModalOpen(true);
+        showMessage(`+${gained} XP earned 🎉`, "success", true);
+      } else {
+        showMessage("Bonus already claimed.", "info", true);
+      }
+      await Promise.all([
+        loadSubscription(),
+        getMe({ force: true }).catch(() => null),
+      ]);
+    } catch (err) {
+      const message =
+        typeof err?.message === "string" && err.message.toLowerCase().includes("failed to fetch")
+          ? "Network error: Failed to fetch"
+          : err?.message || "Claim failed";
+      setError(message);
+    } finally {
+      setClaimingBonus(false);
+    }
+  }, [claimingBonus, wallet, loadSubscription, showMessage]);
 
   return (
     <Page>
@@ -266,6 +359,19 @@ const Subscription = () => {
               <strong>Status:</strong> {loadingSubscription ? "Loading…" : statusLabel}
             </li>
           </ul>
+          <div style={{ marginTop: 16 }}>
+            <button
+              className="btn"
+              onClick={handleClaimBonus}
+              disabled={!canClaimBonus || claimingBonus || !isConnected}
+            >
+              {claimingBonus
+                ? 'Working…'
+                : canClaimBonus && isConnected
+                ? 'Claim Subscription XP Bonus'
+                : 'Bonus Already Claimed'}
+            </button>
+          </div>
         </div>
 
         <h2 className="tier-title text-glow">💎 Choose Your Tier</h2>
@@ -317,6 +423,4 @@ const Subscription = () => {
       </div>
     </Page>
   );
-};
-
-export default Subscription;
+}

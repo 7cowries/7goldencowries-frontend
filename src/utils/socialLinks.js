@@ -1,20 +1,32 @@
-// src/utils/socialLinks.js
-// Helpers for linking/unlinking socials (Twitter, Telegram, Discord)
-import { api } from "./api";
+import { clearUserCache, postJSON } from "./api";
 
-/**
- * Unlink a connected social account.
- * @param {'twitter'|'telegram'|'discord'} provider
- */
-export async function unlinkSocial(provider) {
-  return api.post(`/api/social/${provider}/unlink`); // { ok: true } or { error }
+function normalizeErrorCode(value) {
+  if (value == null) return value;
+  return String(value).trim().toLowerCase().replace(/_/g, "-");
 }
 
-/**
- * Resync (refresh) a connected social account.
- * Useful if handles change.
- * @param {'twitter'|'telegram'|'discord'} provider
- */
-export async function resyncSocial(provider) {
-  return api.post(`/api/social/${provider}/resync`); // { ok: true, handle: '...' }
+function normalizeResponse(res) {
+  if (!res || typeof res !== "object") return res;
+  const next = { ...res };
+  if ("error" in next && next.error != null) {
+    next.error = normalizeErrorCode(next.error);
+  }
+  if ("code" in next && next.code != null) {
+    next.code = normalizeErrorCode(next.code);
+  }
+  return next;
+}
+
+export async function unlinkSocial(provider, opts = {}) {
+  const { body, ...fetchOpts } = opts || {};
+  const res = await postJSON(
+    `/api/social/${provider}/unlink`,
+    body ?? {},
+    fetchOpts
+  );
+  clearUserCache();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("profile-updated"));
+  }
+  return normalizeResponse(res);
 }

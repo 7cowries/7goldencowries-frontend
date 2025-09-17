@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Page from "../components/Page";
 import { playClick, playXP } from "../utils/sounds";
-import { SALE_START_ISO, useCountdown, openCalendarReminder, inviteFriend } from "../utils/launch";
+import { SALE_START_ISO, useCountdown, downloadSaleReminder, inviteFriend } from "../utils/launch";
 import "./Landing.css";
 import "../App.css";
 
@@ -20,7 +20,7 @@ export default function Home() {
       <div className="aurora" aria-hidden="true" />
       <div className="bg-particles" aria-hidden="true">
         {particles.map((_, i) => (
-          <span key={i} style={{ ["--i"]: i }} />
+          <span key={i} style={{ '--i': i }} />
         ))}
       </div>
 
@@ -93,7 +93,7 @@ export default function Home() {
               className="btn ripple"
               onClick={() => {
                 playClick();
-                openCalendarReminder({ startIso: SALE_START_ISO });
+                downloadSaleReminder({ startIso: SALE_START_ISO });
               }}
             >
               Set Reminder

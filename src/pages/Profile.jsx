@@ -1,14 +1,22 @@
 // src/pages/Profile.js
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Profile.css";
 import "../App.css";
 import Page from "../components/Page";
-import { API_BASE, API_URLS, getMe } from "../utils/api";
+import {
+  API_BASE,
+  API_URLS,
+  clearUserCache,
+  disconnectSession,
+  getMe,
+} from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import WalletConnect from "../components/WalletConnect";
-import { burstConfetti } from "../utils/confetti";
+import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
+import { levelBadgeSrc } from "../config/progression";
+import { unlinkSocial } from "../utils/socialLinks";
 
 // Telegram embed constants
 const TG_BOT_NAME =
@@ -25,6 +33,12 @@ const perksMap = {
   "Cowrie Ascendant": "Unlock hidden realm + max power 🐚✨",
 };
 
+const PROVIDER_LABELS = {
+  twitter: "X (Twitter)",
+  telegram: "Telegram",
+  discord: "Discord",
+};
+
 
 const DEFAULT_ME = {
   wallet: null,
@@ -32,7 +46,7 @@ const DEFAULT_ME = {
   level: "Shellborn",
   levelName: "Shellborn",
   levelSymbol: "🐚",
-  nextXP: 100,
+  nextXP: 10000,
   twitterHandle: null,
   telegramId: null,
   discordId: null,
@@ -86,7 +100,7 @@ function TelegramLoginWidget({ wallet }) {
 }
 
 export default function Profile() {
-  const { wallet: tonWallet } = useWallet();
+  const { wallet: tonWallet, disconnect: disconnectWallet } = useWallet();
   const lsCandidates = useMemo(() => {
     const items = [
       localStorage.getItem("wallet"),
@@ -131,6 +145,12 @@ export default function Profile() {
 
   const [perk, setPerk] = useState("");
   const [toast, setToast] = useState("");
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [unlinking, setUnlinking] = useState({
+    twitter: false,
+    telegram: false,
+    discord: false,
+  });
   const [hasProfile, setHasProfile] = useState(false);
 
   // Disable connect buttons while starting OAuth flows
@@ -139,6 +159,55 @@ export default function Profile() {
     telegram: false,
     discord: false,
   });
+
+  const referralCount = useMemo(() => {
+    if (typeof me?.referralCount === 'number') return me.referralCount;
+    if (me?.referral_count != null) return Number(me.referral_count) || 0;
+    if (me?.referralStats && typeof me.referralStats.count === 'number') {
+      return me.referralStats.count;
+    }
+    if (me?.referral_stats && typeof me.referral_stats.count === 'number') {
+      return me.referral_stats.count;
+    }
+    if (Array.isArray(me?.referrals)) return me.referrals.length;
+    if (Array.isArray(me?.referralHistory)) return me.referralHistory.length;
+    return 0;
+  }, [me]);
+
+  const xpProgress = useMemo(() => {
+    const raw = me?.levelProgress ?? level.progress ?? 0;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return 0;
+    if (value <= 0) return 0;
+    if (value >= 1) return 1;
+    return value;
+  }, [me?.levelProgress, level.progress]);
+
+  const xpPercent = useMemo(() => (xpProgress * 100).toFixed(1), [xpProgress]);
+
+  const xpValue = useMemo(() => {
+    const raw = Number(me?.xp ?? 0);
+    return Number.isFinite(raw) ? raw : 0;
+  }, [me?.xp]);
+
+  const xpDisplay = useMemo(() => xpValue.toLocaleString(), [xpValue]);
+
+  const nextXPValue = useMemo(() => {
+    if (me?.nextXP != null) {
+      const raw = Number(me.nextXP);
+      return Number.isFinite(raw) && raw > 0 ? raw : null;
+    }
+    if (level.nextXP != null) {
+      const raw = Number(level.nextXP);
+      return Number.isFinite(raw) && raw > 0 ? raw : null;
+    }
+    return null;
+  }, [me?.nextXP, level.nextXP]);
+
+  const nextXPDisplay = useMemo(
+    () => (nextXPValue == null ? "∞" : nextXPValue.toLocaleString()),
+    [nextXPValue]
+  );
 
   // Prefer connected wallet address; fallback to any stored value on load
   useEffect(() => {
@@ -152,13 +221,18 @@ export default function Profile() {
 
   // Bind wallet to backend session (helps /api/users/me)
   useEffect(() => {
-    if (tonWallet) ensureWalletBound(tonWallet);
+    if (!tonWallet) {
+      loadMeRef.current?.({ force: true });
+      return;
+    }
+    ensureWalletBound(tonWallet)
+      .catch(() => {})
+      .finally(() => {
+        loadMeRef.current?.({ force: true });
+      });
   }, [tonWallet]);
 
-  const badgeSrc = useMemo(() => {
-    const slug = (level.name || "unranked").toLowerCase().replace(/\s+/g, "-");
-    return `/images/badges/level-${slug}.png`;
-  }, [level.name]);
+  const badgeSrc = useMemo(() => levelBadgeSrc(level.name), [level.name]);
 
   const applyProfile = useCallback(
     (raw) => {
@@ -185,7 +259,7 @@ export default function Profile() {
         name: lvlName,
         symbol: merged.levelSymbol || "🐚",
         progress: merged.levelProgress ?? 0,
-        nextXP: merged.nextXP ?? 100,
+        nextXP: merged.nextXP ?? 10000,
       });
       setPerk(perksMap[lvlName] || "");
 
@@ -197,31 +271,89 @@ export default function Profile() {
     [address]
   );
 
-  const loadMe = useCallback(async () => {
-    setError('');
-    setLoading(true);
+  const loadMe = useCallback(
+    async ({ force = false } = {}) => {
+      setError('');
+      setLoading(true);
+      try {
+        const apiMe = await getMe({ force });
+        applyProfile(apiMe);
+      } catch (e) {
+        console.error(e);
+        setError('Failed to load profile.');
+        setMe(DEFAULT_ME);
+        setHasProfile(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applyProfile]
+  );
+
+  const loadMeRef = useRef(loadMe);
+  useEffect(() => {
+    loadMeRef.current = loadMe;
+  }, [loadMe]);
+
+  const handleDisconnectWallet = useCallback(async () => {
+    if (disconnecting) return;
+    setDisconnecting(true);
     try {
-      // force to bypass cache after OAuth/proof/claim
-      const apiMe = await getMe({ force: true });
-      applyProfile(apiMe);
-    } catch (e) {
-      console.error(e);
-      setError('Failed to load profile.');
+      await disconnectSession();
+      await disconnectWallet?.();
+      clearUserCache();
+      setAddress('');
+      setTier('Free');
+      setLevel({ name: 'Shellborn', symbol: '🐚', progress: 0, nextXP: 10000 });
+      setPerk(perksMap.Shellborn || '');
+      setReferralCode('');
       setMe(DEFAULT_ME);
       setHasProfile(false);
+      setToast('Wallet disconnected ✅');
+      window.setTimeout(() => setToast(''), 2600);
+      await loadMe({ force: true });
+    } catch (e) {
+      console.error(e);
+      setToast(e?.message || 'Failed to disconnect wallet');
+      window.setTimeout(() => setToast(''), 3200);
     } finally {
-      setLoading(false);
+      setDisconnecting(false);
     }
-  }, [applyProfile]);
+  }, [disconnecting, disconnectWallet, loadMe]);
+
+  const handleUnlink = useCallback(
+    async (provider) => {
+      setUnlinking((prev) => ({ ...prev, [provider]: true }));
+      try {
+        await unlinkSocial(provider);
+        const label = PROVIDER_LABELS[provider] || provider;
+        setToast(`${label} disconnected ✅`);
+        window.setTimeout(() => setToast(''), 2600);
+        await loadMe({ force: true });
+      } catch (e) {
+        console.error(e);
+        const label = PROVIDER_LABELS[provider] || provider;
+        setToast(e?.message || `Failed to disconnect ${label}`);
+        window.setTimeout(() => setToast(''), 3200);
+      } finally {
+        setUnlinking((prev) => ({ ...prev, [provider]: false }));
+      }
+    },
+    [loadMe]
+  );
 
   useEffect(() => {
     const w = localStorage.getItem('wallet');
     if (w) {
-      ensureWalletBound(w).finally(() => loadMe());
+      ensureWalletBound(w)
+        .catch(() => {})
+        .finally(() => {
+          loadMeRef.current?.({ force: true });
+        });
     } else {
-      loadMe();
+      loadMeRef.current?.();
     }
-  }, [loadMe]);
+  }, []);
 
   // Keep address in sync across tabs when wallet changes
   useEffect(() => {
@@ -229,38 +361,75 @@ export default function Profile() {
       const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
       setAddress((a) => (a !== w ? w : a));
       if (w) {
-        ensureWalletBound(w).finally(() => loadMe());
+        ensureWalletBound(w)
+          .catch(() => {})
+          .finally(() => {
+            loadMeRef.current?.({ force: true });
+          });
       } else {
-        loadMe();
+        loadMeRef.current?.({ force: true });
       }
     };
     const onStorage = (e) => {
       if (e.key === 'wallet') update();
     };
-    window.addEventListener('wallet:changed', update);
+    window.addEventListener('wallet:changed', update, { once: false });
     window.addEventListener('storage', onStorage);
     return () => {
       window.removeEventListener('wallet:changed', update);
       window.removeEventListener('storage', onStorage);
     };
-  }, [loadMe]);
-
-  // Reload after OAuth tab becomes visible again
-  useEffect(() => {
-    const onVis = () => document.visibilityState === "visible" && loadMe();
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [loadMe]);
+  }, []);
 
   useEffect(() => {
-    const onFocus = () => loadMe();
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('profile-updated', onFocus);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('profile-updated', onFocus);
+    const onProfileUpdated = () => {
+      loadMeRef.current?.({ force: true });
     };
-  }, [loadMe]);
+    window.addEventListener('profile-updated', onProfileUpdated);
+    return () => {
+      window.removeEventListener('profile-updated', onProfileUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer = null;
+    let lastRefresh = 0;
+
+    const schedule = (isPassive = false) => {
+      if (isPassive) {
+        const now = Date.now();
+        if (now - lastRefresh < 60000) {
+          return;
+        }
+      }
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        lastRefresh = Date.now();
+        loadMeRef.current?.({ force: true });
+      }, 200);
+    };
+
+    const onFocus = () => schedule(false);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        schedule(true);
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   // Toast + brief polling when returning with ?connected=
   useEffect(() => {
@@ -292,21 +461,15 @@ export default function Profile() {
       window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", newUrl);
 
-    // Refresh now + brief polling
-    let tries = 0;
-    const id = setInterval(() => {
-      loadMe();
-      if (++tries >= 8) clearInterval(id);
-    }, 1000);
+    window.dispatchEvent(new Event('profile-updated'));
+
     const clear = setTimeout(() => {
-      clearInterval(id);
       setToast("");
     }, 8000);
     return () => {
-      clearInterval(id);
       clearTimeout(clear);
     };
-  }, [loadMe]);
+  }, []);
 
   const state = b64(address || "");
 
@@ -391,20 +554,29 @@ export default function Profile() {
             </div>
 
             <div className="profile-info">
-              <p>
+              <p className="wallet-line">
                 <strong>Wallet:</strong>{" "}
-                {address.slice(0, 6)}...{address.slice(-4)}{" "}
-                <button
-                  className="mini"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(address);
-                    setToast("Wallet copied ✅");
-                    setTimeout(() => setToast(""), 1500);
-                  }}
-                  style={{ marginLeft: 8 }}
-                >
-                  Copy
-                </button>
+                {address.slice(0, 6)}...{address.slice(-4)}
+                <span className="wallet-actions">
+                  <button
+                    className="mini"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(address);
+                      setToast("Wallet copied ✅");
+                      setTimeout(() => setToast(""), 1500);
+                    }}
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="mini danger"
+                    onClick={handleDisconnectWallet}
+                    disabled={disconnecting}
+                    title="Disconnect wallet"
+                  >
+                    {disconnecting ? "Disconnecting…" : "Disconnect"}
+                  </button>
+                </span>
               </p>
               <p>
                 <strong>Subscription:</strong> {tier ?? 'Free'}
@@ -413,23 +585,30 @@ export default function Profile() {
                 <strong>Level:</strong> {level.name ?? 'Shellborn'} {level.symbol ?? ''}
               </p>
               <p>
-                <strong>XP:</strong> {me.xp ?? 0} / {me.nextXP ?? "∞"}
+                <strong>XP:</strong> {xpDisplay} / {nextXPDisplay}
               </p>
 
               <div className="xp-bar">
                 <div
                   className="xp-fill"
                   style={{
-                    width: `${((me.levelProgress || 0) * 100).toFixed(1)}%`,
-                    transition: "width 0.8s ease-in-out",
+                    width: `${xpPercent}%`,
                   }}
                 />
               </div>
               <p className="progress-label">
-                {((me.levelProgress || 0) * 100).toFixed(1)}% — XP {me.xp} / {me.nextXP}
+                {xpPercent}% — XP {xpDisplay} / {nextXPDisplay}
               </p>
 
-              <button className="connect-btn" style={{ marginTop: 8 }} onClick={() => loadMe()}>
+              <p>
+                <strong>Referrals:</strong> {referralCount}
+              </p>
+
+              <button
+                className="connect-btn"
+                style={{ marginTop: 8 }}
+                onClick={() => loadMe({ force: true })}
+              >
                 🔄 Refresh
               </button>
             </div>
@@ -459,13 +638,21 @@ export default function Profile() {
                     ) : (
                       <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ Connected</span>
                     )}
+                    <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
-                      <button className="mini" disabled title="Already connected">Connect</button>
+                      <button
+                        className="mini danger"
+                        onClick={() => handleUnlink('twitter')}
+                        disabled={unlinking.twitter}
+                      >
+                        {unlinking.twitter ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
                     </div>
                   </>
                 ) : (
                   <>
                     <span className="not-connected">❌ Not Connected</span>
+                    <span className="proof-status warn">Proof pending</span>
                     <div className="social-actions">
                       <button
                         className="mini"
@@ -497,13 +684,21 @@ export default function Profile() {
                     ) : (
                       <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ Connected</span>
                     )}
+                    <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
-                      <button className="mini" disabled title="Already connected">Connect</button>
+                      <button
+                        className="mini danger"
+                        onClick={() => handleUnlink('telegram')}
+                        disabled={unlinking.telegram}
+                      >
+                        {unlinking.telegram ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
                     </div>
                   </>
                 ) : (
                   <>
                     <span className="not-connected">❌ Not Connected</span>
+                    <span className="proof-status warn">Proof pending</span>
                     <div className="social-actions">
                       <button
                         className="mini"
@@ -522,7 +717,10 @@ export default function Profile() {
                 <span className="muted">Discord:</span>
                 {discordConnected ? (
                   <>
-                    <span style={{ color: 'var(--c-mint)', fontWeight: 800 }}>✅ {discord}</span>
+                    <span className="connected" style={{ color: 'var(--c-mint)', fontWeight: 800 }}>
+                      ✅ {discord || 'Connected'}
+                    </span>
+                    <span className="proof-status">Proof linked</span>
                     <div className="social-actions">
                       {discord ? (
                         <button
@@ -537,12 +735,19 @@ export default function Profile() {
                           Copy
                         </button>
                       ) : null}
-                      <button className="mini" disabled title="Already connected">Connect</button>
+                      <button
+                        className="mini danger"
+                        onClick={() => handleUnlink('discord')}
+                        disabled={unlinking.discord}
+                      >
+                        {unlinking.discord ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
                     </div>
                   </>
                 ) : (
                   <>
                     <span className="not-connected">❌ Not Connected</span>
+                    <span className="proof-status warn">Proof pending</span>
                     <div className="social-actions">
                       <button
                         className="mini"
@@ -593,7 +798,10 @@ export default function Profile() {
               <h3>Link New Accounts</h3>
               <p className="muted">Link your socials to unlock quests and show badges.</p>
 
-              <ConnectButtons address={address} onLinked={() => loadMe()} />
+              <ConnectButtons
+                address={address}
+                onLinked={() => loadMe({ force: true })}
+              />
 
               {/* Embedded Telegram button (preferred) */}
               <p className="muted" style={{ marginTop: 8 }}>

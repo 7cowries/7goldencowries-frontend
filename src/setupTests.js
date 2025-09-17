@@ -15,3 +15,19 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     dispatchEvent: () => false,
   });
 }
+
+if (typeof window !== 'undefined' && window.HTMLMediaElement) {
+  const proto = window.HTMLMediaElement.prototype;
+  Object.defineProperty(proto, 'load', {
+    configurable: true,
+    value: jest.fn(),
+  });
+  Object.defineProperty(proto, 'play', {
+    configurable: true,
+    value: jest.fn().mockResolvedValue(undefined),
+  });
+  Object.defineProperty(proto, 'pause', {
+    configurable: true,
+    value: jest.fn(),
+  });
+}

@@ -2,17 +2,39 @@ import React, { useState, useRef } from 'react';
 import useTilt from '../fx/useTilt';
 import { submitProof, tierMultiplier } from '../utils/api';
 
-export default function QuestCard({ quest, onClaim, claiming, me, setToast, canClaim = true }) {
+const PROOF_REQUIRED = 'proof-required';
+const TOAST_RESET_MS = process.env.NODE_ENV === 'test' ? 0 : 3000;
+
+export default function QuestCard({
+  quest,
+  onClaim,
+  claiming,
+  me,
+  setToast,
+  canClaim = true,
+  blockedReason,
+  onProofStatusChange,
+}) {
   const q = quest;
-  const needsProof = q.requirement && q.requirement !== 'none';
+  const baseNeedsProof = q.requirement && q.requirement !== 'none';
+  const needsProof = baseNeedsProof || blockedReason === PROOF_REQUIRED;
   const alreadyClaimed = q.completed || q.alreadyClaimed || q.claimed;
-  const claimable = !alreadyClaimed && (!needsProof || q.proofStatus === 'approved');
+  const proofStatus = String(q.proofStatus || q.proof_status || '').toLowerCase();
+  const claimable =
+    !alreadyClaimed && (!baseNeedsProof || proofStatus === 'approved');
   const [url, setUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const mult = tierMultiplier(me?.tier || me?.subscriptionTier);
   const projected = Math.round((q.xp || 0) * mult);
   const cardRef = useRef(null);
   useTilt(cardRef, 8);
+  const isBlocked = Boolean(blockedReason);
+  const proofBlocked = blockedReason === PROOF_REQUIRED;
+  const blockedTooltip = proofBlocked
+    ? 'Submit proof before claiming'
+    : blockedReason || '';
+  const proofNoteId = `proof-note-${q.id}`;
+  const buttonDisabled = claiming || !claimable || !canClaim || isBlocked;
 
   return (
     <div ref={cardRef} className="glass quest-card fade-in">
@@ -25,7 +47,7 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast, canC
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {alreadyClaimed ? (
               <span className="chip completed">✅ Completed</span>
-            ) : q.proofStatus === 'pending' ? (
+            ) : proofStatus === 'pending' ? (
               <span className="chip pending">🕒 Pending review</span>
             ) : null}
           <span className="xp-badge">
@@ -83,13 +105,15 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast, canC
               setSubmitting(true);
               try {
                 const res = await submitProof(q.id, { url });
-                q.proofStatus = res?.status || 'pending'; // optimistic
+                const status = String(res?.status || 'pending').toLowerCase();
+                q.proofStatus = status; // optimistic
+                onProofStatusChange?.({ questId: q.id, status });
                 setToast?.('Proof submitted');
-                setTimeout(() => setToast?.(''), 3000);
+                setTimeout(() => setToast?.(''), TOAST_RESET_MS);
                 window.dispatchEvent(new Event('profile-updated'));
               } catch (e) {
                 setToast?.(e?.message || 'Failed to submit proof');
-                setTimeout(() => setToast?.(''), 3000);
+                setTimeout(() => setToast?.(''), TOAST_RESET_MS);
               } finally {
                 setSubmitting(false);
               }
@@ -104,21 +128,33 @@ export default function QuestCard({ quest, onClaim, claiming, me, setToast, canC
         {alreadyClaimed ? (
           <button className="btn success" disabled>Claimed</button>
         ) : (
-          <button
-            className="btn ghost"
-            onClick={() => onClaim(q.id)}
-            disabled={claiming || !claimable || !canClaim}
-            title={
-              !canClaim
-                ? 'Connect wallet to claim'
-                : !claimable && needsProof
-                ? 'Submit proof first'
-                : ''
-            }
-            aria-disabled={claiming || !claimable || !canClaim}
-          >
-            {claiming ? 'Claiming...' : 'Claim'}
-          </button>
+          <>
+            {isBlocked && proofBlocked ? (
+              <p id={proofNoteId} className="muted proof-note" role="note">
+                Proof required — submit your link above.
+              </p>
+            ) : null}
+            <button
+              className="btn ghost"
+              onClick={() => onClaim?.(q)}
+              disabled={buttonDisabled}
+              title={
+                !canClaim
+                  ? 'Connect wallet to claim'
+                  : proofBlocked
+                  ? blockedTooltip
+                  : isBlocked
+                  ? blockedTooltip
+                  : !claimable && needsProof
+                  ? 'Submit proof first'
+                  : ''
+              }
+              aria-disabled={buttonDisabled}
+              aria-describedby={proofBlocked ? proofNoteId : undefined}
+            >
+              {claiming ? 'Claiming...' : 'Claim'}
+            </button>
+          </>
         )}
       </div>
     </div>

@@ -1,25 +1,32 @@
-export const API_BASE =
-  (typeof window !== "undefined" && window.__API_BASE) ||
-  process.env.REACT_APP_API_URL ||
-  "";
+function normalizeBase(rawValue) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : "";
+  if (!value) return "";
 
-// Ensure the API base URL is configured. This avoids accidentally
-// pointing requests at the current origin which can be confusing in
-// development and misconfigured in production.  The value should be
-// supplied via `REACT_APP_API_URL` or injected into `window.__API_BASE`.
-// Throwing here makes the failure obvious during start‑up rather than at
-// the first network request.
-if (!API_BASE) {
-  throw new Error(
-    "REACT_APP_API_URL is required – set it in your environment or .env file"
-  );
+  const stripTrailing = (input) =>
+    input.endsWith("/") ? input.replace(/\/+$/, "") : input;
+
+  if (/^https?:\/\//i.test(value)) {
+    return stripTrailing(value);
+  }
+
+  if (value.startsWith("/")) {
+    return stripTrailing(value);
+  }
+
+  return stripTrailing(`/${value}`);
 }
 
-// Prebuilt URLs for starting OAuth or embedding auth widgets
+export const API_BASE = (() => {
+  const raw =
+    (typeof window !== "undefined" && window.__API_BASE) ||
+    process.env.REACT_APP_API_URL ||
+    "";
+  return normalizeBase(raw);
+})();
+
 export const API_URLS = {
   twitterStart: `${API_BASE}/api/auth/twitter/start`,
   discordStart: `${API_BASE}/api/auth/discord/start`,
-  // Used by the Telegram login widget (data-auth-url)
   telegramEmbedAuth: `${API_BASE}/api/auth/telegram/callback`,
 };
 
@@ -32,45 +39,181 @@ export function withSignal(ms = 15000) {
   };
 }
 
-export async function fetchJson(url, options = {}) {
-  let res;
-  try {
-    res = await fetch(url, {
-      credentials: "include",
-      cache: "no-store",
-      ...(options || {}),
-    });
-  } catch (err) {
-    const msg = `Network error: ${err.message}`;
-    if (typeof window !== "undefined" && window.alert) {
-      window.alert(msg);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function resolvePath(path = "") {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  if (!API_BASE) return path;
+
+  if (API_BASE.startsWith("http")) {
+    if (path.startsWith("/")) {
+      return `${API_BASE}${path}`;
     }
-    throw new Error(msg);
+    return `${API_BASE}/${path}`;
   }
 
-  if (res.status === 304) return null;
+  if (path.startsWith("/")) {
+    return `${API_BASE}${path}`;
+  }
 
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
+  return `${API_BASE}/${path}`;
+}
+
+function shouldRetry(res) {
+  return !!res && (res.status === 502 || res.status === 503 || res.status === 504);
+}
+
+async function buildHttpError(res) {
+  let msg = `HTTP ${res.status}`;
+  try {
+    const data = await res.clone().json();
+    const detail = data?.error ?? data?.message ?? JSON.stringify(data);
+    if (detail && detail !== "{}" && detail !== "null") {
+      msg += `: ${detail}`;
+    }
+  } catch (err) {
     try {
-      const data = await res.json();
-      const detail = data?.error ?? JSON.stringify(data);
-      if (detail && detail !== "{}") msg += `: ${detail}`;
+      const text = await res.clone().text();
+      if (text) msg += `: ${text}`;
     } catch (_) {
+      /* ignore */
+    }
+  }
+  const error = new Error(msg);
+  error.status = res.status;
+  return error;
+}
+
+const inflightRequests = new Map();
+
+function safeStringify(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (value instanceof URLSearchParams) return value.toString();
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch (err) {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+async function requestJSON(path, opts = {}) {
+  const {
+    method = "GET",
+    body,
+    headers,
+    signal,
+    timeout = 15000,
+    retries = 1,
+    dedupe = true,
+    dedupeKey,
+    ...rest
+  } = opts;
+
+  const url = resolvePath(path);
+  const methodName = String(method || "GET").toUpperCase();
+  const shouldDedupe = dedupe !== false && !signal;
+  const keyBody = body === undefined ? "" : safeStringify(body);
+  const key = shouldDedupe
+    ? dedupeKey || `${methodName}:${url}:${keyBody}`
+    : null;
+
+  if (key && inflightRequests.has(key)) {
+    return inflightRequests.get(key);
+  }
+
+  const execute = async () => {
+    let attempt = 0;
+
+    while (attempt <= retries) {
+      const controller = signal ? null : new AbortController();
+      const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
+      const finalSignal = signal || controller?.signal;
+
+      const options = {
+        method: methodName,
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(headers || {}),
+        },
+        signal: finalSignal,
+        ...rest,
+      };
+
+      if (body !== undefined) options.body = body;
+
       try {
-        const text = await res.text();
-        if (text) msg += `: ${text}`;
-      } catch (_) {
-        /* ignore */
+        const res = await fetch(url, options);
+
+        if (shouldRetry(res) && attempt < retries) {
+          attempt += 1;
+          if (timer) clearTimeout(timer);
+          await sleep(400);
+          continue;
+        }
+
+        if (res.status === 304) {
+          if (timer) clearTimeout(timer);
+          return null;
+        }
+
+        if (!res.ok) {
+          if (timer) clearTimeout(timer);
+          throw await buildHttpError(res);
+        }
+
+        if (res.status === 204) {
+          if (timer) clearTimeout(timer);
+          return null;
+        }
+
+        const data = await res.json();
+        if (timer) clearTimeout(timer);
+        return data;
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+
+        if (err?.name === "AbortError") {
+          throw err;
+        }
+
+        if (err instanceof TypeError) {
+          if (attempt < retries) {
+            attempt += 1;
+            await sleep(400);
+            continue;
+          }
+          const networkError = new Error("Network error: Failed to fetch");
+          networkError.cause = err;
+          throw networkError;
+        }
+
+        if (err instanceof Error) {
+          throw err;
+        }
+
+        throw new Error(String(err));
       }
     }
-    if (typeof window !== "undefined" && window.alert) {
-      window.alert(msg);
-    }
-    throw new Error(msg);
+
+    throw new Error("Request failed");
+  };
+
+  let pending = execute();
+  if (key) {
+    pending = pending.finally(() => {
+      inflightRequests.delete(key);
+    });
+    inflightRequests.set(key, pending);
   }
 
-  return res.status === 204 ? null : await res.json();
+  return pending;
 }
 
 // simple in-memory cache with 60s TTL
@@ -103,30 +246,40 @@ export function clearUserCache() {
   ["quests", "me"].forEach((k) => _cache.delete(userKey(k)));
 }
 
-export async function jsonFetch(path, opts = {}) {
-  const controller = opts.signal ? null : new AbortController();
-  const id = controller ? setTimeout(() => controller.abort(), opts.timeout || 15000) : null;
-  try {
-    return await fetchJson(`${API_BASE}${path}`, {
-      method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
-      signal: opts.signal || (controller && controller.signal),
-      ...opts,
-    });
-  } finally {
-    if (id) clearTimeout(id);
-  }
+function normalizeErrorCode(value) {
+  if (value == null) return value;
+  return String(value).trim().toLowerCase().replace(/_/g, "-");
 }
 
-export function getJSON(path, opts) {
-  return jsonFetch(path, opts);
+function normalizeResponse(res) {
+  if (!res || typeof res !== "object") return res;
+  const next = { ...res };
+  if ("error" in next && next.error != null) {
+    next.error = normalizeErrorCode(next.error);
+  }
+  if ("code" in next && next.code != null) {
+    next.code = normalizeErrorCode(next.code);
+  }
+  return next;
+}
+
+export function getJSON(path, opts = {}) {
+  return requestJSON(path, opts);
+}
+
+export function postJSON(path, body, opts = {}) {
+  return requestJSON(path, {
+    ...opts,
+    method: "POST",
+    body: JSON.stringify(body ?? {}),
+  });
 }
 
 export function getQuests({ signal } = {}) {
   const key = userKey("quests");
   const cached = cacheGet(key);
   if (cached) return Promise.resolve(cached);
-  return jsonFetch("/api/quests", { signal }).then((data) => {
+  return getJSON("/api/quests", { signal }).then((data) => {
     cacheSet(key, data);
     return data;
   });
@@ -135,7 +288,7 @@ export function getQuests({ signal } = {}) {
 export function getLeaderboard({ signal } = {}) {
   const cached = cacheGet("leaderboard");
   if (cached) return Promise.resolve(cached);
-  return jsonFetch("/api/leaderboard", { signal }).then((data) => {
+  return getJSON("/api/leaderboard", { signal }).then((data) => {
     cacheSet("leaderboard", data);
     return data; // { entries, total }
   });
@@ -166,42 +319,86 @@ export async function getMe({ signal, force } = {}) {
     const cached = cacheGet(key);
     if (cached) return Promise.resolve(cached);
   }
-  return jsonFetch("/api/users/me", { signal }).then((data) => {
-    const user = data && typeof data === 'object' && 'user' in data ? data.user : data;
+  return getJSON("/api/users/me", { signal }).then((data) => {
+    const user = data && typeof data === "object" && "user" in data ? data.user : data;
     if (user) cacheSet(key, user);
     return user;
   });
 }
 
-export async function postJSON(path, body, opts = {}) {
-  return jsonFetch(path, { method: "POST", body: JSON.stringify(body ?? {}), ...opts });
-}
-
 export function claimQuest(id, opts = {}) {
   return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => {
     clearUserCache();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('profile-updated'));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
     }
-    return res;
+    return normalizeResponse(res);
+  });
+}
+
+export function claimSubscriptionReward({ questId } = {}, opts = {}) {
+  return postJSON(
+    "/api/v1/subscription/claim",
+    questId ? { questId } : {},
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
+export function claimSubscriptionBonus(opts = {}) {
+  return postJSON("/api/v1/subscription/claim", {}, opts).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
+export function claimReferralReward({ questId } = {}, opts = {}) {
+  return postJSON(
+    "/api/referral/claim",
+    questId ? { questId } : {},
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
   });
 }
 
 export function submitProof(id, { url }, opts = {}) {
   return postJSON(`/api/quests/${id}/proofs`, { url }, opts).then((res) => {
     clearUserCache();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('profile-updated'));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
     }
-    return res;
+    return normalizeResponse(res);
+  });
+}
+
+export function disconnectSession(opts = {}) {
+  return postJSON("/api/session/disconnect", {}, opts).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
   });
 }
 
 // UI-only helper for showing projected XP; backend still awards the truth.
 export function tierMultiplier(tier) {
-  const t = String(tier || '').toLowerCase();
-  if (t.includes('tier 3')) return 1.25;
-  if (t.includes('tier 2')) return 1.10;
+  const t = String(tier || "").toLowerCase();
+  if (t.includes("tier 3")) return 1.25;
+  if (t.includes("tier 2")) return 1.1;
   return 1.0; // Free or unknown
 }
 
@@ -220,8 +417,8 @@ export function startTokenSalePurchase({ wallet, amount }, opts = {}) {
   );
 }
 
-export function getSubscription(opts = {}) {
-  return getJSON("/api/v1/subscription", opts);
+export function getSubscriptionStatus(opts = {}) {
+  return getJSON("/api/v1/subscription/status", opts);
 }
 
 export function subscribeToTier({ wallet, tier }, opts = {}) {
@@ -270,13 +467,17 @@ export const api = {
   getLeaderboard,
   getMe,
   bindWallet,
+  disconnectSession,
   startTokenSalePurchase,
-  getSubscription,
+  getSubscriptionStatus,
   subscribeToTier,
+  claimSubscriptionBonus,
   startTelegram,
   startDiscord,
   startTwitter,
   claimQuest,
+  claimSubscriptionReward,
+  claimReferralReward,
   submitProof,
   clearUserCache,
   getReferralInfo,
