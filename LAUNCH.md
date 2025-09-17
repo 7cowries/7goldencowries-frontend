@@ -23,6 +23,8 @@ Add the domains:
 - 7goldencowries.com
 - www.7goldencowries.com
 
+Ensure the project uses the repo-root `vercel.json` so `/api/*` and `/ref/*` requests proxy to the Render backend and API responses include `Cache-Control: no-store` headers.
+
 ## Manual Test Steps
 
 1. Set wallet to `UQTestWallet123` in the header input.
