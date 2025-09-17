@@ -28,7 +28,16 @@ Deploy on Vercel with custom domains:
 - 7goldencowries.com
 - www.7goldencowries.com
 
+ codex/implement-phase-1-production-hardening
 The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+
+
+ codex/align-monorepo-repos-and-produce-prs-q9xnvc
+The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+
+The default `vercel.json` rewrites `/api/*` and `/auth/*` to the Render backend so the frontend can run with a blank `REACT_APP_API_URL`.
+ main
+
 
 ## Manual Test Steps
 
@@ -43,6 +52,7 @@ The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Rend
    - List re-sorts/refreshes within 60s and when wallet changes.
 
 ## How to test
+ codex/implement-phase-1-production-hardening
 
 1. Connect a TON wallet via the header connect button.
 2. Visit `/token-sale`:
@@ -55,6 +65,7 @@ The default `vercel.json` rewrites `/api/*`, `/auth/*`, and `/ref/*` to the Rend
    - Claim the **Subscription XP Bonus** and confirm the toast reflects the returned `xpDelta`.
 
 ### Useful scripts
+
 
 - `npm start` – run development server
 - `npm test` – run unit, integration, and API smoke tests (includes subscription flow coverage via supertest)
