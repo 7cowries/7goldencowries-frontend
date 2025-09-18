@@ -54,18 +54,38 @@ export class ApiError extends Error {
   }
 }
 
-export const API_BASE = (() => {
-  const raw =
-    (typeof window !== "undefined" && window.__API_BASE) ||
-    process.env.REACT_APP_API_URL ||
-    "";
-  return normalizeBase(raw);
-})();
+const RAW_API_BASE =
+  (typeof window !== "undefined" && window.__API_BASE) ||
+  process.env.REACT_APP_API_URL ||
+  "";
+
+export const API_BASE = normalizeBase(RAW_API_BASE);
+
+const DEFAULT_API_PREFIX = "/api";
+
+function parseBaseComponents(base) {
+  const value = typeof base === "string" ? base : "";
+  if (!value) {
+    return { isAbsolute: false, origin: "", path: "" };
+  }
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      const path = url.pathname.replace(/\/+$/, "");
+      return { isAbsolute: true, origin: url.origin, path };
+    } catch (err) {
+      return { isAbsolute: false, origin: "", path: value };
+    }
+  }
+  return { isAbsolute: false, origin: "", path: value.replace(/\/+$/, "") };
+}
+
+const BASE_COMPONENTS = parseBaseComponents(API_BASE);
 
 export const API_URLS = {
-  twitterStart: `${API_BASE}/api/auth/twitter/start`,
-  discordStart: `${API_BASE}/api/auth/discord/start`,
-  telegramEmbedAuth: `${API_BASE}/api/auth/telegram/callback`,
+  twitterStart: resolvePath("/api/auth/twitter/start"),
+  discordStart: resolvePath("/api/auth/discord/start"),
+  telegramEmbedAuth: resolvePath("/api/auth/telegram/callback"),
 };
 
 export function withSignal(ms = 15000) {
@@ -79,23 +99,59 @@ export function withSignal(ms = 15000) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function combinePaths(basePath, targetPath) {
+  const normalizedBase =
+    !basePath || basePath === "/"
+      ? ""
+      : `/${basePath.replace(/^\/+/u, "").replace(/\/+$/u, "")}`;
+  const normalizedTarget = targetPath.startsWith("/")
+    ? targetPath
+    : `/${targetPath}`;
+
+  if (!normalizedBase) {
+    return normalizedTarget;
+  }
+
+  if (
+    normalizedTarget === normalizedBase ||
+    normalizedTarget.startsWith(`${normalizedBase}/`)
+  ) {
+    return normalizedTarget;
+  }
+
+  return `${normalizedBase}${normalizedTarget}`;
+}
+
 function resolvePath(path = "") {
-  if (!path) return path;
-  if (/^https?:\/\//i.test(path)) return path;
-  if (!API_BASE) return path;
-
-  if (API_BASE.startsWith("http")) {
-    if (path.startsWith("/")) {
-      return `${API_BASE}${path}`;
+  const raw = typeof path === "string" ? path : "";
+  if (!raw) {
+    if (BASE_COMPONENTS.isAbsolute) {
+      return `${BASE_COMPONENTS.origin}${BASE_COMPONENTS.path || ""}`;
     }
-    return `${API_BASE}/${path}`;
+    return API_BASE || DEFAULT_API_PREFIX;
+  }
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  if (BASE_COMPONENTS.isAbsolute) {
+    const combined = combinePaths(
+      BASE_COMPONENTS.path,
+      raw.startsWith("/") ? raw : `/${raw}`
+    );
+    return `${BASE_COMPONENTS.origin}${combined}`;
   }
 
-  if (path.startsWith("/")) {
-    return `${API_BASE}${path}`;
+  if (API_BASE) {
+    return combinePaths(API_BASE, raw.startsWith("/") ? raw : `/${raw}`);
   }
 
-  return `${API_BASE}/${path}`;
+  const normalized = raw.startsWith("/") ? raw : `/${raw}`;
+  if (
+    normalized === DEFAULT_API_PREFIX ||
+    normalized.startsWith(`${DEFAULT_API_PREFIX}/`)
+  ) {
+    return normalized;
+  }
+  return `${DEFAULT_API_PREFIX}${normalized}`;
 }
 
 function shouldRetry(res) {
@@ -214,14 +270,21 @@ async function requestJSON(path, opts = {}) {
       const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
       const finalSignal = signal || controller?.signal;
 
+      const finalHeaders = { ...(headers || {}) };
+      if (
+        !Object.keys(finalHeaders).some(
+          (key) => String(key).toLowerCase() === "content-type"
+        )
+      ) {
+        finalHeaders["Content-Type"] = "application/json";
+      }
+      finalHeaders["Cache-Control"] = "no-store";
+
       const options = {
         method: methodName,
         credentials: "include",
         cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-          ...(headers || {}),
-        },
+        headers: finalHeaders,
         signal: finalSignal,
         ...rest,
       };

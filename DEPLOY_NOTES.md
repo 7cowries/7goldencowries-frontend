@@ -6,8 +6,8 @@
 - `FRONTEND_URL=https://7goldencowries.com`
 - `SQLITE_FILE=/var/data/7gc.sqlite`
 - `SESSION_SECRET=<64-128 char random string>`
-- `COOKIE_SECURE=true`
-- `SUBSCRIPTION_BONUS_XP=120`
+- `COOKIE_SECURE=true` *(forces SameSite=None; Secure cookies for cross-origin session continuity)*
+- `SUBSCRIPTION_BONUS_XP=120` *(XP granted on the first subscription bonus claim)*
 - `TON_NETWORK=mainnet`
 - `TON_RECEIVE_ADDRESS=<TON wallet>`
 - `TON_MIN_PAYMENT_TON=0.5`

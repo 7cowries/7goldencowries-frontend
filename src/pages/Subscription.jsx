@@ -6,7 +6,6 @@ import XPModal from "../components/XPModal";
 import PaymentGuard from "../components/PaymentGuard";
 import { useWallet } from "../hooks/useWallet";
 import {
-  getMe,
   getSubscriptionStatus,
   subscribeToTier,
   tierMultiplier,
@@ -50,14 +49,55 @@ const tiersUSD = [
   },
 ];
 
+const DEFAULT_STATUS = {
+  tier: "Free",
+  levelName: "Shellborn",
+  levelSymbol: "🐚",
+  xp: 0,
+  totalXP: 0,
+  nextXP: null,
+  nextRenewal: null,
+  wallet: null,
+  canClaim: false,
+  claimedAt: null,
+  lastClaimDelta: 0,
+};
+
+function normalizeStatus(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { ...DEFAULT_STATUS };
+  }
+  const next = {
+    ...DEFAULT_STATUS,
+    ...raw,
+  };
+  if (next.levelName == null && raw.level) {
+    next.levelName = raw.level;
+  }
+  if (next.levelSymbol == null && raw.levelSymbol == null && raw.levelEmoji) {
+    next.levelSymbol = raw.levelEmoji;
+  }
+  if (next.totalXP == null && raw.xp != null) {
+    next.totalXP = raw.xp;
+  }
+  if (next.wallet == null && raw.address) {
+    next.wallet = raw.address;
+  }
+  if (next.nextRenewal == null) {
+    next.nextRenewal =
+      raw.nextRenewal || raw.renewalDate || raw.nextBillingDate || raw.renewal || null;
+  }
+  if (!next.tier) {
+    next.tier = "Free";
+  }
+  return next;
+}
+
 export default function SubscriptionPage() {
   const { wallet, isConnected } = useWallet();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tonPrice, setTonPrice] = useState(null);
-  const [currentTier, setCurrentTier] = useState("free");
-  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
-  const [nextRenewal, setNextRenewal] = useState(null);
-  const [level, setLevel] = useState("Shellborn");
+  const [status, setStatus] = useState({ ...DEFAULT_STATUS });
   const [xpModalOpen, setXPModalOpen] = useState(false);
   const [recentXP, setRecentXP] = useState(0);
   const [pendingTier, setPendingTier] = useState("");
@@ -65,7 +105,6 @@ export default function SubscriptionPage() {
   const [messageTone, setMessageTone] = useState("info");
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [error, setError] = useState("");
-  const [canClaimBonus, setCanClaimBonus] = useState(false);
   const [claimingBonus, setClaimingBonus] = useState(false);
   const abortRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -106,11 +145,9 @@ export default function SubscriptionPage() {
       abortRef.current = null;
     }
     if (!wallet) {
-      setCurrentTier("free");
-      setSubscriptionStatus("inactive");
-      setNextRenewal(null);
-      setCanClaimBonus(false);
+      setStatus({ ...DEFAULT_STATUS });
       setError("");
+      setLoadingSubscription(false);
       return;
     }
     setLoadingSubscription(true);
@@ -118,21 +155,7 @@ export default function SubscriptionPage() {
     abortRef.current = controller;
     try {
       const data = await getSubscriptionStatus({ signal: controller.signal });
-      const tierValue = (data?.tier || data?.subscriptionTier || "free").toLowerCase();
-      setCurrentTier(tierValue);
-      const statusValue = (data?.status || data?.state || data?.subscriptionStatus || "active")
-        .toString()
-        .toLowerCase();
-      setSubscriptionStatus(statusValue);
-      setNextRenewal(
-        data?.nextRenewal ||
-          data?.renewalDate ||
-          data?.nextBillingDate ||
-          data?.renewal ||
-          null
-      );
-      setLevel(data?.levelName || data?.level || "Shellborn");
-      setCanClaimBonus(Boolean(data?.canClaim));
+      setStatus(normalizeStatus(data));
       setError("");
     } catch (err) {
       if (err?.name === "AbortError") return;
@@ -162,36 +185,22 @@ export default function SubscriptionPage() {
   }, []);
 
   useEffect(() => {
-    let active = true;
-    if (!wallet) {
-      setLevel("Shellborn");
-      return () => {
-        active = false;
-      };
-    }
-    getMe({ force: true })
-      .then((data) => {
-        if (!active || !data) return;
-        setLevel(data?.levelName || data?.level || "Shellborn");
-        if (data?.subscriptionTier) {
-          setCurrentTier(String(data.subscriptionTier).toLowerCase());
-        }
-      })
-      .catch((err) => {
-        console.warn("[Subscription] profile fetch failed", err);
-      });
-    return () => {
-      active = false;
-    };
-  }, [wallet]);
-
-  useEffect(() => {
     const onProfileUpdated = () => {
       loadSubscription();
     };
     window.addEventListener("profile-updated", onProfileUpdated);
     return () => {
       window.removeEventListener("profile-updated", onProfileUpdated);
+    };
+  }, [loadSubscription]);
+
+  useEffect(() => {
+    const onWalletChanged = () => {
+      loadSubscription();
+    };
+    window.addEventListener("wallet:changed", onWalletChanged);
+    return () => {
+      window.removeEventListener("wallet:changed", onWalletChanged);
     };
   }, [loadSubscription]);
 
@@ -213,39 +222,45 @@ export default function SubscriptionPage() {
   }, [statusParam, setSearchParams, showMessage, loadSubscription]);
 
   const normalizedTier = useMemo(() => {
-    const key = String(currentTier || "").toLowerCase();
+    const key = String(status?.tier || "").toLowerCase();
     const match = tiersUSD.find(
       (tier) => tier.tierKey === key || tier.name.toLowerCase() === key
     );
     return match?.tierKey || key || "free";
-  }, [currentTier]);
+  }, [status?.tier]);
 
   const activeTier = useMemo(
     () => tiersUSD.find((tier) => tier.tierKey === normalizedTier),
     [normalizedTier]
   );
 
-  const displayTier = activeTier?.name || (currentTier ? String(currentTier) : "Free");
+  const displayTier = activeTier?.name || (status?.tier ? String(status.tier) : "Free");
   const mult = tierMultiplier(displayTier);
   const walletShort = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : "";
 
   const renewalLabel = useMemo(() => {
-    if (!nextRenewal) return "—";
-    const parsed = new Date(nextRenewal);
-    if (Number.isNaN(parsed.getTime())) return nextRenewal;
+    if (!status?.nextRenewal) return "—";
+    const parsed = new Date(status.nextRenewal);
+    if (Number.isNaN(parsed.getTime())) return status.nextRenewal;
     return parsed.toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  }, [nextRenewal]);
+  }, [status?.nextRenewal]);
 
   const statusLabel = useMemo(() => {
     if (!isConnected) return "Wallet disconnected";
-    if (!subscriptionStatus) return "Inactive";
-    const readable = subscriptionStatus.replace(/_/g, " ");
-    return readable.charAt(0).toUpperCase() + readable.slice(1);
-  }, [subscriptionStatus, isConnected]);
+    if (!status?.wallet) return "Inactive";
+    if (status?.canClaim) return "Active";
+    if (status?.claimedAt) return "Bonus claimed";
+    return status?.tier && status.tier !== "Free" ? "Active" : "Free tier";
+  }, [status, isConnected]);
+
+  const canClaimBonus = Boolean(status?.canClaim);
+  const levelName = status?.levelName || "Shellborn";
+  const levelSymbol = status?.levelSymbol || "🐚";
+  const lastClaimDelta = Number(status?.lastClaimDelta || 0);
 
   const handleSubscribe = async (tier) => {
     if (!wallet) {
@@ -286,20 +301,19 @@ export default function SubscriptionPage() {
     setError("");
     try {
       const res = await claimSubscriptionBonus();
-      const status = (res && res.status) || {};
-      const gained = Number(res?.xpDelta ?? res?.xp ?? 0);
-      setCanClaimBonus(Boolean(status.canClaim ?? res?.canClaim));
-      if (gained > 0) {
-        setRecentXP(gained);
+      const xpDelta = Number(res?.xpDelta ?? 0);
+      if (res?.status) {
+        setStatus(normalizeStatus(res.status));
+      }
+      if (xpDelta > 0) {
+        setRecentXP(xpDelta);
         setXPModalOpen(true);
-        showMessage(`+${gained} XP earned 🎉`, "success", true);
+        showMessage(`+${xpDelta} XP earned 🎉`, "success", true);
       } else {
         showMessage("Bonus already claimed.", "info", true);
       }
-      await Promise.all([
-        loadSubscription(),
-        getMe({ force: true }).catch(() => null),
-      ]);
+      window.dispatchEvent(new Event("profile-updated"));
+      loadSubscription();
     } catch (err) {
       const message =
         typeof err?.message === "string" && err.message.toLowerCase().includes("failed to fetch")
@@ -328,13 +342,15 @@ export default function SubscriptionPage() {
 
         <div className="subscription-card gradient-border hover">
           <img
-            src={`/images/badges/level-${level.toLowerCase().replace(/\s+/g, "-")}.png`}
-            alt={`Badge for ${level}`}
+            src={`/images/badges/level-${levelName
+              .toLowerCase()
+              .replace(/\s+/g, "-")}.png`}
+            alt={`Badge for ${levelName}`}
             className="subscription-badge"
           />
           <div className="subscription-details">
             <p>
-              <strong>Level:</strong> {level}
+              <strong>Level:</strong> {levelSymbol} {levelName}
             </p>
             <p>
               <strong>Subscription Tier:</strong> {displayTier}
@@ -378,6 +394,9 @@ export default function SubscriptionPage() {
                 {!canClaimBonus ? (
                   <p className="muted" style={{ marginTop: 8 }}>
                     Bonus available once per subscription cycle.
+                    {lastClaimDelta > 0
+                      ? ` Last reward: +${lastClaimDelta} XP.`
+                      : ""}
                   </p>
                 ) : null}
               </>

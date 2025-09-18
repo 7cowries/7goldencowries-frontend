@@ -12,9 +12,21 @@ const { verifyTonPayment } = require('./src/lib/ton');
 const { Address } = require('@ton/core');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
-const SUBSCRIPTION_BONUS_XP = Math.max(
-  0,
-  Number(process.env.SUBSCRIPTION_BONUS_XP || 120)
+
+function resolveSubscriptionBonusXP(value) {
+  const fallback = 120;
+  if (value == null || value === '') {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
+const SUBSCRIPTION_BONUS_XP = resolveSubscriptionBonusXP(
+  process.env.SUBSCRIPTION_BONUS_XP
 );
 
 function parseTonToNano(value) {
@@ -308,9 +320,10 @@ function rememberUser(wallet, user) {
 }
 
 function buildSubscriptionStatus(user, wallet) {
-  const profile = serializeUser(user || createBaseProfile(), {
-    wallet,
-    authed: Boolean(wallet),
+  const effectiveWallet = wallet || user?.wallet || null;
+  const profile = serializeUser(user || createBaseProfile({ wallet: effectiveWallet }), {
+    wallet: effectiveWallet,
+    authed: Boolean(effectiveWallet),
   });
   const claimedAt = user?.subscriptionClaimedAt || null;
   const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
@@ -325,22 +338,34 @@ function buildSubscriptionStatus(user, wallet) {
     return paid ? 'Premium' : 'Free';
   })();
 
-  return {
+  const eligibleForBonus = Boolean(effectiveWallet) && Boolean(paid);
+
+  const status = {
     tier,
     levelName: profile.levelName || 'Shellborn',
     levelSymbol: profile.levelSymbol || '🐚',
     xp: profile.xp ?? 0,
-    xpIntoLevel: profile.xp ?? 0,
-    totalXP: profile.totalXP ?? 0,
+    totalXP: profile.totalXP ?? profile.xp ?? 0,
     nextXP: profile.nextXP ?? null,
-    wallet: profile.wallet ?? wallet ?? null,
-    paid,
-    lastPaymentAt,
-    subscriptionPaidAt: lastPaymentAt,
-    canClaim: paid && !claimedAt,
+    wallet: profile.wallet ?? effectiveWallet ?? null,
+    canClaim: eligibleForBonus && !claimedAt,
     claimedAt,
     lastClaimDelta,
   };
+
+  if (profile.nextRenewal || user?.nextRenewal) {
+    status.nextRenewal = profile.nextRenewal || user?.nextRenewal || null;
+  }
+
+  if (paid != null) {
+    status.paid = paid;
+  }
+  if (lastPaymentAt != null) {
+    status.lastPaymentAt = lastPaymentAt;
+    status.subscriptionPaidAt = lastPaymentAt;
+  }
+
+  return status;
 }
 
 function parseCookies(req) {
@@ -367,21 +392,28 @@ function getSession(req, res) {
 const app = express();
 app.set('etag', false);
 
-// CORS configuration allowing only local development origins with credentials
-const normalizeOrigin = (origin) => origin.replace(/\/+$/, '');
+const normalizeOrigin = (origin) => {
+  if (!origin || typeof origin !== 'string') {
+    return '';
+  }
+  return origin.trim().replace(/\/+$/, '').toLowerCase();
+};
 
-const devOrigins = [
+const baseOrigins = [
+  FRONTEND_URL,
+  'https://7goldencowries.com',
+  'https://www.7goldencowries.com',
   'http://localhost:3000',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
 ];
 
-if (FRONTEND_URL && /localhost|127\.0\.0\.1/.test(FRONTEND_URL)) {
-  devOrigins.push(FRONTEND_URL);
-}
-
-const allowedOrigins = new Set(devOrigins.filter(Boolean).map((origin) => normalizeOrigin(origin)));
+const allowedOrigins = new Set(
+  baseOrigins
+    .map((value) => normalizeOrigin(value))
+    .filter((value) => Boolean(value))
+);
 
 app.use(
   cors({
@@ -398,6 +430,11 @@ app.use(
     credentials: true,
   })
 );
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 app.use(express.json());
 app.use('/api', (req, res, next) => {
@@ -612,13 +649,7 @@ app.get('/api/v1/subscription', (req, res) => {
 app.get('/api/v1/subscription/status', (req, res) => {
   const sess = getSession(req, res);
   if (!sess.wallet) {
-    const status = buildSubscriptionStatus(null, null);
-    status.canClaim = false;
-    status.wallet = null;
-    status.claimedAt = null;
-    status.paid = false;
-    status.lastPaymentAt = null;
-    return res.json(status);
+    return res.json(buildSubscriptionStatus(null, null));
   }
   const user = getOrCreateUser(sess.wallet);
   sess.user = user;
