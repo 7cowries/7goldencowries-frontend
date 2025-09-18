@@ -1,23 +1,26 @@
 # Deploy Notes
 
 ## Required Environment Variables
-- `FRONTEND_URL` – allowed origin for CORS and referral redirects.
-- `DATABASE_URL` or `SQLITE_FILE` – path/connection string for SQLite database.
-- `SESSION_SECRET` – session signing secret.
-- `SUBSCRIPTION_BONUS_XP` – XP granted the first time `/api/v1/subscription/claim` succeeds.
-- `COOKIE_SECURE=true` when serving through HTTPS proxies so cookies include `SameSite=None; Secure`.
-- `TON_NETWORK` – `mainnet` or `testnet` for TonCenter requests.
-- `TON_RECEIVE_ADDRESS` – wallet that collects subscription payments.
-- `TON_VERIFIER=toncenter` – current verification backend.
-- `TON_MIN_AMOUNT_NANO` – minimum accepted payment in nanoton (e.g. `500000000` for 0.5 TON).
-- `TONCENTER_API_KEY` – TonCenter API key used during verification.
-- Social (optional): `TWITTER_CLIENT_ID`, `TELEGRAM_BOT_TOKEN`, `DISCORD_CLIENT_ID`, etc.
+- `NODE_ENV=production`
+- `PORT=4000`
+- `FRONTEND_URL=https://7goldencowries.com`
+- `SQLITE_FILE=/var/data/7gc.sqlite`
+- `SESSION_SECRET=<64-128 char random string>`
+- `COOKIE_SECURE=true`
+- `SUBSCRIPTION_BONUS_XP=120`
+- `TON_NETWORK=mainnet`
+- `TON_RECEIVE_ADDRESS=<TON wallet>`
+- `TON_MIN_PAYMENT_TON=0.5`
+- `TON_VERIFIER=toncenter`
+- `TONCENTER_API_KEY=<toncenter api key>`
+- Optional webhooks: `SUBSCRIPTION_WEBHOOK_SECRET`, `TOKEN_SALE_WEBHOOK_SECRET`
+- Optional social auth: `TWITTER_CLIENT_ID`, `TELEGRAM_BOT_TOKEN`, `DISCORD_CLIENT_ID`, etc.
 
 ## One-time Database Checks
 ```sh
 # verify quests table exists
 sqlite3 $SQLITE_FILE "SELECT id, title FROM quests LIMIT 5;"
-# verify users table with referral column
+# verify users table with subscription columns
 sqlite3 $SQLITE_FILE "PRAGMA table_info(users);"
 ```
 

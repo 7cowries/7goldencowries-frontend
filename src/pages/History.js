@@ -2,10 +2,10 @@
 import React, { useEffect, useState } from "react";
 import "../App.css";
 import "./History.css";
-import { getMe } from "../utils/api";
+import { API_BASE, getMe } from "../utils/api";
 import { useWallet } from "../hooks/useWallet";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API = API_BASE || "";
 
 export default function History() {
   const { wallet } = useWallet();

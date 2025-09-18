@@ -310,11 +310,16 @@ function serializeUser(user, { wallet, authed } = {}) {
     payload.authed = Boolean(payload.wallet);
   }
   payload.paid = Boolean(payload.paid);
-  payload.lastPaymentAt = payload.lastPaymentAt ?? null;
-  payload.subscriptionPaidAt =
+  const normalizedLastPaymentAt =
+    payload.lastPaymentAt != null ? Number(payload.lastPaymentAt) : null;
+  const normalizedSubscriptionPaidAt =
     payload.subscriptionPaidAt != null
       ? Number(payload.subscriptionPaidAt)
-      : payload.lastPaymentAt ?? null;
+      : normalizedLastPaymentAt;
+  payload.subscriptionPaidAt =
+    normalizedSubscriptionPaidAt != null ? normalizedSubscriptionPaidAt : null;
+  payload.lastPaymentAt =
+    normalizedSubscriptionPaidAt ?? normalizedLastPaymentAt ?? null;
   return payload;
 }
 
@@ -352,12 +357,25 @@ function buildSubscriptionStatus(user, wallet) {
   const claimedAt = user?.subscriptionClaimedAt || null;
   const lastClaimDelta = Number(user?.subscriptionLastDelta || 0);
   const paid = Boolean(user?.paid);
+  const profileSubscriptionPaidAt =
+    profile.subscriptionPaidAt != null ? Number(profile.subscriptionPaidAt) : null;
+  const profileLastPaymentAt =
+    profile.lastPaymentAt != null ? Number(profile.lastPaymentAt) : null;
+  const userSubscriptionPaidAt =
+    user?.subscriptionPaidAt != null ? Number(user.subscriptionPaidAt) : null;
+  const userLastPaymentAt =
+    user?.lastPaymentAt != null ? Number(user.lastPaymentAt) : null;
   const lastPaymentAt =
-    user?.subscriptionPaidAt ??
-    user?.lastPaymentAt ??
-    (profile.subscriptionPaidAt != null
-      ? Number(profile.subscriptionPaidAt)
-      : profile.lastPaymentAt ?? null);
+    userSubscriptionPaidAt ??
+    userLastPaymentAt ??
+    profileSubscriptionPaidAt ??
+    profileLastPaymentAt ??
+    null;
+  const subscriptionPaidAt =
+    userSubscriptionPaidAt ??
+    profileSubscriptionPaidAt ??
+    lastPaymentAt ??
+    null;
   const tier = (() => {
     const rawTier =
       user?.subscriptionTier ||
@@ -378,11 +396,7 @@ function buildSubscriptionStatus(user, wallet) {
     wallet: profile.wallet ?? wallet ?? null,
     paid,
     lastPaymentAt,
-    subscriptionPaidAt:
-      user?.subscriptionPaidAt ??
-      (profile.subscriptionPaidAt != null
-        ? Number(profile.subscriptionPaidAt)
-        : lastPaymentAt ?? null),
+    subscriptionPaidAt,
     canClaim: paid && !claimedAt,
     claimedAt,
     lastClaimDelta,
@@ -572,11 +586,23 @@ app.get('/api/v1/payments/status', (req, res) => {
   }
   const user = getOrCreateUser(sess.wallet);
   sess.user = user;
+  const normalizedLastPaymentAt =
+    user.subscriptionPaidAt != null
+      ? Number(user.subscriptionPaidAt)
+      : user.lastPaymentAt != null
+      ? Number(user.lastPaymentAt)
+      : null;
+  const normalizedSubscriptionPaidAt =
+    user.subscriptionPaidAt != null
+      ? Number(user.subscriptionPaidAt)
+      : normalizedLastPaymentAt;
   sendOk(res, {
     paid: Boolean(user.paid),
-    lastPaymentAt:
-      user.subscriptionPaidAt ?? user.lastPaymentAt ?? null,
-    subscriptionPaidAt: user.subscriptionPaidAt ?? null,
+    lastPaymentAt: normalizedLastPaymentAt,
+    subscriptionPaidAt:
+      normalizedSubscriptionPaidAt != null
+        ? normalizedSubscriptionPaidAt
+        : normalizedLastPaymentAt,
   });
 });
 
