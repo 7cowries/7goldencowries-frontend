@@ -338,9 +338,7 @@ function buildSubscriptionStatus(user, wallet) {
     return paid ? 'Premium' : 'Free';
   })();
 
-  const eligibleForBonus =
-    Boolean(effectiveWallet) &&
-    (Boolean(paid) || (tier && String(tier).toLowerCase() !== 'free'));
+  const eligibleForBonus = Boolean(effectiveWallet) && Boolean(paid);
 
   const status = {
     tier,
