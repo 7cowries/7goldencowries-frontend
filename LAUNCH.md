@@ -15,7 +15,7 @@ X_REQUIRED_HASHTAG=#7GC
 # REACT_APP_TON_RECEIVE_ADDRESS=EQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-> Configure these in Vercel project settings. Leave `REACT_APP_API_URL` blank in production so the same-origin rewrite handles `/api`.
+> Configure these in Vercel project settings. Leave `REACT_APP_API_URL` blank in production so the same-origin rewrite handles `/api` and `/ref` calls while `GENERATE_SOURCEMAP=false` keeps CRA builds quiet.
 
 ## Backend (Render env vars)
 
@@ -45,8 +45,9 @@ TOKEN_SALE_WEBHOOK_SECRET=<optional>
 
 ## Manual smoke
 
-1. Connect a TON wallet and verify only one `/api/users/me` request fires per focus event (200 ms debounce, passive refresh ≤1/minute).
-2. Open `/subscription` without a subscription. The paywall button should show pending → verifying → success/error states. Complete a TonConnect payment, observe the “Payment verified 🎉” toast, and confirm `/api/v1/payments/status` flips to `paid: true`.
-3. Claim the **Subscription XP Bonus** once to see a single `+N XP` toast and confetti, ensure the button disables based on `status.canClaim`, then attempt a second claim and confirm the backend returns `xpDelta=0`.
-4. Link/unlink a social account from `/profile`. Each action should emit one toast, one confetti burst, and a single `profile-updated` event.
-5. Run `npm run build` to confirm `GENERATE_SOURCEMAP=false` and check the glassmorphism/ocean theme renders correctly.
+1. Connect a TON wallet and confirm `/api/users/me` fires once on focus (200 ms debounce, ≤1 passive refresh/minute).
+2. Launch the Telegram quest from `/quests`, complete the login/proof flow, and verify the quest reward updates without duplicate API calls.
+3. Link a social account (Twitter/X or Discord) then disconnect it; observe a single toast and one `profile-updated` dispatch each time.
+4. Visit `/subscription` and claim the **Subscription XP Bonus** once to see `+N XP earned`, then try a second claim and expect `xpDelta=0`.
+5. Open the leaderboard to confirm it refreshes once and reflects the newly granted XP.
+6. Run `npm run build` to validate `GENERATE_SOURCEMAP=false` suppresses CRA source-map warnings.

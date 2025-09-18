@@ -295,6 +295,8 @@ export default function Profile() {
     loadMeRef.current = loadMe;
   }, [loadMe]);
 
+  const refreshStateRef = useRef({ timer: null, lastPassive: 0 });
+
   const handleDisconnectWallet = useCallback(async () => {
     if (disconnecting) return;
     setDisconnecting(true);
@@ -328,7 +330,7 @@ export default function Profile() {
         await unlinkSocial(provider);
         const label = PROVIDER_LABELS[provider] || provider;
         setToast(`${label} disconnected ✅`);
-        burstConfetti({count:80,duration:1800});
+        burstConfetti({ count: 80, duration: 1800 });
         window.setTimeout(() => setToast(''), 2600);
       } catch (e) {
         console.error(e);
@@ -343,92 +345,104 @@ export default function Profile() {
   );
 
   useEffect(() => {
-    const w = localStorage.getItem('wallet');
-    if (w) {
-      ensureWalletBound(w)
+    const state = refreshStateRef.current;
+
+    const triggerRefresh = ({ passive = false, force = false } = {}) => {
+      const now = Date.now();
+      if (passive && !force && now - state.lastPassive < 60000) {
+        return;
+      }
+      if (state.timer) {
+        clearTimeout(state.timer);
+        state.timer = null;
+      }
+
+      const run = () => {
+        if (passive && !force) {
+          state.lastPassive = Date.now();
+        }
+        loadMeRef.current?.({ force: true });
+      };
+
+      if (passive && !force) {
+        state.timer = window.setTimeout(() => {
+          state.timer = null;
+          run();
+        }, 200);
+      } else {
+        run();
+      }
+    };
+
+    const handleProfileUpdated = () => {
+      triggerRefresh({ force: true });
+    };
+
+    const handleWalletChange = (event) => {
+      const detailWallet = event?.detail?.wallet;
+      const nextWallet =
+        typeof detailWallet === 'string'
+          ? detailWallet
+          : (typeof window !== 'undefined' && window.localStorage
+              ? window.localStorage.getItem('wallet')
+              : '') || '';
+      setAddress((a) => (a !== nextWallet ? nextWallet : a));
+      if (nextWallet) {
+        ensureWalletBound(nextWallet)
+          .catch(() => {})
+          .finally(() => {
+            triggerRefresh({ force: true });
+          });
+      } else {
+        triggerRefresh({ force: true });
+      }
+    };
+
+    const handleStorage = (event) => {
+      if (!event || event.key === 'wallet') {
+        handleWalletChange({ detail: { wallet: event?.newValue ?? null } });
+      }
+    };
+
+    const handleFocus = () => triggerRefresh({ passive: true });
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        triggerRefresh({ passive: true });
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('wallet:changed', handleWalletChange);
+    window.addEventListener('profile-updated', handleProfileUpdated);
+    window.addEventListener('storage', handleStorage);
+
+    const initialWallet =
+      (typeof window !== 'undefined' && window.localStorage
+        ? window.localStorage.getItem('wallet')
+        : '') || '';
+    if (initialWallet) {
+      ensureWalletBound(initialWallet)
         .catch(() => {})
         .finally(() => {
-          loadMeRef.current?.({ force: true });
+          triggerRefresh({ force: true });
         });
     } else {
       loadMeRef.current?.();
     }
-  }, []);
-
-  // Keep address in sync across tabs when wallet changes
-  useEffect(() => {
-    const update = (e) => {
-      const w = e?.detail?.wallet || localStorage.getItem('wallet') || '';
-      setAddress((a) => (a !== w ? w : a));
-      if (w) {
-        ensureWalletBound(w)
-          .catch(() => {})
-          .finally(() => {
-            loadMeRef.current?.({ force: true });
-          });
-      } else {
-        loadMeRef.current?.({ force: true });
-      }
-    };
-    const onStorage = (e) => {
-      if (e.key === 'wallet') update();
-    };
-    window.addEventListener('wallet:changed', update, { once: false });
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener('wallet:changed', update);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
-
-  useEffect(() => {
-    const onProfileUpdated = () => {
-      loadMeRef.current?.({ force: true });
-    };
-    window.addEventListener('profile-updated', onProfileUpdated);
-    return () => {
-      window.removeEventListener('profile-updated', onProfileUpdated);
-    };
-  }, []);
-
-  useEffect(() => {
-    let timer = null;
-    let lastRefresh = 0;
-
-    const schedule = (isPassive = false) => {
-      if (isPassive) {
-        const now = Date.now();
-        if (now - lastRefresh < 60000) {
-          return;
-        }
-      }
-      if (timer) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => {
-        timer = null;
-        lastRefresh = Date.now();
-        loadMeRef.current?.({ force: true });
-      }, 200);
-    };
-
-    const onFocus = () => schedule(false);
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        schedule(true);
-      }
-    };
-
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      if (timer) {
-        clearTimeout(timer);
+      if (state.timer) {
+        clearTimeout(state.timer);
+        state.timer = null;
       }
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('wallet:changed', handleWalletChange);
+      window.removeEventListener('profile-updated', handleProfileUpdated);
+      window.removeEventListener('storage', handleStorage);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Toast + brief polling when returning with ?connected=

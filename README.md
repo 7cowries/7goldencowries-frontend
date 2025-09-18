@@ -6,6 +6,9 @@ A production-ready Create React App powering the 7GoldenCowries experience. The 
 
 1. Install dependencies: `npm install`.
 2. Copy `.env.example` to `.env` (or `.env.production` for deploy previews) and customise the variables listed below.
+   - Leave `REACT_APP_API_URL` blank so CRA talks to the backend through same-origin `/api` rewrites.
+   - When developing against a standalone backend, set `REACT_APP_API_URL=http://localhost:4000`.
+   - Keep `GENERATE_SOURCEMAP=false` to silence Create React App build-time warnings.
 3. Run the development servers:
    - Backend: `node backend/server.js` (Render-style environment variables are supported locally).
    - Frontend: `npm start` (CRA proxy forwards `/api` to `http://localhost:4000`).
@@ -14,15 +17,15 @@ A production-ready Create React App powering the 7GoldenCowries experience. The 
 
 | Variable | Purpose |
 | --- | --- |
-| `REACT_APP_API_URL` | Leave blank for same-origin requests. Set to `http://localhost:4000` when bypassing the CRA proxy. |
-| `GENERATE_SOURCEMAP` | Disable production source maps with `false` (default). |
+| `REACT_APP_API_URL` | Leave blank for same-origin requests (Vercel rewrites `/api/*` and `/ref/*` to the backend). Set to `http://localhost:4000` when bypassing the CRA proxy. |
+| `GENERATE_SOURCEMAP` | Disable production source maps with `false` (default) to silence CRA build warnings. |
 | `REACT_APP_TONCONNECT_MANIFEST_URL` | TonConnect manifest location (`https://7goldencowries.com/tonconnect-manifest.json` in production). |
 | `REACT_APP_TELEGRAM_BOT_NAME` | Telegram bot name used by the embedded login widget. |
 | `REACT_APP_TON_NETWORK` | TonConnect target network (`mainnet` by default). |
 | `REACT_APP_TON_RECEIVE_ADDRESS` | Optional override for the TonConnect paywall destination wallet when testing locally. |
 | `X_TARGET_HANDLE`, `X_TARGET_TWEET_URL`, `X_REQUIRED_HASHTAG` | Targets used by social quests and verification flows. |
 
-`/.env.example` and `.env.production` list the full set for development and production respectively. In production, set these values inside the Vercel project (see `LAUNCH.md`) and keep `REACT_APP_API_URL` blank so the same-origin rewrite handles `/api` calls.
+`/.env.example` and `.env.production` list the full set for development and production respectively. In production, set these values inside the Vercel project (see `LAUNCH.md`) and keep `REACT_APP_API_URL` blank so the same-origin rewrite handles `/api` and `/ref` calls.
 
 ### Backend environment
 
@@ -80,6 +83,7 @@ Coverage includes:
 
 - Deploy the CRA build, honouring the repo-root `vercel.json`. Rewrites proxy `/api/*` and `/ref/*` to `https://sevengoldencowries-backend.onrender.com` and disable caching for API routes.
 - Configure the Vercel Environment Variables with the values from `LAUNCH.md`. Leave `REACT_APP_API_URL` blank so production requests flow through the rewrite.
+- Enable apex + `www` domains in Vercel project settings to mirror Render CORS allowances.
 
 ### Render backend
 
@@ -89,10 +93,11 @@ Coverage includes:
 - The `/ref/:code` endpoint manages secure cookies and redirects to `FRONTEND_URL`.
 - Health checks: `GET /api/health` and `GET /api/health/db`.
 
-## Acceptance checklist
+## Manual acceptance checklist
 
-1. Focus/visibility refresh: ensure only one `/api/users/me` runs per focus event (200 ms debounce) with a ≥60 s cooldown for passive refreshes (SLO).
-2. TonConnect paywall: observe the pending/verifying/success/error states, verify the toast, confirm `/api/v1/payments/status` flips to `paid: true`, and check that `/api/v1/subscription/subscribe` is best-effort.
-3. Subscription bonus: claim once to see a single `+N XP` toast and confetti, confirm the button disables when `status.canClaim` is `false`, and that a second click returns `xpDelta=0`.
-4. Social linking: connect/disconnect flows emit one toast and one `profile-updated` event without storming `/api/users/me`.
-5. Run `npm run build` to ensure `GENERATE_SOURCEMAP=false` is respected and that the static assets keep the ocean-glass styling.
+1. Connect a TON wallet and verify `/api/users/me` only runs once per focus event (200 ms debounce, passive refresh ≤1/minute).
+2. Complete the Telegram quest flow (launch the widget, submit the proof) and confirm the quest rewards update without request storms.
+3. Link and unlink a social account (Twitter/X or Discord) and observe a single toast plus one `profile-updated` dispatch.
+4. Claim the Subscription XP bonus once to see `+N XP earned`, confirm the button disables, and attempt a second claim (expect `xpDelta=0`).
+5. Visit the leaderboard to confirm it loads once and reflects the claimed XP.
+6. Run `npm run build` to ensure `GENERATE_SOURCEMAP=false` keeps CRA quiet and assets render with the ocean-glass styling.

@@ -49,6 +49,7 @@ describe('subscription API', () => {
       paid: false,
     });
     expect(res.body.levelName).toBeTruthy();
+    expect(res.body.lastClaimDelta).toBe(0);
   });
 
   test('claim endpoint awards XP once and is idempotent', async () => {
@@ -59,6 +60,7 @@ describe('subscription API', () => {
     expect(beforeClaim.body.wallet).toBe(wallet);
     expect(beforeClaim.body.canClaim).toBe(false);
     expect(beforeClaim.body.paid).toBe(false);
+    expect(beforeClaim.body.lastClaimDelta).toBe(0);
 
     const paymentStatusBefore = await agent.get('/api/v1/payments/status').expect(200);
     expect(paymentStatusBefore.body).toMatchObject({ paid: false });
@@ -89,6 +91,7 @@ describe('subscription API', () => {
     expect(afterPayment.body.canClaim).toBe(true);
     expect(afterPayment.body.tier).toBe('Premium');
     expect(afterPayment.body.paid).toBe(true);
+    expect(afterPayment.body.lastClaimDelta).toBe(0);
 
     const subscribeRes = await agent
       .post('/api/v1/subscription/subscribe')
@@ -100,6 +103,7 @@ describe('subscription API', () => {
       canClaim: true,
       paid: true,
     });
+    expect(subscribeRes.body.status.lastClaimDelta).toBe(0);
 
     const paymentStatusAfter = await agent.get('/api/v1/payments/status').expect(200);
     expect(paymentStatusAfter.body).toMatchObject({ paid: true });
@@ -108,6 +112,7 @@ describe('subscription API', () => {
     expect(claim.body.xpDelta).toBe(42);
     expect(claim.body.status.canClaim).toBe(false);
     expect(claim.body.status.wallet).toBe(wallet);
+    expect(claim.body.status.lastClaimDelta).toBe(42);
 
     const afterClaim = await agent.get('/api/v1/subscription/status').expect(200);
     expect(afterClaim.body.canClaim).toBe(false);
