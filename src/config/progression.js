@@ -4,7 +4,7 @@ export const LEVELS = [
   { key: 'tide-whisperer',   name: 'Tide Whisperer',   emoji: '🌀', min: 30000 },
   { key: 'current-binder',   name: 'Current Binder',   emoji: '🪙', min: 60000 },
   { key: 'pearl-bearer',     name: 'Pearl Bearer',     emoji: '🫧', min: 100000 },
-  { key: 'isle-champion',    name: 'Isle Champion',    emoji: '🏝️', min: 160000 },
+  { key: 'isle-champion',    name: 'Isle Champion',    emoji: '🏝️', min: 150000 },
   { key: 'cowrie-ascendant', name: 'Cowrie Ascendant', emoji: '👑', min: 250000 },
 ];
 

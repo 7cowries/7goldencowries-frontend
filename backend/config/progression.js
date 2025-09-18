@@ -4,7 +4,7 @@ const LEVELS = [
   { key: 'tide-whisperer',   name: 'Tide Whisperer',   symbol: '🌀', min: 30_000 },
   { key: 'current-binder',   name: 'Current Binder',   symbol: '🪙', min: 60_000 },
   { key: 'pearl-bearer',     name: 'Pearl Bearer',     symbol: '🫧', min: 100_000 },
-  { key: 'isle-champion',    name: 'Isle Champion',    symbol: '🏝️', min: 160_000 },
+  { key: 'isle-champion',    name: 'Isle Champion',    symbol: '🏝️', min: 150_000 },
   { key: 'cowrie-ascendant', name: 'Cowrie Ascendant', symbol: '👑', min: 250_000 },
 ];
 
