@@ -13,6 +13,7 @@
     "@tonconnect/ui": "^2.2.0",
     "@tonconnect/ui-react": "^2.2.0",
     "axios": "^1.11.0",
+    "buffer": "^6.0.3",
     "canvas-confetti": "^1.9.3",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
