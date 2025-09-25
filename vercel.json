@@ -1,9 +1,50 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" },
-    { "source": "/ref/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/auth/:path*"
+    },
+    {
+      "source": "/subscription/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/subscription/:path*"
+    },
+    {
+      "source": "/token-sale/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/token-sale/:path*"
+    },
+    {
+      "source": "/ref/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*"
+    }
   ],
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/auth/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/subscription/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/token-sale/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
   ]
 }
