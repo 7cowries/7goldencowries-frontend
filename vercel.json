@@ -1,9 +1,32 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" },
-    { "source": "/ref/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*"
+    },
+    {
+      "source": "/ref/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "https://www.7goldencowries.com/:path*",
+      "destination": "https://7goldencowries.com/:path*",
+      "statusCode": 308
+    },
+    {
+      "source": "/",
+      "destination": "/",
+      "statusCode": 200
+    }
   ],
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
   ]
 }
