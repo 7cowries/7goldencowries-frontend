@@ -11,14 +11,12 @@
   ],
   "redirects": [
     {
-      "source": "https://www.7goldencowries.com/:path*",
+      "source": "/(.*)",
+      "has": [
+        { "type": "host", "value": "www.7goldencowries.com" }
+      ],
       "destination": "https://7goldencowries.com/:path*",
       "statusCode": 308
-    },
-    {
-      "source": "/",
-      "destination": "/",
-      "statusCode": 200
     }
   ],
   "headers": [
