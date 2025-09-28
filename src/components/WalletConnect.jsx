@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { TonConnectButton } from "@tonconnect/ui-react";
 import Toast from "./Toast";
 import "./ConnectButtons.css";
 import { useWallet } from "../hooks/useWallet";
@@ -64,7 +63,6 @@ export default function WalletConnect({ className = "" }) {
           {connecting ? "Opening…" : "Connect Wallet"}
         </button>
       )}
-      <TonConnectButton />
       <Toast message={toast} />
     </div>
   );
