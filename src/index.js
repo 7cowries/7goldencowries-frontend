@@ -1,3 +1,4 @@
+import "./wallet-mount";
 // src/index.js
 import './polyfills';
 import React from "react";
