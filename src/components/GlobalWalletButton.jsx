@@ -9,3 +9,4 @@ export default function GlobalWalletButton() {
     </div>
   );
 }
+import "./GlobalWalletButton.css";

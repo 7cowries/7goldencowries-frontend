@@ -8,7 +8,7 @@ import {
   useRef,
 } from "react";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
-import { ensureWalletBound } from "../utils/walletBind";
+import { ensureWalletBoundDebounced as ensureWalletBound } from "../utils/walletBindDebounced";
 import { emitWalletChanged } from "../utils/events";
 
 // Context now also exposes a `disconnect` helper and potential error state.
