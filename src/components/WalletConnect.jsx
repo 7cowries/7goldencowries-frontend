@@ -1,70 +1,29 @@
-import { useEffect, useState } from "react";
-import Toast from "./Toast";
-import "./ConnectButtons.css";
-import { useWallet } from "../hooks/useWallet";
+import React from 'react';
+import { useWalletAndUser } from '../hooks/useWallet'; // Use the new unified hook
+import './GlobalWalletButton.css';
 
-/**
- * WalletConnect component: single, shared connect/disconnect UI.
- * NOTE: we intentionally DO NOT render <TonConnectButton /> here so the
- * TonConnect modal UI is only mounted where strictly required (e.g. Paywall).
- */
-export default function WalletConnect({ className = "" }) {
-  const { wallet, connect, disconnect, connecting, error } = useWallet();
-  const [toast, setToast] = useState("");
+function WalletConnect() {
+    const { isConnected, connect, disconnect, wallet } = useWalletAndUser();
 
-  useEffect(() => {
-    if (!error) return undefined;
-    setToast(error);
-    const id = window.setTimeout(() => setToast(""), 3200);
-    return () => window.clearTimeout(id);
-  }, [error]);
+    const formatAddress = (address) => {
+        if (!address) return '';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
 
-  const showError = (msg) => {
-    if (!msg) return;
-    setToast(msg);
-    window.setTimeout(() => setToast(""), 3200);
-  };
-
-  const handleConnect = async () => {
-    try {
-      await connect();
-    } catch (e) {
-      if (e?.message) showError(e.message);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    try {
-      await disconnect();
-    } catch (e) {
-      if (e?.message) showError(e.message);
-    }
-  };
-
-  const short = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : null;
-
-  return (
-    <div className={`connect-buttons ${className}`.trim()}>
-      {wallet ? (
-        <button
-          type="button"
-          className="connect-btn"
-          onClick={handleDisconnect}
-          disabled={connecting}
-        >
-          Disconnect {short}
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="connect-btn"
-          onClick={handleConnect}
-          disabled={connecting}
-        >
-          {connecting ? "Opening…" : "Connect Wallet"}
-        </button>
-      )}
-      <Toast message={toast} />
-    </div>
-  );
+    return (
+        <div className="wallet-connect-container">
+            {isConnected ? (
+                <button className="wallet-button disconnect" onClick={disconnect}>
+                    <span className="wallet-address">{formatAddress(wallet?.account?.address)}</span>
+                    Disconnect
+                </button>
+            ) : (
+                <button className="wallet-button connect" onClick={connect}>
+                    Connect Wallet
+                </button>
+            )}
+        </div>
+    );
 }
+
+export default WalletConnect;
