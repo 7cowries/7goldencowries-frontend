@@ -1,9 +1,9 @@
-import "./wallet-mount";
 // src/index.js
 import './polyfills';
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import GlobalWalletButton from "./components/GlobalWalletButton";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import WalletProvider from "./context/WalletContext";
 import './index.css';
@@ -42,7 +42,8 @@ root.render(
     >
       <WalletProvider>
         <App />
-      </WalletProvider>
+        <GlobalWalletButton />
+</WalletProvider>
     </TonConnectUIProvider>
   </React.StrictMode>
 );
