@@ -7,9 +7,9 @@ import { useWallet } from "../hooks/useWallet";
  * WalletConnect component: shows a connect or disconnect button backed by the
  * shared `useWallet` hook. Errors surface as a temporary toast.
  *
- * NOTE: We intentionally DO NOT render <TonConnectButton /> here to avoid a second
- * UI control — the Paywall component (and other specific places) should render
- * the TonConnect button when it needs the TonConnect modal behavior.
+ * NOTE: We intentionally DO NOT render <TonConnectButton /> here to avoid duplicate
+ * buttons — the TonConnect UI button should be rendered only by components that
+ * need it (e.g. PaywallButton).
  */
 export default function WalletConnect({ className = "" }) {
   const { wallet, connect, disconnect, connecting, error } = useWallet();
