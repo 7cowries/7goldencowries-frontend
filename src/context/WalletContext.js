@@ -4,8 +4,8 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
+  useRef,
 } from "react";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { ensureWalletBound } from "../utils/walletBind";
@@ -20,11 +20,6 @@ const WalletContext = createContext({
 });
 export const useWallet = () => useContext(WalletContext);
 
-/**
- * Safer WalletProvider:
- * - avoids treating `useTonAddress()`'s transient `undefined` as a disconnection
- * - throttles calls to ensureWalletBound to avoid hammering backend
- */
 export default function WalletProvider({ children }) {
   const [wallet, setWallet] = useState(() => {
     try {
@@ -33,94 +28,77 @@ export default function WalletProvider({ children }) {
       return null;
     }
   });
-
-  const tonWallet = useTonAddress(); // from TonConnect provider (may be undefined temporarily)
+  const tonWallet = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   const [error, setError] = useState(null);
 
-  // last time we attempted to bind wallet to backend (ms). Used to throttle binds.
-  const lastBoundRef = useRef(0);
-  // pending bind timer id (debounce)
-  const bindTimerRef = useRef(null);
+  // track last bind attempt to avoid client-side stampede
+  const lastBindAtRef = useRef(0);
+  const BIND_THROTTLE_MS = 2000; // 2s
 
   // keep localStorage in sync
   useEffect(() => {
-    try {
-      if (!wallet) {
+    if (!wallet) {
+      try {
         localStorage.removeItem("walletAddress");
         localStorage.removeItem("wallet");
         localStorage.removeItem("ton_wallet");
-        emitWalletChanged("");
-        return;
+      } catch (err) {
+        console.warn("[WalletContext] failed clearing wallet", err);
       }
+      emitWalletChanged("");
+      return;
+    }
+    try {
       localStorage.setItem("walletAddress", wallet);
       localStorage.setItem("wallet", wallet);
       localStorage.setItem("ton_wallet", wallet);
-      emitWalletChanged(wallet);
     } catch (err) {
-      console.warn("[WalletContext] storage sync failed", err);
+      console.warn("[WalletContext] failed saving wallet", err);
     }
+    emitWalletChanged(wallet);
   }, [wallet]);
 
-  // Sync tonWallet -> wallet but protect against the transient `undefined` state.
-  // Rules:
-  //  - if tonWallet === undefined => don't touch local wallet (TonConnect is still initialising)
-  //  - if tonWallet is a string different from wallet => take it (user connected via TonConnect)
-  //  - if tonWallet === null (explicitly disconnected) and wallet exists => clear it
+  // update wallet when TonConnect provides one (safeguard rapid toggle)
   useEffect(() => {
-    // if TonConnect hasn't reported yet, skip
-    if (typeof tonWallet === "undefined") return;
-
+    // tonWallet is the address provided by TonConnect
     if (tonWallet && tonWallet !== wallet) {
       setWallet(tonWallet);
       return;
     }
-
-    if (tonWallet === null && wallet) {
+    if (!tonWallet && wallet) {
+      // only clear wallet if ton wallet disappeared (e.g. disconnect)
       setWallet(null);
     }
   }, [tonWallet, wallet]);
 
-  // bind wallet to backend session (debounced/throttled)
+  // bind wallet to backend session (debounced to prevent repeated calls)
   useEffect(() => {
     if (!wallet) return;
 
-    // clear any pending timer
-    if (bindTimerRef.current) {
-      clearTimeout(bindTimerRef.current);
-      bindTimerRef.current = null;
+    const now = Date.now();
+    if (now - (lastBindAtRef.current || 0) < BIND_THROTTLE_MS) {
+      // too soon since last bind attempt — skip it
+      return;
     }
+    lastBindAtRef.current = now;
 
-    const attemptBind = async () => {
-      const now = Date.now();
-      // throttle: don't bind more than once every 2s
-      if (now - (lastBoundRef.current || 0) < 2000) return;
-      lastBoundRef.current = now;
-      try {
-        await ensureWalletBound(wallet);
-      } catch (e) {
-        console.error("[WalletContext] bind error", e);
-        setError(e?.message || "Failed to bind wallet");
-      }
-    };
-
-    // debounce slightly so rapid state flips don't trigger multiple binds
-    bindTimerRef.current = setTimeout(attemptBind, 300);
-
-    return () => {
-      if (bindTimerRef.current) {
-        clearTimeout(bindTimerRef.current);
-        bindTimerRef.current = null;
-      }
-    };
+    // kick off binding, record errors but don't rethrow
+    ensureWalletBound(wallet).catch((e) => {
+      console.error("[WalletContext] bind error", e);
+      setError(e?.message || "Failed to bind wallet");
+    });
   }, [wallet]);
 
   const disconnect = useCallback(
     async ({ skipTonDisconnect = false } = {}) => {
       try {
-        if (!skipTonDisconnect && typeof tonConnectUI !== "undefined" && tonConnectUI) {
-          if (typeof tonConnectUI.disconnect === "function") {
+        if (!skipTonDisconnect) {
+          try {
             await tonConnectUI.disconnect();
+          } catch (e) {
+            // ignore tonConnectUI disconnect errors but log them
+            console.warn("[WalletContext] tonConnectUI.disconnect failed", e);
           }
         }
         setError(null);
@@ -132,9 +110,10 @@ export default function WalletProvider({ children }) {
         setWallet(null);
       }
     },
-    [tonConnectUI]
+    [setError, tonConnectUI]
   );
 
+  // also read any TON address that other code may have saved
   const value = useMemo(
     () => ({ wallet, setWallet, disconnect, error, setError }),
     [wallet, error, disconnect]
