@@ -1,20 +1,12 @@
-/* floating single wallet button (small, unobtrusive) */
 .global-wallet-button {
   position: fixed;
   z-index: 9999;
   right: 18px;
   bottom: 18px;
   pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
-/* ensure the internals don't get blown up by page styles */
-.global-wallet-button .connect-buttons {
-  margin: 0;
-}
-.global-wallet-button .connect-btn {
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 8px;
-}
+.global-wallet-button .connect-buttons { margin: 0; }
+.global-wallet-button .connect-btn { padding: 8px 12px; font-size: 14px; border-radius: 8px; }

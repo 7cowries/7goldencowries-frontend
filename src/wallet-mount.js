@@ -9,7 +9,6 @@ function mount() {
     const root = createRoot(rootEl);
     root.render(<GlobalWalletButton />);
   } catch (e) {
-    // don't crash app if mount fails
     // eslint-disable-next-line no-console
     console.warn("[wallet-mount] mount error", e);
   }

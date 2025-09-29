@@ -11,7 +11,7 @@ import {
   getMe,
 } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
-// import WalletConnect from "../components/WalletConnect";
+// // import WalletConnect from "../components/WalletConnect";
 import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
@@ -547,7 +547,7 @@ export default function Profile() {
       ) : !address || !hasProfile ? (
         <div style={{ textAlign: 'center' }}>
           <p>🔌 Connect your TON wallet to view your profile.</p>
-          <WalletConnect />
+          {/* WalletConnect now global */}
         </div>
       ) : (
         <>

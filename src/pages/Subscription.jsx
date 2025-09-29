@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Page from "../components/Page";
-// import WalletConnect from "../components/WalletConnect";
+// // import WalletConnect from "../components/WalletConnect";
 import XPModal from "../components/XPModal";
 import PaymentGuard from "../components/PaymentGuard";
 import { useWallet } from "../hooks/useWallet";
@@ -331,7 +331,7 @@ export default function SubscriptionPage() {
         <h1 className="subscription-title text-glow">🌊 Your Subscription</h1>
 
         <div className="wallet-section">
-          <WalletConnect />
+          {/* WalletConnect now global */}
           <span className="wallet-status">
             {isConnected ? `Connected: ${walletShort}` : "Wallet disconnected"}
           </span>

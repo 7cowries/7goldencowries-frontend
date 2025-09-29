@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./TokenSale.css";
 import Page from "../components/Page";
-// import WalletConnect from "../components/WalletConnect";
+// // import WalletConnect from "../components/WalletConnect";
 import { useWallet } from "../hooks/useWallet";
 import { startTokenSalePurchase } from "../utils/api";
 import { SALE_START_ISO, downloadSaleReminder, inviteFriend } from "../utils/launch";
@@ -116,7 +116,7 @@ export default function TokenSale() {
           </div>
 
           <div className="ts-wallet-row">
-            <WalletConnect />
+            {/* WalletConnect now global */}
             <span className="ts-wallet-status">
               {wallet ? `Connected: ${shortWallet}` : "No wallet connected"}
             </span>
