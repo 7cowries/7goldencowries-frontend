@@ -1,72 +1,53 @@
-import React, { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
-import "./Sidebar.css";
-import logo from "../../assets/logo.svg";
-import { toggleTheme } from "../../utils/theme";
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { useWalletAndUser } from '../../hooks/useWallet';
+import WalletConnect from '../WalletConnect';
+import './Sidebar.css';
 
-const items = [
-  { to: "/quests", label: "Quests", emoji: "⚡" },
-  { to: "/leaderboard", label: "Leaderboard", emoji: "📚" },
-  { to: "/referral", label: "Referral", emoji: "👑" },
-  { to: "/subscription", label: "Subscription", emoji: "💎" },
-  { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
-  { to: "/profile", label: "Profile", emoji: "🔗" },
-  { to: "/isles", label: "Isles", emoji: "🌱" },
-];
+const StatSkeleton = () => <div className="stat-skeleton"></div>;
 
-// Responsive sidebar with mobile drawer behaviour
-export default function Sidebar() {
-  const { pathname } = useLocation();
-  const [open, setOpen] = useState(false);
+function Sidebar() {
+    const { user, isLoadingUser } = useWalletAndUser();
 
-  // Close drawer on route change (ensures drawer hides after navigation on mobile)
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+    const getLevelName = (level) => {
+        const levels = ['Shellborn', 'Compassion', 'Courage', 'Creativity', 'Integrity', 'Vision', 'Wisdom'];
+        return levels[level - 1] || 'Adventurer';
+    };
 
-  return (
-    <>
-      {/* Mobile hamburger */}
-      <button
-        className="nav-toggle"
-        aria-label="Toggle navigation"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="bar" />
-        <span className="bar" />
-        <span className="bar" />
-      </button>
+    return (
+        <aside className="sidebar">
+            <div className="sidebar-header">
+                <img src="/logo-cowrie-gold.svg" alt="Seven Golden Cowries" className="sidebar-logo" />
+            </div>
 
-      {/* Scrim when drawer open */}
-      {open && <div className="leftnav-overlay" onClick={() => setOpen(false)} />}
+            <div className="sidebar-profile">
+                <h3 className="sidebar-profile-title">Your Progress</h3>
+                <div className="sidebar-stats">
+                    <div className="stat-item">
+                        <span className="stat-label">Level</span>
+                        {isLoadingUser ? <StatSkeleton /> : <span className="stat-value">{user ? getLevelName(user.level) : '--'}</span>}
+                    </div>
+                    <div className="stat-item">
+                        <span className="stat-label">XP</span>
+                        {isLoadingUser ? <StatSkeleton /> : <span className="stat-value">{user ? `${user.xp} XP` : '--'}</span>}
+                    </div>
+                </div>
+            </div>
 
-      <aside className={`leftnav ${open ? "open" : "closed"}`} role="navigation">
-        {/* Brand link */}
-        <Link to="/" className="brand" aria-label="7GoldenCowries Home">
-          <img src={logo} alt="7GoldenCowries logo" className="brand-logo" />
-          <span className="brand-text">7GoldenCowries</span>
-        </Link>
+            <nav className="sidebar-nav">
+                <NavLink to="/" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Home</NavLink>
+                <NavLink to="/quests" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Quests</NavLink>
+                <NavLink to="/leaderboard" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Leaderboard</NavLink>
+                <NavLink to="/subscription" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Subscription</NavLink>
+                <NavLink to="/token-sale" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Token Sale</NavLink>
+                <NavLink to="/referral" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Referral</NavLink>
+            </nav>
 
-        <nav className="nav">
-          {items.map((it) => (
-            <NavLink
-              key={it.to}
-              to={it.to}
-              className={({ isActive }) =>
-                `nav-item${isActive ? " active" : ""}`
-              }
-            >
-              <span className="emoji">{it.emoji}</span>
-              <span>{it.label}</span>
-            </NavLink>
-          ))}
-          <button type="button" className="nav-item" onClick={toggleTheme}>
-            <span className="emoji">🌈</span>
-            <span>Theme</span>
-          </button>
-        </nav>
-      </aside>
-    </>
-  );
+            <div className="sidebar-footer">
+                <WalletConnect />
+            </div>
+        </aside>
+    );
 }
+
+export default Sidebar;
