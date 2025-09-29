@@ -13,21 +13,10 @@
     {
       "source": "/:path*",
       "has": [
-        {
-          "type": "host",
-          "value": "www.7goldencowries.com"
-        }
+        { "type": "host", "value": "www.7goldencowries.com" }
       ],
       "destination": "https://7goldencowries.com/:path*",
-      "permanent": true
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/:path*",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
+      "statusCode": 308
     }
   ]
 }
