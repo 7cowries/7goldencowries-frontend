@@ -6,6 +6,11 @@ import { useWallet } from "../hooks/useWallet";
 /**
  * WalletConnect component: shows a connect or disconnect button backed by the
  * shared `useWallet` hook. Errors surface as a temporary toast.
+ *
+ * NOTE: We intentionally DO NOT render <TonConnectButton /> here to avoid
+ * duplicate UI from TonConnect. The TonConnect UI provider lives in index.js
+ * and other components that absolutely need the TonConnectButton (e.g. Paywall)
+ * can render it there.
  */
 export default function WalletConnect({ className = "" }) {
   const { wallet, connect, disconnect, connecting, error } = useWallet();
@@ -63,6 +68,8 @@ export default function WalletConnect({ className = "" }) {
           {connecting ? "Opening…" : "Connect Wallet"}
         </button>
       )}
+
+      {/* Toast shows errors temporarily */}
       <Toast message={toast} />
     </div>
   );
