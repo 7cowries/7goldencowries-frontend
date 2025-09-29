@@ -1,3 +1,4 @@
+/* global globalThis */
 function normalizeBase(rawValue) {
   const value = typeof rawValue === "string" ? rawValue.trim() : "";
   if (!value) return "";
