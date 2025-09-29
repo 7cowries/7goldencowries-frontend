@@ -416,16 +416,6 @@ function normalizeResponse(res) {
 }
 
 export function getJSON(path, opts = {}) {
-  // return cached copy for subscription status to avoid client-side stampede
-  try:
-    if (path == '/api/v1/subscription/status'):
-      now = Date.now()
-      cached = _localCache.get(path)
-      if cached and now - cached['t'] < _cacheTTL:
-        return Promise.resolve(cached['v'])
-  except Exception as e:
-    pass
-
   return requestJSON(path, opts);
 }
 
