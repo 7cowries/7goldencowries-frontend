@@ -416,8 +416,31 @@ function normalizeResponse(res) {
 }
 
 export function getJSON(path, opts = {}) {
-  return requestJSON(path, opts);
+  // quick client-side cache for subscription status to avoid stampede
+  try {
+    if (path === "/api/v1/subscription/status") {
+      if (!globalThis.__subStatusCache) globalThis.__subStatusCache = { t: 0, v: null };
+      const now = Date.now();
+      if (globalThis.__subStatusCache.v !== null && (now - globalThis.__subStatusCache.t) < 2000) {
+        return Promise.resolve(globalThis.__subStatusCache.v);
+      }
+    }
+  } catch (e) {
+    // noop - fail safe
+  }
+
+  return requestJSON(path, opts).then((r) => {
+    try {
+      if (path === "/api/v1/subscription/status") {
+        if (!globalThis.__subStatusCache) globalThis.__subStatusCache = { t: 0, v: null };
+        globalThis.__subStatusCache.t = Date.now();
+        globalThis.__subStatusCache.v = r;
+      }
+    } catch (e) {}
+    return r;
+  });
 }
+
 
 export function postJSON(path, body, opts = {}) {
   return requestJSON(path, {

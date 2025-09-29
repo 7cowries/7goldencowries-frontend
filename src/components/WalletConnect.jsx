@@ -4,12 +4,10 @@ import "./ConnectButtons.css";
 import { useWallet } from "../hooks/useWallet";
 
 /**
- * WalletConnect component: shows a connect or disconnect button backed by the
- * shared `useWallet` hook. Errors surface as a temporary toast.
- *
- * NOTE: We intentionally DO NOT render <TonConnectButton /> here to avoid duplicate
- * buttons — the TonConnect UI button should be rendered only by components that
- * need it (e.g. PaywallButton).
+ * WalletConnect component - single connect/disconnect button.
+ * NOTE: We intentionally DO NOT render <TonConnectButton /> here to avoid
+ * duplicate UI and accidental double-open modals. Components that need the
+ * TonConnectButton (e.g. Paywall) should render it themselves.
  */
 export default function WalletConnect({ className = "" }) {
   const { wallet, connect, disconnect, connecting, error } = useWallet();
@@ -30,6 +28,7 @@ export default function WalletConnect({ className = "" }) {
 
   const handleConnect = async () => {
     try {
+      if (connecting) return; // prevent re-entrancy
       await connect();
     } catch (e) {
       if (e?.message) showError(e.message);
@@ -38,6 +37,7 @@ export default function WalletConnect({ className = "" }) {
 
   const handleDisconnect = async () => {
     try {
+      if (connecting) return; // prevent re-entrancy
       await disconnect();
     } catch (e) {
       if (e?.message) showError(e.message);
