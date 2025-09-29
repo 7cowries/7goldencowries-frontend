@@ -1,0 +1,12 @@
+import React from "react";
+import WalletConnect from "./WalletConnect"; // must match src/components/WalletConnect.jsx default export
+import "./GlobalWalletButton.css";
+
+export default function GlobalWalletButton() {
+  return (
+    <div className="global-wallet-button" aria-hidden="false">
+      {/* embed the shared WalletConnect UI (it uses the shared WalletContext) */}
+      <WalletConnect className="global-embed" />
+    </div>
+  );
+}

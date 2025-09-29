@@ -1,0 +1,48 @@
+// src/index.js
+import './polyfills';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { TonConnectUIProvider } from "@tonconnect/ui-react";
+import WalletProvider from "./context/WalletContext";
+import './index.css';
+import './styles/polish.css';
+import './styles/theme.css';
+import './styles/yolo.css';
+import { initTheme } from './utils/theme';
+import { initHeroVideo } from './utils/video';
+import { setupWalletSync } from './utils/init';
+import { captureReferralFromQuery } from './utils/referral';
+
+const manifestEnv = process.env.REACT_APP_TONCONNECT_MANIFEST_URL || "";
+const manifestUrl = manifestEnv.trim()
+  ? manifestEnv.trim()
+  : `${window.location.origin}/tonconnect-manifest.json`;
+
+if (typeof window !== "undefined") {
+  window.__TON_NETWORK = process.env.REACT_APP_TON_NETWORK || "mainnet";
+}
+
+captureReferralFromQuery();
+initTheme();
+initHeroVideo();
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+
+setupWalletSync();
+
+root.render(
+  <React.StrictMode>
+    <TonConnectUIProvider
+      manifestUrl={manifestUrl}
+      uiPreferences={{ theme: "DARK" }} // 'LIGHT' | 'DARK' | 'SYSTEM'
+      restoreConnection
+      language="en"
+    >
+      <WalletProvider>
+        <App />
+      </WalletProvider>
+    </TonConnectUIProvider>
+  </React.StrictMode>
+);
+

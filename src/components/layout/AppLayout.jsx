@@ -1,23 +1,17 @@
-import React from "react";
-import Sidebar from "./Sidebar";
-import "./AppLayout.css"; // responsive flex layout rules
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import './AppLayout.css';
 
-export default function AppLayout({ children }) {
-  return (
-    <div className="app-layout">{/* flex container so main area can grow */}
-      <Sidebar />
-      {/* Ambient layers */}
-      <div id="magic-orbs">
-        <div className="orb" />
-        <div className="orb" />
-        <div className="orb" />
-        <div className="orb" />
-      </div>
-      <div className="veil" />
-      {/* Main */}
-      <main className="main-view">
-        <div className="page">{children}</div>
-      </main>
-    </div>
-  );
+function AppLayout() {
+    return (
+        <div className="app-layout">
+            <Sidebar />
+            <main className="main-content">
+                <Outlet />
+            </main>
+        </div>
+    );
 }
+
+export default AppLayout;
