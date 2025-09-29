@@ -71,11 +71,8 @@ export default function WalletProvider({ children }) {
   const disconnect = useCallback(
     async ({ skipTonDisconnect = false } = {}) => {
       try {
-        if (!skipTonDisconnect && typeof tonConnectUI !== "undefined" && tonConnectUI) {
-          // only call if TonConnect UI is present and exposes disconnect
-          if (typeof tonConnectUI.disconnect === "function") {
-            await tonConnectUI.disconnect();
-          }
+        if (!skipTonDisconnect) {
+          await tonConnectUI.disconnect();
         }
         setError(null);
       } catch (e) {
