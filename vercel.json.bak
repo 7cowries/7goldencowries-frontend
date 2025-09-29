@@ -1,0 +1,33 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*"
+    },
+    {
+      "source": "/ref/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.7goldencowries.com"
+        }
+      ],
+      "destination": "https://7goldencowries.com/:path*",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
+  ]
+}

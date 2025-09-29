@@ -9,7 +9,7 @@ export function useCountdown(targetIso = SALE_START_ISO) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso]);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 3000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
   const diff = Math.max(0, target - now);

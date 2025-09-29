@@ -9,7 +9,7 @@ export default function Countdown({
   const [now, setNow] = useState(() => Date.now());
   // tick once per second
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 3000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 

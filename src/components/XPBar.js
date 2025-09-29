@@ -6,7 +6,7 @@ const XPBar = ({ xp, nextXP }) => {
 
   useEffect(() => {
     const percent = Math.min((xp / nextXP) * 100, 100);
-    const animate = setTimeout(() => setProgress(percent), 50);
+    const animate = setTimeout(() => setProgress(percent), 200);
     return () => clearTimeout(animate);
   }, [xp, nextXP]);
 
