@@ -1,70 +1,34 @@
-import { useEffect, useState } from "react";
-import Toast from "./Toast";
-import "./ConnectButtons.css";
+import React from "react";
 import { useWallet } from "../hooks/useWallet";
+import "./GlobalWalletButton.css";
 
-/**
- * WalletConnect component: single, shared connect/disconnect UI.
- * NOTE: we intentionally DO NOT render <TonConnectButton /> here so the
- * TonConnect modal UI is only mounted where strictly required (e.g. Paywall).
- */
 export default function WalletConnect({ className = "" }) {
-  const { wallet, connect, disconnect, connecting, error } = useWallet();
-  const [toast, setToast] = useState("");
+  const { connected, account, connect, disconnect } = useWallet();
 
-  useEffect(() => {
-    if (!error) return undefined;
-    setToast(error);
-    const id = window.setTimeout(() => setToast(""), 3200);
-    return () => window.clearTimeout(id);
-  }, [error]);
-
-  const showError = (msg) => {
-    if (!msg) return;
-    setToast(msg);
-    window.setTimeout(() => setToast(""), 3200);
-  };
-
-  const handleConnect = async () => {
-    try {
-      await connect();
-    } catch (e) {
-      if (e?.message) showError(e.message);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    try {
-      await disconnect();
-    } catch (e) {
-      if (e?.message) showError(e.message);
-    }
-  };
-
-  const short = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : null;
+  const shortAddr = (addr = "") =>
+    addr && addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
 
   return (
-    <div className={`connect-buttons ${className}`.trim()}>
-      {wallet ? (
-        <button
-          type="button"
-          className="connect-btn"
-          onClick={handleDisconnect}
-          disabled={connecting}
-        >
-          Disconnect {short}
-        </button>
+    <div className={`wallet-connect-wrapper ${className}`} style={{ zIndex: 99999 }}>
+      {connected ? (
+        <div className="wallet-connected">
+          <button
+            className="wallet-btn wallet-disconnect"
+            onClick={() => disconnect()}
+            aria-label="Disconnect wallet"
+          >
+            {shortAddr(account?.address) || "Connected"} · Disconnect
+          </button>
+        </div>
       ) : (
         <button
-          type="button"
-          className="connect-btn"
-          onClick={handleConnect}
-          disabled={connecting}
+          onClick={() => connect()}
+          className="wallet-btn wallet-connect"
+          aria-label="Connect wallet"
         >
-          {connecting ? "Opening…" : "Connect Wallet"}
+          Connect Wallet
         </button>
       )}
-      <Toast message={toast} />
     </div>
   );
 }
