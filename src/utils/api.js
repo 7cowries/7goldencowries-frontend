@@ -1,3 +1,4 @@
+import { guardedBind } from './bind-guard';
 /* global globalThis */
 function normalizeBase(rawValue) {
   const value = typeof rawValue === "string" ? rawValue.trim() : "";
@@ -579,7 +580,7 @@ export function tierMultiplier(tier) {
 }
 
 export function bindWallet(wallet, opts = {}) {
-  return postJSON("/api/session/bind-wallet", { wallet }, opts).then((res) => {
+  return guardedBind(wallet, opts).then((res) => {
     clearUserCache();
     return res;
   });
