@@ -7,27 +7,20 @@
     {
       "source": "/ref/:path*",
       "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/auth/:path*"
     }
   ],
   "redirects": [
     {
       "source": "/:path*",
       "has": [
-        {
-          "type": "host",
-          "value": "www.7goldencowries.com"
-        }
+        { "type": "host", "value": "www.7goldencowries.com" }
       ],
       "destination": "https://7goldencowries.com/:path*",
-      "permanent": true
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/:path*",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
+      "statusCode": 308
     }
   ]
 }

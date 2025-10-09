@@ -1,5 +1,5 @@
+import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
 import "./Sidebar.css";
 import logo from "../../assets/logo.svg";
 import { toggleTheme } from "../../utils/theme";
@@ -16,7 +16,7 @@ const items = [
 
 // Responsive sidebar with mobile drawer behaviour
 export default function Sidebar() {
-  const { pathname } = useLocation();
+  const pathname = (typeof window !== 'undefined' ? window.location.pathname : '/');
   const [open, setOpen] = useState(false);
 
   // Close drawer on route change (ensures drawer hides after navigation on mobile)

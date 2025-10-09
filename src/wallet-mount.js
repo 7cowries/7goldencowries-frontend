@@ -1,21 +1,7 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
-import GlobalWalletButton from "./components/GlobalWalletButton";
-
-function mount() {
-  try {
-    const rootEl = document.getElementById("wallet-root");
-    if (!rootEl) return;
-    const root = createRoot(rootEl);
-    root.render(<GlobalWalletButton />);
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn("[wallet-mount] mount error", e);
-  }
-}
-
-if (document.readyState === "complete" || document.readyState === "interactive") {
-  mount();
-} else {
-  window.addEventListener("DOMContentLoaded", mount);
+// Stub file to prevent build errors while migrating wallet mount to be inside TonConnectUIProvider.
+// Previously this file mounted a wallet UI into #wallet-root which caused the TonConnect provider
+// warning because it ran outside the provider. We created a stub to allow CI/deploy to succeed.
+// If you want to remove this, find the import that references './wallet-mount' and delete it.
+export default function noopWalletMount() {
+  /* no‑op stub */
 }

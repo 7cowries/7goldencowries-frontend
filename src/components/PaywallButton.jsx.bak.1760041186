@@ -25,7 +25,7 @@ export default function PaywallButton({
     setBusy(true);
     try {
       if (!isConnected) {
-        await connect();
+        await walletConnect();
       }
       // user is connected now; run payment/subscription flow if provided
       if (typeof onPay === "function") {

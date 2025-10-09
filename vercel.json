@@ -7,6 +7,10 @@
     {
       "source": "/ref/:path*",
       "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://sevengoldencowries-backend.onrender.com/auth/:path*"
     }
   ],
   "redirects": [

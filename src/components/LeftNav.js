@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
 import "./LeftNav.css";
 import logo from "../assets/logo.svg";
 import { toggleTheme } from "../utils/theme";
 
 export default function LeftNav() {
-  const { pathname } = useLocation();
+  const pathname = (typeof window !== 'undefined' ? window.location.pathname : '/');
   const [open, setOpen] = useState(false);
 
   // Close the mobile menu whenever route changes

@@ -580,7 +580,7 @@ export function tierMultiplier(tier) {
 }
 
 export function bindWallet(wallet, opts = {}) {
-  return guardedBind(wallet, opts).then((res) => {
+  return postJSON("/api/session/bind-wallet", { wallet }, opts).then((res) => {
     clearUserCache();
     return res;
   });
