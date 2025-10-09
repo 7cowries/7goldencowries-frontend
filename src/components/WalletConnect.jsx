@@ -1,77 +1,63 @@
 // src/components/WalletConnect.jsx
-import React, { useState, useEffect } from "react";
-import { useWallet } from "../hooks/useWallet";
-import "./GlobalWalletButton.css";
+import React, { useEffect, useState } from "react";
+import {
+  connectWallet,
+  disconnectWallet,
+  getWalletAccount,
+} from "../hooks/useWallet";
+
+const MANIFEST =
+  process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
+  "https://7goldencowries.com/tonconnect-manifest.json";
 
 export default function WalletConnect({ className = "" }) {
-  const { wallet, isConnected, connected, account, connect, disconnect, _rawProvider } = useWallet();
-  const [connecting, setConnecting] = useState(false);
+  const [account, setAccount] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  // normalize active state
-  const active = typeof isConnected === "boolean" ? isConnected : !!connected;
-  const address = wallet || (account && (account.address || account));
-
-  const shortAddr = (addr = "") =>
-    addr && addr.length > 10 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
-
-  // prevent double-click spam: don't call connect if already connected or currently connecting
-  const handleConnect = async () => {
-    if (active) {
-      console.info("[WalletConnect] already connected, skipping open");
-      return;
-    }
-    if (connecting) {
-      console.info("[WalletConnect] connect already in progress, skipping");
-      return;
-    }
-    setConnecting(true);
-    try {
-      await connect && connect();
-    } catch (err) {
-      console.error("[WalletConnect] connect() threw:", err);
-    } finally {
-      // safety short delay to prevent immediate re-clicks
-      setTimeout(() => setConnecting(false), 600);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    try {
-      await disconnect && disconnect();
-    } catch (err) {
-      console.error("[WalletConnect] disconnect() threw:", err);
-    }
+  const refresh = async () => {
+    const acc = await getWalletAccount();
+    setAccount(acc);
   };
 
   useEffect(() => {
-    if (active) setConnecting(false);
-  }, [active]);
+    refresh();
+  }, []);
+
+  const onConnect = async () => {
+    setBusy(true);
+    try {
+      await connectWallet(MANIFEST);
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDisconnect = async () => {
+    setBusy(true);
+    try {
+      await disconnectWallet();
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (account) {
+    const addr =
+      account.account?.address ??
+      account.account?.address?.toString?.() ??
+      "connected";
+    return (
+      <button className={`wallet-button ${className}`} onClick={onDisconnect} disabled={busy}>
+        Disconnect ({String(addr).slice(0, 6)}…{String(addr).slice(-4)})
+      </button>
+    );
+  }
 
   return (
-    <div className={`wallet-connect-wrapper ${className}`} style={{ zIndex: 99999 }}>
-      {active ? (
-        <div className="wallet-connected">
-          <button
-            className="wallet-btn wallet-disconnect"
-            onClick={handleDisconnect}
-            aria-label="Disconnect wallet"
-            title="Disconnect"
-          >
-            {shortAddr(address) || "Connected"} · Disconnect
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={handleConnect}
-          className="wallet-btn wallet-connect"
-          aria-label="Connect wallet"
-          title="Connect wallet"
-          disabled={connecting}
-          style={{ opacity: connecting ? 0.7 : 1, pointerEvents: connecting ? "none" : "auto" }}
-        >
-          {connecting ? "Opening…" : "Connect Wallet"}
-        </button>
-      )}
-    </div>
+    <button className={`wallet-button ${className}`} onClick={onConnect} disabled={busy}>
+      {busy ? "Connecting…" : "Connect Wallet"}
+    </button>
   );
 }

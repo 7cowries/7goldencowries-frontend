@@ -7,7 +7,6 @@ import {
   useState,
   useRef,
 } from "react";
-import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { ensureWalletBoundDebounced as ensureWalletBound } from "../utils/walletBindDebounced";
 import { emitWalletChanged } from "../utils/events";
 

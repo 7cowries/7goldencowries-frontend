@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 
 import Home from "./pages/Home";
@@ -12,7 +12,7 @@ import TokenSale from "./pages/TokenSale";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -25,6 +25,6 @@ export default function App() {
           <Route path="/isles" element={<Isles />} />
         </Routes>
       </Layout>
-    </BrowserRouter>
+    </>
   );
 }

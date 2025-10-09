@@ -10,7 +10,6 @@ process.env.REACT_APP_TON_RECEIVE_ADDRESS = "EQTestReceiveAddress999";
 const mockSendTransaction = jest.fn();
 let mockWalletState = { account: { address: "EQTestWallet0000" } };
 
-jest.mock("@tonconnect/ui-react", () => ({
   TonConnectUIProvider: ({ children }) => <>{children}</>,
   TonConnectButton: (props) => <button {...props}>TonConnect</button>,
   useTonConnectUI: () => [{ sendTransaction: mockSendTransaction }],
@@ -37,7 +36,6 @@ function advancePromises() {
 describe("Paywall integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const tonUi = require("@tonconnect/ui-react");
     tonUi.__setMockWallet({ account: { address: "EQTestWallet0000" } });
   });
 
