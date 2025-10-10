@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { getLeaderboard } from '../utils/api';
+import { getLeaderboard } from '../utils/api2';
 import { abbreviateWallet } from '../lib/format';
 import Page from '../components/Page';
 import './Leaderboard.css';
