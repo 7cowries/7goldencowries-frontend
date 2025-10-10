@@ -1,6 +1,6 @@
 // src/components/PaywallButton.jsx
 import React, { useCallback, useState } from "react";
-import useWallet from "../hooks/useWallet";
+import useWallet, { connect as connectWallet, disconnect as disconnectWallet } from "../hooks/useWallet";
 
 /**
  * A generic paywall/subscription button that ensures the user is connected,
@@ -9,60 +9,52 @@ import useWallet from "../hooks/useWallet";
  * Props:
  * - label?: string
  * - className?: string
- * - onPay?: (account) => Promise<void> | void   // optional
+ * - onPay?: (address: string|null) => Promise<void> | void   // optional
  */
 export default function PaywallButton({
   label = "Subscribe",
   className = "",
   onPay,
 }) {
-  const { isConnected, account, connect, disconnect, connecting } = useWallet();
+  // Our hook returns { connected, address, ui }
+  const { connected, address } = useWallet();
   const [busy, setBusy] = useState(false);
   const short = (addr) =>
-    String(addr).slice(0, 6) + "…" + String(addr).slice(-4);
+    String(addr ?? "").slice(0, 6) + "…" + String(addr ?? "").slice(-4);
 
   const handleClick = useCallback(async () => {
     setBusy(true);
     try {
-      if (!isConnected) {
-        await connect();
+      if (!connected) {
+        // use named helper from the hook module
+        await connectWallet();
       }
-      // user is connected now; run payment/subscription flow if provided
       if (typeof onPay === "function") {
-        await onPay(account);
+        await onPay(address);
       }
     } finally {
       setBusy(false);
     }
-  }, [isConnected, connect, onPay, account]);
+  }, [connected, address, onPay]);
 
   const handleDisconnect = useCallback(async () => {
     setBusy(true);
     try {
-      await disconnect();
+      await disconnectWallet();
     } finally {
       setBusy(false);
     }
-  }, [disconnect]);
+  }, []);
 
-  if (isConnected && account?.account?.address) {
-    const addr = account.account.address;
-    return (
-      <div className={`paywall-button ${className}`} style={{ display: "flex", gap: 8 }}>
-        <button onClick={handleClick} disabled={busy || connecting}>
-          {busy ? "Processing…" : label}
-        </button>
-        <button onClick={handleDisconnect} disabled={busy || connecting} title="Disconnect wallet">
-          {busy ? "…" : `Disconnect (${short(addr)})`}
-        </button>
-      </div>
-    );
-  }
-
-  // not connected yet
   return (
-    <button className={`paywall-button ${className}`} onClick={handleClick} disabled={busy || connecting}>
-      {busy || connecting ? "Connecting…" : "Connect Wallet to Continue"}
+    <button
+      type="button"
+      className={className}
+      disabled={busy}
+      onClick={handleClick}
+      title={connected && address ? `Connected: ${short(address)}` : "Connect wallet"}
+    >
+      {busy ? "Please wait…" : label}
     </button>
   );
 }
