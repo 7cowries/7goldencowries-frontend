@@ -1,36 +1,32 @@
-export const API_BASE = ''; // use vercel.json rewrite to BE
+export const API_BASE = ''; // via vercel.json rewrite to BE
 
 const toJSON = async (res) => {
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try { const j = await res.json(); msg += `: ${j.message || JSON.stringify(j)}`; } catch {}
-    throw new Error(msg);
-  }
-  return res.json();
+  if (!res) return null;
+  const ct = res.headers?.get?.('content-type') || '';
+  return ct.includes('application/json') ? await res.json() : await res.text();
 };
 
-export const getJSON = (path, opts = {}) =>
-  fetch(`${API_BASE}${path}`, { credentials: 'include', ...opts }).then(toJSON);
+const fetchJSON = (path, init = {}) =>
+  fetch(`${API_BASE}${path}`, { credentials: 'include', ...init })
+    .then(toJSON)
+    .catch((err) => {
+      if (err?.name === 'AbortError' || /aborted/i.test(err?.message||'')) return null;
+      throw err;
+    });
+
+export const getJSON = (path, opts = {}) => fetchJSON(path, opts);
 
 export const postJSON = (path, body = {}, opts = {}) =>
-  fetch(`${API_BASE}${path}`, {
+  fetchJSON(path, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
     body: JSON.stringify(body),
-    ...opts
-  }).then(toJSON);
+    ...opts,
+  });
 
-export const getLeaderboard = async () => {
-  try { return await getJSON('/api/referrals/leaderboard'); }
-  catch { return []; }
-};
+export const getLeaderboard = () => getJSON('/api/leaderboard');
 
 export const tierMultiplier = (tier) => {
-  if (typeof tier === 'number') return tier || 1;
-  const map = { bronze: 1, silver: 1, gold: 1, platinum: 1, diamond: 1 };
-  return map[String(tier || '').toLowerCase()] ?? 1;
+  const map = { free: 1.0, 'tier-1': 1.1, 'tier-2': 1.25, 'tier-3': 1.5 };
+  return map[String(tier||'free').toLowerCase()] ?? 1.0;
 };
-
-const api = { API_BASE, getJSON, postJSON, getLeaderboard, tierMultiplier };
-export default api;
