@@ -66,8 +66,8 @@ describe("api utils", () => {
     const api = require("./api");
 
     const [first, second] = await Promise.all([
-      api.getJSON("/api/users/me"),
-      api.getJSON("/api/users/me"),
+      api.getJSON("/api/me"),
+      api.getJSON("/api/me"),
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(first).toEqual(payload);
@@ -89,8 +89,8 @@ describe("api utils", () => {
     const controllerA = new AbortController();
     const controllerB = new AbortController();
     await Promise.all([
-      api.getJSON("/api/users/me", { signal: controllerA.signal }),
-      api.getJSON("/api/users/me", { signal: controllerB.signal }),
+      api.getJSON("/api/me", { signal: controllerA.signal }),
+      api.getJSON("/api/me", { signal: controllerB.signal }),
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

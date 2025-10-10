@@ -31,9 +31,9 @@ export default function TestAPI() {
         `twitter=${me.twitterHandle || 'off'}`,
         `discord=${me.discordId || 'off'}`,
       ].join(", ");
-      add(`✓ /api/users/me: ${summary}`);
+      add(`✓ /api/me: ${summary}`);
     } catch (e) {
-      add(`✗ /api/users/me: ${e.message}`);
+      add(`✗ /api/me: ${e.message}`);
     }
   }
   return (

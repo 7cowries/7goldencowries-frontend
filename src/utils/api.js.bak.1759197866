@@ -472,7 +472,7 @@ export function getLeaderboard({ signal } = {}) {
 }
 
 /**
- * Shape returned from GET /api/users/me.
+ * Shape returned from GET /api/me.
  * @typedef {Object} MeResponse
  * @property {string} wallet
  * @property {number} xp
@@ -496,7 +496,7 @@ export async function getMe({ signal, force } = {}) {
     const cached = cacheGet(key);
     if (cached) return Promise.resolve(cached);
   }
-  return getJSON("/api/users/me", { signal }).then((data) => {
+  return getJSON("/api/me", { signal }).then((data) => {
     const user = data && typeof data === "object" && "user" in data ? data.user : data;
     if (user) cacheSet(key, user);
     return user;
