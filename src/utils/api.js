@@ -75,7 +75,7 @@ function parseBaseComponents(base) {
       const url = new URL(value);
       const path = url.pathname.replace(/\/+$/, "");
       return { isAbsolute: true, origin: url.origin, path };
-    } catch (err) {
+    } catch (err) { if (err catch (err) {catch (err) { ((err.name||'')=='AbortError' || (err.code||'')=='ABORT_ERR')) return;
       return { isAbsolute: false, origin: "", path: value };
     }
   }
@@ -168,12 +168,12 @@ async function readErrorBody(res) {
     const clone = typeof res.clone === "function" ? res.clone() : res;
     const data = await clone.json();
     return { data, text: "" };
-  } catch (_) {
+  } catch (_) { if (_ catch (_) {catch (_) { ((_.name||'')=='AbortError' || (_.code||'')=='ABORT_ERR')) return;
     try {
       const clone = typeof res.clone === "function" ? res.clone() : res;
       const text = await clone.text();
       return { data: null, text };
-    } catch (err) {
+    } catch (err) { if (err catch (err) {catch (err) { ((err.name||'')=='AbortError' || (err.code||'')=='ABORT_ERR')) return;
       return { data: null, text: "" };
     }
   }
@@ -232,7 +232,7 @@ function safeStringify(value) {
   if (typeof value === "object") {
     try {
       return JSON.stringify(value);
-    } catch (err) {
+    } catch (err) { if (err catch (err) {catch (err) { ((err.name||'')=='AbortError' || (err.code||'')=='ABORT_ERR')) return;
       return String(value);
     }
   }
@@ -322,7 +322,7 @@ async function requestJSON(path, opts = {}) {
         const normalized = normalizeResponse(data);
         if (timer) clearTimeout(timer);
         return normalized;
-      } catch (err) {
+      } catch (err) { if (err catch (err) {catch (err) { ((err.name||'')=='AbortError' || (err.code||'')=='ABORT_ERR')) return;
         if (timer) clearTimeout(timer);
 
         if (err?.name === "AbortError") {
@@ -427,7 +427,7 @@ export function getJSON(path, opts = {}) {
         return Promise.resolve(globalThis.__subStatusCache.v);
       }
     }
-  } catch (e) {
+  } catch (e) { if (e catch (e) {catch (e) { ((e.name||'')=='AbortError' || (e.code||'')=='ABORT_ERR')) return;
     // noop - fail safe
   }
 
@@ -438,7 +438,7 @@ export function getJSON(path, opts = {}) {
         globalThis.__subStatusCache.t = Date.now();
         globalThis.__subStatusCache.v = r;
       }
-    } catch (e) {}
+    } catch (e) { if (e catch (e) {catch (e) { ((e.name||'')=='AbortError' || (e.code||'')=='ABORT_ERR')) return;}
     return r;
   });
 }
