@@ -74,3 +74,7 @@ export { ensureTonUI as ensureTonUIRef,
          connectWallet as connectRef,
          disconnectWallet as disconnectRef,
          getWalletAccount as getWalletAccountRef };
+
+// --- Back-compat named exports for legacy imports ---
+export const connect = connectWallet;
+export const disconnect = disconnectWallet;
