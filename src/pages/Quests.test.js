@@ -9,7 +9,7 @@ import {
   claimSubscriptionReward,
   claimReferralReward,
 } from '../utils/api';
-import { useWallet } from '../hooks/useWallet';
+import useWallet from '../hooks/useWallet';
 import { detectSpecialClaimType } from '../lib/claimType';
 
 jest.mock('../utils/api');

@@ -59,7 +59,7 @@ export async function getWalletAccount() {
 }
 
 /**
- * Compatibility hook so legacy code `import { useWallet } from '../hooks/useWallet'`
+ * Compatibility hook so legacy code `import useWallet from '../hooks/useWallet'`
  * continues to work without @tonconnect/ui-react.
  */
 export function walletHookInternal() {

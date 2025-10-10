@@ -4,7 +4,7 @@ import Page from "../components/Page";
 // // import WalletConnect from "../components/WalletConnect";
 import XPModal from "../components/XPModal";
 import PaymentGuard from "../components/PaymentGuard";
-import { useWallet } from "../hooks/useWallet";
+import useWallet from "../hooks/useWallet";
 import {
   getSubscriptionStatus,
   subscribeToTier,

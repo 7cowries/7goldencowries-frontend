@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import "../App.css";
 import "./History.css";
 import { API_BASE, getMe } from "../utils/api";
-import { useWallet } from "../hooks/useWallet";
+import useWallet from "../hooks/useWallet";
 
 const API = API_BASE || "";
 

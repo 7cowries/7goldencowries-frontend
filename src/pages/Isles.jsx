@@ -4,7 +4,7 @@ import "./Isles.css";
 import "../App.css";
 import Page from "../components/Page";
 import { API_BASE, getMe } from "../utils/api"; // ✅ use session-aware profile first
-import { useWallet } from "../hooks/useWallet";
+import useWallet from "../hooks/useWallet";
 import { LEVELS as PROGRESSION_LEVELS } from "../config/progression";
 
 const API = API_BASE || "";

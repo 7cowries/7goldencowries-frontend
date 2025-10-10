@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Toast from "./Toast";
 import "./ConnectButtons.css";
-import { useWallet } from "../hooks/useWallet";
+import useWallet from "../hooks/useWallet";
 
 /**
  * WalletConnect component: shows a connect or disconnect button backed by the

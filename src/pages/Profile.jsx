@@ -14,7 +14,7 @@ import { ensureWalletBound } from "../utils/walletBind";
 // // import WalletConnect from "../components/WalletConnect";
 import { burstConfetti } from '../utils/confetti';
 import ConnectButtons from "../components/ConnectButtons";
-import { useWallet } from "../hooks/useWallet";
+import useWallet from "../hooks/useWallet";
 import { levelBadgeSrc } from "../config/progression";
 import { unlinkSocial } from "../utils/socialLinks";
 
