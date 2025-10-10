@@ -16,29 +16,25 @@ export function ensureTonUI(
   return _ui;
 }
 
-/** Connect via modal */
+/** Open the TonConnect modal */
 export async function connectWallet(manifestUrl) {
   const ui = ensureTonUI(manifestUrl);
   await ui.openModal();
 }
 
-/** Disconnect */
+/** Disconnect if possible (ignore if already disconnected) */
 export async function disconnectWallet() {
   const ui = ensureTonUI();
   try { await ui.disconnect(); } catch {}
 }
 
-/** Convenience getter: address if available */
+/** Convenience getter: returns address string or null */
 export function getWalletAccount() {
   const ui = ensureTonUI();
-  const addr = ui?.wallet?.account?.address || null;
-  return addr || null;
+  return ui?.wallet?.account?.address || null;
 }
 
-/**
- * React hook that stays in sync with TonConnect status.
- * Returns: { connected: boolean, address: string|null, ui }
- */
+/** React hook that tracks TonConnect status */
 export default function useWallet() {
   const ui = useMemo(() => ensureTonUI(), []);
   const [state, setState] = useState(() => ({
@@ -69,8 +65,6 @@ export default function useWallet() {
   return state;
 }
 
-// Back-compat named exports:
+// Aliases for backwards-compat with older imports
 export const connect = (manifestUrl) => connectWallet(manifestUrl);
 export const disconnect = () => disconnectWallet();
-
-
