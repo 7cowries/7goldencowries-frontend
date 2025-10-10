@@ -1,46 +1,35 @@
-/**
- * Unified cookie-aware API helper for 7GoldenCowries.
- * Works with Vercel rewrite to Render: fetches to /api/* and includes cookies.
- */
+export const API_BASE = ''; // use Vercel rewrite to Render BE
 
-export const API_BASE = ''; // always use FE proxy (/api) via vercel.json
+const toJSON = async (res) => {
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { const j = await res.json(); msg += `: ${j.message || JSON.stringify(j)}`; } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
+};
 
-export default async function api(path, opts = {}) {
-  const init = {
+export const getJSON = (path, opts = {}) =>
+  fetch(`${API_BASE}${path}`, { credentials: 'include', ...opts }).then(toJSON);
+
+export const postJSON = (path, body = {}, opts = {}) =>
+  fetch(`${API_BASE}${path}`, {
+    method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    body: JSON.stringify(body),
     ...opts
-  };
-  if (init.body && typeof init.body === 'object') {
-    init.body = JSON.stringify(init.body);
-  }
+  }).then(toJSON);
 
-  const url = path.startsWith('/') ? path : `/${path}`;
-  const res = await fetch(url, init);
+// Pages expect these; keep simple + resilient.
+export const getLeaderboard = async () => {
+  try { return await getJSON('/api/referrals/leaderboard'); }
+  catch { return []; } // don't break UI if BE not ready
+};
 
-  const ct = res.headers.get('content-type') || '';
-  const data = ct.includes('application/json') ? await res.json() : await res.text();
-
-  if (!res.ok) {
-    const err = new Error('API error');
-    err.status = res.status;
-    err.data = data;
-    throw err;
-  }
-  return data;
-}
-
-// Named helpers used across pages (sidebar etc.)
-export const getMe = () => api('/api/me');
-export const getLeaderboard = () => api('/api/leaderboard');
-export const getPaymentsStatus = () => api('/api/v1/payments/status');
-export const getReferrals = () => api('/api/ref/me');               // adjust if BE path differs
-export const postSubscribe = (tier) => api('/api/subscriptions', {  // adjust if BE path differs
-  method: 'POST',
-  body: { tier }
-});
-
-// --- legacy convenience helpers ---
-export const getJSON = (path, init = {}) => api(path, { method: 'GET', ...(init || {}) });
-export const postJSON = (path, body = {}, init = {}) =>
-  api(path, { method: 'POST', body, ...(init || {}) });
+// Safe default multiplier; adjust here when BE exposes a config.
+export const tierMultiplier = (tier) => {
+  if (typeof tier === 'number') return tier || 1;
+  const map = { bronze: 1, silver: 1, gold: 1, platinum: 1, diamond: 1 };
+  return map[String(tier || '').toLowerCase()] ?? 1;
+};
