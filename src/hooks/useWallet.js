@@ -72,4 +72,6 @@ export default function useWallet() {
 // Back-compat named exports:
 export const connect = (manifestUrl) => connectWallet(manifestUrl);
 export const disconnect = () => disconnectWallet();
-export default useWallet;
+// export default useWallet;
+
+export { ensureTonUI, connectWallet, disconnectWallet, getWalletAccount, connect, disconnect };
