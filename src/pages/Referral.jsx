@@ -35,7 +35,7 @@ const Referral = () => {
   useEffect(() => {
     if (!referralCode) return;
 
-    fetch(`${API}/api/referrals/${referralCode}`)
+    getJSON("/api/referrals/${referralCode}`)
       .then(res => res.json())
       .then(data => setReferrals(data.entries || data.referrals || []))
       .catch(err =>
@@ -49,7 +49,7 @@ const Referral = () => {
   useEffect(() => {
     const rerun = () => {
       if (referralCode) {
-        fetch(`${API}/api/referrals/${referralCode}`)
+        getJSON("/api/referrals/${referralCode}`)
           .then(res => res.json())
           .then(data => setReferrals(data.entries || data.referrals || []))
           .catch(() => {});

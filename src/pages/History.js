@@ -24,9 +24,9 @@ export default function History() {
 
         let xpRes;
         if (me?.authed) {
-          xpRes = await fetch(`${API}/api/xp/history`, { credentials: "include" });
+          xpRes = await getJSON("/api/xp/history`, { credentials: "include" });
         } else if (wallet) {
-          xpRes = await fetch(`${API}/api/xp/history?wallet=${encodeURIComponent(wallet)}`);
+          xpRes = await getJSON("/api/xp/history?wallet=${encodeURIComponent(wallet)}`);
         }
 
         if (xpRes?.ok) {
@@ -37,9 +37,9 @@ export default function History() {
         // Optional: show quest history below (best-effort)
         let qRes;
         if (me?.authed) {
-          qRes = await fetch(`${API}/api/quests/history`, { credentials: "include" });
+          qRes = await getJSON("/api/quests/history`, { credentials: "include" });
         } else if (wallet) {
-          qRes = await fetch(`${API}/api/quests/history?wallet=${encodeURIComponent(wallet)}`);
+          qRes = await getJSON("/api/quests/history?wallet=${encodeURIComponent(wallet)}`);
         }
         if (qRes?.ok) {
           const qd = await qRes.json();

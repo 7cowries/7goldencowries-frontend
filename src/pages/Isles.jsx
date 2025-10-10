@@ -254,7 +254,7 @@ function useProfile(address) {
         } else if (address) {
           // 2) Fallback to legacy /api/profile?wallet=
           const url = `${API}/api/profile?wallet=${encodeURIComponent(address)}`;
-          const res = await fetch(url, { credentials: "include" });
+          const res = await getJSON(url);
           if (res.ok) {
             const data = await res.json();
             if (!cancelled) {
