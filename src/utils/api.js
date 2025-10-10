@@ -39,3 +39,8 @@ export const postSubscribe = (tier) => api('/api/subscriptions', {  // adjust if
   method: 'POST',
   body: { tier }
 });
+
+// --- legacy convenience helpers ---
+export const getJSON = (path, init = {}) => api(path, { method: 'GET', ...(init || {}) });
+export const postJSON = (path, body = {}, init = {}) =>
+  api(path, { method: 'POST', body, ...(init || {}) });
