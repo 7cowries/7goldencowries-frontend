@@ -19,7 +19,6 @@ export function ensureTonUI(
 /** Connect via modal */
 export async function connectWallet(manifestUrl) {
   const ui = ensureTonUI(manifestUrl);
-  // Open modal; the user completes the flow in the wallet
   await ui.openModal();
 }
 
@@ -29,10 +28,9 @@ export async function disconnectWallet() {
   try { await ui.disconnect(); } catch {}
 }
 
-/** Convenience getter: base64/hex address if available */
+/** Convenience getter: address if available */
 export function getWalletAccount() {
   const ui = ensureTonUI();
-  // prefer friendly address if exposed by UI; fall back to raw base64/hex if needed
   const addr = ui?.wallet?.account?.address || null;
   return addr || null;
 }
@@ -50,20 +48,16 @@ export default function useWallet() {
   }));
 
   useEffect(() => {
-    // Initialize state once on mount (covers hard refresh / already-connected session)
     setState({
       connected: !!ui?.wallet,
       address: ui?.wallet?.account?.address || null,
       ui
     });
 
-    // Subscribe to TonConnect status changes
     const unsubscribe = ui.onStatusChange((w) => {
       const connected = !!w;
       const address = w?.account?.address || null;
       setState({ connected, address, ui });
-
-      // also emit a window event for non-React listeners (optional)
       try {
         window.dispatchEvent(new CustomEvent('tonconnect:status', { detail: { connected, address } }));
       } catch {}
@@ -75,6 +69,6 @@ export default function useWallet() {
   return state;
 }
 
-// Keep old names (if your components import these) for safety:
+// Back-compat named exports:
 export const connect = (manifestUrl) => connectWallet(manifestUrl);
 export const disconnect = () => disconnectWallet();
