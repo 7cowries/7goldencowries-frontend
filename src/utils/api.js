@@ -61,7 +61,7 @@ const RAW_API_BASE =
   process.env.REACT_APP_API_URL ||
   "";
 
-export const API_BASE = normalizeBase(RAW_API_BASE);
+export const API_BASE = ""; // via vercel.json rewrite
 
 const DEFAULT_API_PREFIX = "/api";
 
