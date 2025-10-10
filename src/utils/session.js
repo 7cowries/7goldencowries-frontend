@@ -1,13 +1,10 @@
-export async function touchSession(addr) {
+import { apiPost } from './apiClient';
+
+export async function touchWalletSession(address) {
+  if (!address) return;
   try {
-    const res = await fetch('/api/auth/wallet/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ address: addr })
-    });
-    return res.ok;
-  } catch {
-    return false;
+    await apiPost('/api/auth/wallet/session', { address });
+  } catch (e) {
+    if (process.env.NODE_ENV !== 'production') console.warn('touchWalletSession failed', e);
   }
 }

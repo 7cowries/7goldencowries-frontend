@@ -1,3 +1,4 @@
+import { touchWalletSession } from '../utils/session';
 import { touchSession } from '../utils/session';
 import { useEffect, useState, useMemo } from 'react';
 import { TonConnectUI, THEME } from '@tonconnect/ui';
