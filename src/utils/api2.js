@@ -51,3 +51,4 @@ export async function getHealth() {
   const r = await fetch(`${BASE}/api/health`, { credentials: 'include' });
   return handle(r);
 }
+export const API_BASE = '';
