@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { burstConfetti } from '../utils/confetti';
-import { API_BASE, getMe } from '../utils/api2';
+import { API_BASE, getMe } from '../utils/api';
 import Page from '../components/Page';
 import './Referral.css';
 import '../App.css'; // Import layout classes

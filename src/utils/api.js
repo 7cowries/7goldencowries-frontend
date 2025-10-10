@@ -1,4 +1,4 @@
-export const API_BASE = ''; // use Vercel rewrite to Render BE
+export const API_BASE = ''; // use Vercel rewrite -> Render BE
 
 const toJSON = async (res) => {
   if (!res.ok) {
@@ -21,15 +21,18 @@ export const postJSON = (path, body = {}, opts = {}) =>
     ...opts
   }).then(toJSON);
 
-// Pages expect these; keep simple + resilient.
+// Keep pages working even if BE endpoints change.
 export const getLeaderboard = async () => {
   try { return await getJSON('/api/referrals/leaderboard'); }
-  catch { return []; } // don't break UI if BE not ready
+  catch { return []; }
 };
 
-// Safe default multiplier; adjust here when BE exposes a config.
 export const tierMultiplier = (tier) => {
   if (typeof tier === 'number') return tier || 1;
   const map = { bronze: 1, silver: 1, gold: 1, platinum: 1, diamond: 1 };
   return map[String(tier || '').toLowerCase()] ?? 1;
 };
+
+// Optional default export (helps if anything imports default)
+const api = { API_BASE, getJSON, postJSON, getLeaderboard, tierMultiplier };
+export default api;

@@ -9,7 +9,7 @@ import {
   clearUserCache,
   disconnectSession,
   getMe,
-} from "../utils/api2";
+} from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 // // import WalletConnect from "../components/WalletConnect";
 import { burstConfetti } from '../utils/confetti';

@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Isles.css";
 import "../App.css";
 import Page from "../components/Page";
-import { API_BASE, getMe } from "../utils/api2"; // ✅ use session-aware profile first
+import { API_BASE, getMe } from "../utils/api"; // ✅ use session-aware profile first
 import useWallet from "../hooks/useWallet";
 import { LEVELS as PROGRESSION_LEVELS } from "../config/progression";
 

@@ -10,7 +10,7 @@ import {
   subscribeToTier,
   tierMultiplier,
   claimSubscriptionBonus,
-} from "../utils/api2";
+} from "../utils/api";
 import "./Subscription.css";
 import "../App.css";
 
