@@ -1,93 +1,80 @@
+import { useEffect, useState, useMemo } from 'react';
 import { TonConnectUI, THEME } from '@tonconnect/ui';
 
-let _tcui;
-let _unsubscribe = null;
-// Keep the latest wallet/account object here so components can read it
-let _lastWallet = null;
+let _ui = null;
 
 /**
- * Ensure a single TonConnectUI instance and start tracking status changes.
+ * Ensure a single TonConnectUI instance exists.
+ * Uses ENV first, falls back to ABSOLUTE manifest URL (never relative).
  */
-export function ensureTonUI(manifestUrl = (process.env.REACT_APP_TONCONNECT_MANIFEST_URL || 'https://7goldencowries.com/tonconnect-manifest.json'), theme = THEME.DARK) {
-  if (!_tcui) {
-    _tcui = new TonConnectUI({ manifestUrl, theme });
-    // Subscribe once and cache the latest wallet/account
-    _unsubscribe = _tcui.onStatusChange((wallet) => {
-      _lastWallet = wallet || null;
-    });
-  }
-  return _tcui;
+export function ensureTonUI(
+  manifestUrl = (process.env.REACT_APP_TONCONNECT_MANIFEST_URL || 'https://7goldencowries.com/tonconnect-manifest.json'),
+  theme = THEME.DARK
+) {
+  if (_ui) return _ui;
+  _ui = new TonConnectUI({ manifestUrl, theme });
+  return _ui;
 }
 
-/**
- * Open the TonConnect modal and resolve once a wallet is connected.
- */
-export async function connectWallet(manifestUrl = 'https://7goldencowries.com/tonconnect-manifest.json') {
+/** Connect via modal */
+export async function connectWallet(manifestUrl) {
   const ui = ensureTonUI(manifestUrl);
-  ui.openModal();
+  // Open modal; the user completes the flow in the wallet
+  await ui.openModal();
+}
 
-  return new Promise((resolve) => {
-    const off = ui.onStatusChange((wallet) => {
-      if (wallet) {
-        off(); // stop this one-time waiter
-        _lastWallet = wallet;
-        resolve(wallet);
-      }
-    });
-  });
+/** Disconnect */
+export async function disconnectWallet() {
+  const ui = ensureTonUI();
+  try { await ui.disconnect(); } catch {}
+}
+
+/** Convenience getter: base64/hex address if available */
+export function getWalletAccount() {
+  const ui = ensureTonUI();
+  // prefer friendly address if exposed by UI; fall back to raw base64/hex if needed
+  const addr = ui?.wallet?.account?.address || null;
+  return addr || null;
 }
 
 /**
- * Disconnect the current wallet and clear local cache.
- */
-export function disconnectWallet() {
-  if (_tcui) {
-    _tcui.disconnect();
-  }
-  if (_unsubscribe) {
-    _unsubscribe();
-    _unsubscribe = null;
-  }
-  _lastWallet = null;
-}
-
-/**
- * Return the latest cached wallet/account (async for compatibility).
- */
-export async function getWalletAccount() {
-  return _lastWallet;
-}
-
-/**
- * Compatibility hook so legacy code `import { useWallet } from '../hooks/useWallet'`
- * continues to work without @tonconnect/ui-react.
- */
-export function walletHookInternal() {
-  return {
-    wallet: _lastWallet,
-    address: _lastWallet?.account?.address,
-    connected: !!_lastWallet,
-    connect: (manifestUrl) => connectWallet(manifestUrl),
-    disconnect: () => disconnectWallet(),
-    ensure: (manifestUrl) => ensureTonUI(manifestUrl),
-    getWalletAccount,
-  };
-}
-
-// Keep default export for any default imports that may exist.
-
-export function connect(manifestUrl){ return connectWallet(manifestUrl); }
-export const disconnect = () => disconnectWallet();
-
-/**
- * Back-compat helper so existing code like:
- *   const { connect } = useWallet();
- * continues to work even after refactor to named exports.
+ * React hook that stays in sync with TonConnect status.
+ * Returns: { connected: boolean, address: string|null, ui }
  */
 export default function useWallet() {
-  return { connect, disconnect, ensureTonUI, getWalletAccount };
+  const ui = useMemo(() => ensureTonUI(), []);
+  const [state, setState] = useState(() => ({
+    connected: !!ui?.wallet,
+    address: ui?.wallet?.account?.address || null,
+    ui
+  }));
+
+  useEffect(() => {
+    // Initialize state once on mount (covers hard refresh / already-connected session)
+    setState({
+      connected: !!ui?.wallet,
+      address: ui?.wallet?.account?.address || null,
+      ui
+    });
+
+    // Subscribe to TonConnect status changes
+    const unsubscribe = ui.onStatusChange((w) => {
+      const connected = !!w;
+      const address = w?.account?.address || null;
+      setState({ connected, address, ui });
+
+      // also emit a window event for non-React listeners (optional)
+      try {
+        window.dispatchEvent(new CustomEvent('tonconnect:status', { detail: { connected, address } }));
+      } catch {}
+    });
+
+    return unsubscribe;
+  }, [ui]);
+
+  return state;
 }
 
-
-
-export { useWallet };
+// Keep old names (if your components import these) for safety:
+export const connect = (manifestUrl) => connectWallet(manifestUrl);
+export const disconnect = () => disconnectWallet();
