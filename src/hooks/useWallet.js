@@ -74,4 +74,4 @@ export const connect = (manifestUrl) => connectWallet(manifestUrl);
 export const disconnect = () => disconnectWallet();
 // export default useWallet;
 
-export { connectWallet, disconnectWallet, getWalletAccount, connect, disconnect };
+export { connect, disconnect };
