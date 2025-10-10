@@ -1,4 +1,4 @@
-export const API_BASE = ''; // use Vercel rewrite -> Render BE
+export const API_BASE = ''; // use vercel.json rewrite to BE
 
 const toJSON = async (res) => {
   if (!res.ok) {
@@ -21,7 +21,6 @@ export const postJSON = (path, body = {}, opts = {}) =>
     ...opts
   }).then(toJSON);
 
-// Keep pages working even if BE endpoints change.
 export const getLeaderboard = async () => {
   try { return await getJSON('/api/referrals/leaderboard'); }
   catch { return []; }
@@ -33,6 +32,5 @@ export const tierMultiplier = (tier) => {
   return map[String(tier || '').toLowerCase()] ?? 1;
 };
 
-// Optional default export (helps if anything imports default)
 const api = { API_BASE, getJSON, postJSON, getLeaderboard, tierMultiplier };
 export default api;
