@@ -8,7 +8,7 @@ let _lastWallet = null;
 /**
  * Ensure a single TonConnectUI instance and start tracking status changes.
  */
-export function ensureTonUI(manifestUrl = (process.env.REACT_APP_TONCONNECT_MANIFEST_URL || '/tonconnect-manifest.json'), theme = THEME.DARK) {
+export function ensureTonUI(manifestUrl = (process.env.REACT_APP_TONCONNECT_MANIFEST_URL || 'https://7goldencowries.com/tonconnect-manifest.json'), theme = THEME.DARK) {
   if (!_tcui) {
     _tcui = new TonConnectUI({ manifestUrl, theme });
     // Subscribe once and cache the latest wallet/account
@@ -22,7 +22,7 @@ export function ensureTonUI(manifestUrl = (process.env.REACT_APP_TONCONNECT_MANI
 /**
  * Open the TonConnect modal and resolve once a wallet is connected.
  */
-export async function connectWallet(manifestUrl = '/tonconnect-manifest.json') {
+export async function connectWallet(manifestUrl = 'https://7goldencowries.com/tonconnect-manifest.json') {
   const ui = ensureTonUI(manifestUrl);
   ui.openModal();
 
