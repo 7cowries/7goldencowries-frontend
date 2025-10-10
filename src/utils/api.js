@@ -1,32 +1,44 @@
-export const API_BASE = ''; // via vercel.json rewrite to BE
+export const API_BASE = ''; // vercel rewrites /api -> backend
+
+const swallowAbort = (e) => (e?.name === 'AbortError' || e?.code === 'ABORT_ERR');
 
 const toJSON = async (res) => {
   if (!res) return null;
-  const ct = res.headers?.get?.('content-type') || '';
-  return ct.includes('application/json') ? await res.json() : await res.text();
+  if (res.status === 204) return null;
+  try { return await res.json(); }
+  catch (e) { if (swallowAbort(e)) return null; throw e; }
 };
 
-const fetchJSON = (path, init = {}) =>
-  fetch(`${API_BASE}${path}`, { credentials: 'include', ...init })
-    .then(toJSON)
-    .catch((err) => {
-      if (err?.name === 'AbortError' || /aborted/i.test(err?.message||'')) return null;
-      throw err;
-    });
+export const getJSON = (path, init = {}) =>
+  fetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, {
+    credentials: 'include',
+    ...init,
+    method: init.method || 'GET',
+  })
+  .then(toJSON)
+  .catch((e) => { if (swallowAbort(e)) return null; throw e; });
 
-export const getJSON = (path, opts = {}) => fetchJSON(path, opts);
-
-export const postJSON = (path, body = {}, opts = {}) =>
-  fetchJSON(path, {
+export const postJSON = (path, body = {}, init = {}) =>
+  fetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
     body: JSON.stringify(body),
-    ...opts,
-  });
+    ...init,
+  })
+  .then(toJSON)
+  .catch((e) => { if (swallowAbort(e)) return null; throw e; });
 
-export const getLeaderboard = () => getJSON('/api/leaderboard');
+export const getLeaderboard = async () => {
+  const r = await getJSON('/api/leaderboard');
+  return Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []);
+};
 
 export const tierMultiplier = (tier) => {
-  const map = { free: 1.0, 'tier-1': 1.1, 'tier-2': 1.25, 'tier-3': 1.5 };
-  return map[String(tier||'free').toLowerCase()] ?? 1.0;
+  const m = { free: 1.0, 'tier 1': 1.1, 'tier 2': 1.25, 'tier 3': 1.5, 'tier 4': 2.0 };
+  if (!tier) return 1.0;
+  const k = String(tier).toLowerCase();
+  return m[k] ?? 1.0;
 };
+
+export default { API_BASE, getJSON, postJSON, getLeaderboard, tierMultiplier };
