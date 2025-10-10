@@ -1,0 +1,10 @@
+import { apiPost } from './apiClient';
+
+export async function touchWalletSession(address) {
+  if (!address) return;
+  try {
+    await apiPost('/api/auth/wallet/session', { address });
+  } catch (e) {
+    if (process.env.NODE_ENV !== 'production') console.warn('touchWalletSession failed', e);
+  }
+}

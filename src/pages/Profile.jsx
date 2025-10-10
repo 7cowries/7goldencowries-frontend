@@ -219,7 +219,7 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tonWallet, lsCandidates, address]);
 
-  // Bind wallet to backend session (helps /api/users/me)
+  // Bind wallet to backend session (helps /api/me)
   useEffect(() => {
     if (!tonWallet) {
       loadMeRef.current?.({ force: true });

@@ -245,7 +245,7 @@ function useProfile(address) {
 
     async function fetchProfile() {
       try {
-        // 1) Prefer session-aware /api/users/me
+        // 1) Prefer session-aware /api/me
         const me = await getMe().catch(() => null);
         if (me?.authed) {
           if (!cancelled) {
