@@ -1,5 +1,5 @@
-import { getJSON, postJSON } from '../utils/api';
 // src/pages/Isles.js
+import { getJSON } from "../utils/api";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Isles.css";
 import "../App.css";

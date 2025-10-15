@@ -1,4 +1,3 @@
-import { getJSON, postJSON } from '../utils/api';
 // src/pages/Profile.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Profile.css";

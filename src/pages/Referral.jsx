@@ -1,11 +1,11 @@
+import { getJSON } from '../utils/api';
 import React, { useEffect, useState } from 'react';
 import { burstConfetti } from '../utils/confetti';
-import { API_BASE, getMe } from '../utils/api';
+import { getMe } from '../utils/api';
 import Page from '../components/Page';
 import './Referral.css';
 import '../App.css'; // Import layout classes
 
-const API = API_BASE || '';
 
 const Referral = () => {
   const [copied, setCopied] = useState(false);
@@ -35,7 +35,7 @@ const Referral = () => {
   useEffect(() => {
     if (!referralCode) return;
 
-    getJSON("/api/referrals/${referralCode}`)
+    getJSON(`/api/referrals/`)
       .then(res => res.json())
       .then(data => setReferrals(data.entries || data.referrals || []))
       .catch(err =>
@@ -49,7 +49,7 @@ const Referral = () => {
   useEffect(() => {
     const rerun = () => {
       if (referralCode) {
-        getJSON("/api/referrals/${referralCode}`)
+        getJSON(`/api/referrals/`)
           .then(res => res.json())
           .then(data => setReferrals(data.entries || data.referrals || []))
           .catch(() => {});

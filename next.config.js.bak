@@ -1,0 +1,10 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  async rewrites() {
+    const target = process.env.BACKEND_ORIGIN || 'https://sevengoldencowries-backend.onrender.com';
+    return [
+      { source: '/api/:path*', destination: `${target}/api/:path*` },
+    ];
+  },
+};
+module.exports = nextConfig;

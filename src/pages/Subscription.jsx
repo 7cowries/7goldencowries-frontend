@@ -1,4 +1,3 @@
-import { getJSON, postJSON } from '../utils/api';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Page from "../components/Page";

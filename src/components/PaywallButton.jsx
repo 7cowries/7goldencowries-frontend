@@ -1,50 +1,41 @@
 // src/components/PaywallButton.jsx
-import React, { useCallback, useState } from "react";
-import useWallet, { connect as connectWallet, disconnect as disconnectWallet } from "../hooks/useWallet";
+import React, { useState } from "react";
+import { getJSON } from "../utils/api";
 
 /**
- * A generic paywall/subscription button that ensures the user is connected,
- * then calls an optional onPay/onSubscribe callback supplied by the parent.
- *
- * Props:
- * - label?: string
- * - className?: string
- * - onPay?: (address: string|null) => Promise<void> | void   // optional
+ * Simple paywall gate:
+ * - Checks /api/me for subscription state
+ * - If active -> call onUnlocked()
+ * - Else -> route user to /subscription
  */
 export default function PaywallButton({
-  label = "Subscribe",
   className = "",
-  onPay,
+  children = "Continue",
+  onUnlocked,
+  ...props
 }) {
-  // Our hook returns { connected, address, ui }
-  const { connected, address } = useWallet();
   const [busy, setBusy] = useState(false);
-  const short = (addr) =>
-    String(addr ?? "").slice(0, 6) + "…" + String(addr ?? "").slice(-4);
 
-  const handleClick = useCallback(async () => {
+  const handleClick = async (e) => {
+    e?.preventDefault?.();
+    if (busy) return;
     setBusy(true);
     try {
-      if (!connected) {
-        // use named helper from the hook module
-        await connectWallet();
+      const me = await getJSON("/api/me"); // proxied to Render in dev
+      const active =
+        !!me?.subscription?.active || me?.tier === "Tier 1" || me?.tier === "Tier 2" || me?.tier === "Tier 3";
+      if (active) {
+        onUnlocked?.();
+      } else {
+        window.location.href = "/subscription";
       }
-      if (typeof onPay === "function") {
-        await onPay(address);
-      }
+    } catch (err) {
+      console.error("Paywall check failed:", err);
+      window.location.href = "/subscription";
     } finally {
       setBusy(false);
     }
-  }, [connected, address, onPay]);
-
-  const handleDisconnect = useCallback(async () => {
-    setBusy(true);
-    try {
-      await disconnectWallet();
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  };
 
   return (
     <button
@@ -52,9 +43,9 @@ export default function PaywallButton({
       className={className}
       disabled={busy}
       onClick={handleClick}
-      title={connected && address ? `Connected: ${short(address)}` : "Connect wallet"}
+      {...props}
     >
-      {busy ? "Please wait…" : label}
+      {busy ? "Checking…" : children}
     </button>
   );
 }
