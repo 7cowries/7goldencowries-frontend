@@ -1,7 +1,10 @@
 {
+  "version": 2,
+  "buildCommand": "CI='' npm run build",
+  "outputDirectory": "build",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" },
-    { "source": "/ref/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/ref/:path*" },
+    { "source": "/_next/(.*)", "destination": "/_next/$1" },
+    { "source": "/static/(.*)", "destination": "/static/$1" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
