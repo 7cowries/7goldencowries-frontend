@@ -1,3 +1,5 @@
+import '../src/pages/Isles.css';
+import '../src/components/layout/Sidebar.css';
 import '../src/components/XPModal.css';
 import '../src/components/ConnectButtons.css';
 import '../src/App.css';

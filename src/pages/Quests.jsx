@@ -11,7 +11,6 @@ import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
 import Page from '../components/Page';
 import './Quests.css';
-import '../App.css';
 import { burstConfetti } from '../utils/confetti';
 import useWallet from '../hooks/useWallet';
 import ErrorBoundary from '../components/ErrorBoundary';

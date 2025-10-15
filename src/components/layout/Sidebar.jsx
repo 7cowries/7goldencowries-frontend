@@ -1,6 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
-import "./Sidebar.css";
 import logo from "../../assets/logo.svg";
 import { toggleTheme } from "../../utils/theme";
 
