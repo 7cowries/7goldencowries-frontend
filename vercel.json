@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "framework": "nextjs",
   "buildCommand": "CI= npm run build",
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/:path*" }
