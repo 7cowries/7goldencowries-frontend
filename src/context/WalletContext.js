@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { useTonAddress, useTonConnectUI } from './hooks/safeTon';
+import { useTonAddress, useTonConnectUI } from '../hooks/safeTon';
 
 const WalletContext = createContext({ address: null, isConnected: false, connect: () => {}, disconnect: () => {} });
 
