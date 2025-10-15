@@ -1,25 +1,14 @@
-import React from 'react';
-import dynamic from 'next/dynamic';
+import React from "react";
+import dynamic from "next/dynamic";
+import { BrowserRouter } from "react-router-dom";
 
-const AppNoSSR = dynamic(() => import('../src/App'), {
-  ssr: false,
-  loading: () => <p style={{color:"#fff",padding:"1rem"}}>Loading app…</p>,
-});
+// Load the SPA only on the client
+const App = dynamic(() => import("../src/App"), { ssr: false });
 
-class ErrorBoundary extends React.Component {
-  constructor(props){ super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(error){ return { error }; }
-  componentDidCatch(error, info){ console.error('App error:', error, info); }
-  render(){
-    if (this.state.error) {
-      return (
-        <pre style={{color:"#fff",background:"#111",padding:"1rem",whiteSpace:"pre-wrap"}}>
-{String(this.state.error)}
-        </pre>
-      );
-    }
-    return this.props.children;
-  }
+export default function CatchAll() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
 }
-
-export default function CatchAll(){ return <ErrorBoundary><AppNoSSR/></ErrorBoundary>; }
