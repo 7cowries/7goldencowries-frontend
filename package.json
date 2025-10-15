@@ -36,7 +36,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "next dev",
-    "dev-proxy": "node server/dev-proxy.js"
+    "dev-proxy": "node server/dev-proxy.js",
+    "prebuild": "rm -rf pages/api pages/api.* || true"
   },
   "eslintConfig": {
     "extends": [
