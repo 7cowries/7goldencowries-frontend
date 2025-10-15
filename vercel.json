@@ -1,5 +1,13 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" }
+    { "source": "/api/(.*)", "destination": "https://sevengoldencowries-backend.onrender.com/api/$1" }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.7goldencowries.com" }],
+      "destination": "https://7goldencowries.com/:path*",
+      "permanent": true
+    }
   ]
 }
