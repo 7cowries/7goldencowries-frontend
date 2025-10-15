@@ -1,83 +1,39 @@
+import React from 'react';
 import Link from 'next/link';
-import React, { useEffect, useState } from "react";
-import "./LeftNav.css";
-import logo from "../assets/logo.svg";
-import { toggleTheme } from "../utils/theme";
+import { useRouter } from 'next/router';
+
+const items = [
+  { href: '/', label: 'Quests', icon: '⚡' },
+  { href: '/leaderboard', label: 'Leaderboard', icon: '📊' },
+  { href: '/referral', label: 'Referral', icon: '👑' },
+  { href: '/subscription', label: 'Subscription', icon: '💎' },
+  { href: '/token-sale', label: 'Token Sale', icon: '🪙' },
+  { href: '/profile', label: 'Profile', icon: '🔗' },
+  { href: '/isles', label: 'Isles', icon: '🪴' }
+];
 
 export default function LeftNav() {
-  const pathname = (typeof window !== 'undefined' ? window.location.pathname : '/');
-  const [open, setOpen] = useState(false);
-
-  // Close the mobile menu whenever route changes
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
+  const router = useRouter();
   return (
-    <>
-      {/* Mobile toggle (hamburger) */}
-      <button
-        className="nav-toggle"
-        aria-label="Toggle navigation"
-        aria-expanded={open ? "true" : "false"}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="bar" />
-        <span className="bar" />
-        <span className="bar" />
-      </button>
-
-      {/* Backdrop for mobile drawer */}
-      {open && <div className="leftnav-overlay" onClick={() => setOpen(false)} />}
-
-      <aside className={`leftnav ${open ? "open" : "closed"}`} role="navigation">
-        {/* Brand (clickable to landing) */}
-        <Link to="/" className="brand" aria-label="7GoldenCowries Home">
-          <img src={logo} alt="7GoldenCowries logo" className="brand-logo" />
-          <span className="brand-text">7GoldenCowries</span>
-        </Link>
-
-        <nav className="nav">
-          <Link to="/quests" className="nav-item">
-            <span className="emoji">⚡</span>
-            <span>Quests</span>
+    <nav style={{width:280, padding:16}}>
+      <div style={{marginBottom:12, fontWeight:700}}>7GoldenCowries</div>
+      {items.map(it => {
+        const active = router.pathname === it.href;
+        return (
+          <Link key={it.href} href={it.href} legacyBehavior>
+            <a style={{
+              display:'flex', alignItems:'center', gap:12,
+              padding:'12px 16px', margin:'8px 0',
+              borderRadius:14,
+              background: active ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+              border: active ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(255,255,255,0.12)'
+            }}>
+              <span style={{fontSize:18}}>{it.icon}</span>
+              <span>{it.label}</span>
+            </a>
           </Link>
-
-          <Link to="/leaderboard" className="nav-item">
-            <span className="emoji">📚</span>
-            <span>Leaderboard</span>
-          </Link>
-
-          <Link to="/referral" className="nav-item">
-            <span className="emoji">👑</span>
-            <span>Referral</span>
-          </Link>
-
-          <Link to="/subscription" className="nav-item">
-            <span className="emoji">💎</span>
-            <span>Subscription</span>
-          </Link>
-
-          <Link to="/token-sale" className="nav-item">
-            <span className="emoji">🪙</span>
-            <span>Token Sale</span>
-          </Link>
-
-          <Link to="/profile" className="nav-item">
-            <span className="emoji">🔗</span>
-            <span>Profile</span>
-          </Link>
-
-          <Link to="/isles" className="nav-item">
-            <span className="emoji">🌱</span>
-            <span>Isles</span>
-          </Link>
-          <button type="button" className="nav-item" onClick={toggleTheme}>
-            <span className="emoji">🌈</span>
-            <span>Theme</span>
-          </button>
-        </nav>
-      </aside>
-    </>
+        );
+      })}
+    </nav>
   );
 }
