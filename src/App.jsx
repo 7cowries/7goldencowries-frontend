@@ -1,9 +1,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
-
 import Layout from "./components/Layout";
-
 import Home from "./pages/Home";
 import Quests from "./pages/Quests";
 import Leaderboard from "./pages/Leaderboard";
