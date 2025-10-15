@@ -5,7 +5,12 @@ import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import "./index.css";
 import App from "./App";
 
-const manifestUrl = process.env.REACT_APP_TONCONNECT_MANIFEST_URL;
+const manifestUrl =
+  process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
+  process.env.NEXT_PUBLIC_TONCONNECT_MANIFEST_URL ||
+  (typeof window !== "undefined"
+    ? `${window.location.origin}/tonconnect-manifest.json`
+    : "/tonconnect-manifest.json");
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
