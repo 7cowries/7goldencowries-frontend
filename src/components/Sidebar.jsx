@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Link, NavLink } from "react-router-dom";
 
 export default function Sidebar({ open, onClose }) {

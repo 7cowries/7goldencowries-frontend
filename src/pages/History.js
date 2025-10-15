@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { getJSON, postJSON } from '../utils/api';
 // src/pages/History.js
 import React, { useEffect, useState } from "react";

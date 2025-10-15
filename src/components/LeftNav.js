@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import React, { useEffect, useState } from "react";
 import "./LeftNav.css";
 import logo from "../assets/logo.svg";
@@ -37,40 +38,40 @@ export default function LeftNav() {
         </Link>
 
         <nav className="nav">
-          <NavLink to="/quests" className="nav-item">
+          <Link to="/quests" className="nav-item">
             <span className="emoji">⚡</span>
             <span>Quests</span>
-          </NavLink>
+          </Link>
 
-          <NavLink to="/leaderboard" className="nav-item">
+          <Link to="/leaderboard" className="nav-item">
             <span className="emoji">📚</span>
             <span>Leaderboard</span>
-          </NavLink>
+          </Link>
 
-          <NavLink to="/referral" className="nav-item">
+          <Link to="/referral" className="nav-item">
             <span className="emoji">👑</span>
             <span>Referral</span>
-          </NavLink>
+          </Link>
 
-          <NavLink to="/subscription" className="nav-item">
+          <Link to="/subscription" className="nav-item">
             <span className="emoji">💎</span>
             <span>Subscription</span>
-          </NavLink>
+          </Link>
 
-          <NavLink to="/token-sale" className="nav-item">
+          <Link to="/token-sale" className="nav-item">
             <span className="emoji">🪙</span>
             <span>Token Sale</span>
-          </NavLink>
+          </Link>
 
-          <NavLink to="/profile" className="nav-item">
+          <Link to="/profile" className="nav-item">
             <span className="emoji">🔗</span>
             <span>Profile</span>
-          </NavLink>
+          </Link>
 
-          <NavLink to="/isles" className="nav-item">
+          <Link to="/isles" className="nav-item">
             <span className="emoji">🌱</span>
             <span>Isles</span>
-          </NavLink>
+          </Link>
           <button type="button" className="nav-item" onClick={toggleTheme}>
             <span className="emoji">🌈</span>
             <span>Theme</span>
