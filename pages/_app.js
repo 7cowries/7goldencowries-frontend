@@ -1,4 +1,4 @@
-import '@/styles.css';
+import '../styles.css';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
 export default function App({ Component, pageProps }) {
