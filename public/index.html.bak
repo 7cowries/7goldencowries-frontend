@@ -25,21 +25,21 @@
     <meta property="og:description" content="Complete quests, level up, and unlock partner perks across the Seven Isles." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://7goldencowries.com/" />
-    <meta property="og:image" content="%PUBLIC_URL%/og.png" />
+    <meta property="og:image" content="/og.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="7GoldenCowries — Quests, XP & Isles" />
     <meta name="twitter:description" content="A sleek web3 quest world—earn XP, climb the Isles, and gain perks." />
-    <meta name="twitter:image" content="%PUBLIC_URL%/og.png" />
+    <meta name="twitter:image" content="/og.png" />
 
     <!-- Icons / PWA -->
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- Brand SVG (golden cowrie) as maskable icon for Android -->
-    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/logo-cowrie-gold.svg" />
+    <link rel="icon" type="image/svg+xml" href="/logo-cowrie-gold.svg" />
 
     <!-- Preload Fonts (faster text render) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -50,7 +50,7 @@
     />
 
     <!-- Optional: Preload a hero image if you use one on landing -->
-    <!-- <link rel="preload" as="image" href="%PUBLIC_URL%/images/hero@2x.jpg" imagesrcset="%PUBLIC_URL%/images/hero.jpg 1x, %PUBLIC_URL%/images/hero@2x.jpg 2x" /> -->
+    <!-- <link rel="preload" as="image" href="/images/hero@2x.jpg" imagesrcset="/images/hero.jpg 1x, /images/hero@2x.jpg 2x" /> -->
 
     <!-- Structured Data (basic org/site) -->
     <script type="application/ld+json">

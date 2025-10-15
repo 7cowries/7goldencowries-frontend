@@ -1,3 +1,5 @@
+import { safeWindow } from "../src/utils/safeWindow";
+safeWindow();
 import React from 'react';
 import TonProvider from '../src/components/TonProvider';
 
