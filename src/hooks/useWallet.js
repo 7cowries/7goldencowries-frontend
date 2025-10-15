@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useTonConnectUI, useTonAddress } from "@tonconnect/ui-react";
+import { useTonConnectUI, useTonAddress } from "./hooks/safeTon";
 
 export default function useWallet() {
   let tonUI = null;
