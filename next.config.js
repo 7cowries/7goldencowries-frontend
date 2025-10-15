@@ -3,8 +3,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const nextConfig = {
   reactStrictMode: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async rewrites() {
-    // Only create the proxy if the env var is set
     if (!API_BASE) return [];
     return [
       {

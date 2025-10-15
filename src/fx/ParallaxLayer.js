@@ -4,8 +4,8 @@ export default function ParallaxLayer({ depth=20, children, style }) {
   useEffect(() => {
     const el = ref.current; if (!el) return;
     const on = (e) => {
-      const x = (e.clientX / innerWidth - .5) * depth;
-      const y = (e.clientY / innerHeight - .5) * depth;
+      const x = (e.clientX / window.innerWidth - .5) * depth;
+      const y = (e.clientY / window.innerHeight - .5) * depth;
       el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     };
     window.addEventListener('mousemove', on);
