@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import "./ConnectButtons.css";
 import { API_BASE as RAW_API_BASE } from "../utils/api";
 
 function join(base, path) {

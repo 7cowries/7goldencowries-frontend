@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { playXP } from "../utils/sounds";
-import "./XPModal.css"; // if you have one, keep it
 
 export default function XPModal({ xpGained = 0, onClose }) {
   useEffect(() => {

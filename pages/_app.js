@@ -1,3 +1,6 @@
+import '../src/components/XPModal.css';
+import '../src/components/ConnectButtons.css';
+import '../src/App.css';
 import '../src/index.css';
 import { TonConnectUIProvider } from '../src/hooks/safeTon';
 
