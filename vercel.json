@@ -3,13 +3,9 @@
   "framework": "create-react-app",
   "buildCommand": "CI= npm run build",
   "outputDirectory": "build",
-
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://sevengoldencowries-backend.onrender.com/$1" }
-  ],
-
   "routes": [
+    { "src": "/api/(.*)", "dest": "https://sevengoldencowries-backend.onrender.com/$1" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/.*", "dest": "/index.html" }
   ]
 }
