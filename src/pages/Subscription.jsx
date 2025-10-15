@@ -11,8 +11,6 @@ import {
   tierMultiplier,
   claimSubscriptionBonus,
 } from "../utils/api";
-import "./Subscription.css";
-import "../App.css";
 
 const tiersUSD = [
   {

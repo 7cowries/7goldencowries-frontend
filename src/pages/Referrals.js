@@ -1,7 +1,5 @@
 // src/pages/Referrals.js
 import React, { useEffect, useMemo, useState } from "react";
-import "./Referral.css"; // reuse your existing styling
-import "../App.css";
 
 import { playClick } from "../utils/sounds";
 import { getReferralCode, getReferralStats } from "../utils/referrals";

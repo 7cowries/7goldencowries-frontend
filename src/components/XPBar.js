@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import './XPBar.css';
 
 const XPBar = ({ xp, nextXP }) => {
   const [progress, setProgress] = useState(0);

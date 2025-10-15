@@ -1,7 +1,5 @@
 // src/pages/Profile.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "./Profile.css";
-import "../App.css";
 import Page from "../components/Page";
 import {
   API_BASE,

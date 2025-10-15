@@ -1,6 +1,5 @@
 // src/pages/TokenSale.js
 import React, { useEffect, useState } from "react";
-import "./TokenSale.css";
 import Page from "../components/Page";
 // // import WalletConnect from "../components/WalletConnect";
 import useWallet from "../hooks/useWallet";

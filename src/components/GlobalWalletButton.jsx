@@ -1,6 +1,5 @@
 import React from "react";
 import WalletConnect from "./WalletConnect";
-import "./GlobalWalletButton.css";
 
 
 export default function GlobalWalletButton() {

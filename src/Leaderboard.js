@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import './Leaderboard.css';
 import { getLeaderboard } from './utils/api';
 import { levelBadgeSrc } from './config/progression';
 

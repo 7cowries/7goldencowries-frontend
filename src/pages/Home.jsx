@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import Page from "../components/Page";
 import { playClick, playXP } from "../utils/sounds";
 import { SALE_START_ISO, useCountdown, downloadSaleReminder, inviteFriend } from "../utils/launch";
-import "./Landing.css";
 
 export default function Home() {
   // Unified countdown (same as token-sale page)

@@ -1,6 +1,5 @@
 import React from "react";
 import Sidebar from "./Sidebar";
-import "./AppLayout.css"; // responsive flex layout rules
 
 export default function AppLayout({ children }) {
   return (

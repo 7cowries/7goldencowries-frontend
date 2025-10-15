@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getLeaderboard } from '../utils/api';
 import { abbreviateWallet } from '../lib/format';
 import Page from '../components/Page';
-import './Leaderboard.css';
 import { levelBadgeSrc } from '../config/progression';
 
 const REFRESH_MS = 60000;

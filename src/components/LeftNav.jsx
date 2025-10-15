@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getEffectsOff, setEffectsOff } from "../store/effects";
 import { Link, NavLink } from "react-router-dom";
-import "./LeftNav.css";
 import logo from "../assets/logo.svg";
 import WalletConnect from "./WalletConnect";
 

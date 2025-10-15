@@ -1,7 +1,6 @@
 // src/pages/Isles.js
 import { getJSON } from "../utils/api";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import "../App.css";
 import Page from "../components/Page";
 import { API_BASE, getMe } from "../utils/api"; // ✅ use session-aware profile first
 import useWallet from "../hooks/useWallet";
