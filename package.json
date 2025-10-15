@@ -9,13 +9,17 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@ton/core": "^0.61.0",
-    "@tonconnect/sdk": "^3.2.0",
+    "@tonconnect/sdk": "^3.3.1",
     "@tonconnect/ui": "^2.3.1",
+    "@tonconnect/ui-react": "^2.3.1",
     "axios": "^1.11.0",
     "buffer": "^6.0.3",
     "canvas-confetti": "^1.9.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "framer-motion": "^12.23.6",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
@@ -29,9 +33,10 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dev": "node server/dev-proxy.js",
+    "dev-proxy": "node server/dev-proxy.js"
   },
-  "proxy": "http://localhost:4000",
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -39,6 +44,7 @@
     ]
   },
   "devDependencies": {
+    "http-proxy-middleware": "^3.0.5",
     "supertest": "^6.3.4"
   },
   "browserslist": {
@@ -52,5 +58,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "https://sevengoldencowries-backend.onrender.com"
 }
