@@ -1,4 +1,7 @@
+import React from "react";
 import { Routes, Route } from "react-router-dom";
+import { TonConnectUIProvider } from "@tonconnect/ui-react";
+
 import Layout from "./components/Layout";
 
 import Home from "./pages/Home";
@@ -10,9 +13,16 @@ import Referral from "./pages/Referral";
 import Subscription from "./pages/Subscription";
 import TokenSale from "./pages/TokenSale";
 
+const manifestUrl =
+  process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
+  process.env.NEXT_PUBLIC_TONCONNECT_MANIFEST_URL ||
+  (typeof window !== "undefined"
+    ? `${window.location.origin}/tonconnect-manifest.json`
+    : "/tonconnect-manifest.json");
+
 export default function App() {
   return (
-    <>
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -25,6 +35,6 @@ export default function App() {
           <Route path="/isles" element={<Isles />} />
         </Routes>
       </Layout>
-    </>
+    </TonConnectUIProvider>
   );
 }
