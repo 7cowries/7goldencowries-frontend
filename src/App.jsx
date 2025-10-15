@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import { TonConnectUIProvider } from "@tonconnect/ui-react";
+import { TonConnectUIProvider } from "./hooks/safeTon";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Quests from "./pages/Quests";

@@ -1,8 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { TonConnectUIProvider } from "@tonconnect/ui-react";
-import "./index.css";
+import { TonConnectUIProvider } from "./hooks/safeTon";
 import App from "./App";
 
 const manifestUrl =
