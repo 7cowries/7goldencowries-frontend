@@ -8,5 +8,11 @@ const nextConfig = {
     if (!API_BASE) return [];
     return [{ source: '/api/:path*', destination: `${API_BASE}/api/:path*` }];
   },
+  async redirects() {
+    return [
+      { source: '/', destination: '/isles', permanent: false },
+    ];
+  },
 };
+
 module.exports = nextConfig;
