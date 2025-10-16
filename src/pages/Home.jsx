@@ -268,7 +268,7 @@ export default function Home() {
               <div className="lore-pin">
                 <img
                   className="cowrie-sparkle"
-                  src="/images/cowrie-sparkle.svg"
+                  src="/logo.svg"
                   alt=""
                   onError={(e) => (e.currentTarget.style.display = "none")}
                 />
