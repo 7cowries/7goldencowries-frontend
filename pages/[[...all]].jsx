@@ -1,14 +1,8 @@
-import React from "react";
 import dynamic from "next/dynamic";
-import { BrowserRouter } from "react-router-dom";
 
-// Load the SPA only on the client
-const App = dynamic(() => import("../src/App"), { ssr: false });
+// Load the client app only in the browser; on the server it renders a safe placeholder.
+const ClientApp = dynamic(() => import("../src/ClientApp"), { ssr: false });
 
 export default function CatchAll() {
-  return (
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  );
+  return <ClientApp />;
 }
