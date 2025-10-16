@@ -9,5 +9,4 @@ const nextConfig = {
     return [{ source: '/api/:path*', destination: `${API_BASE}/api/:path*` }];
   },
 };
-
 module.exports = nextConfig;
