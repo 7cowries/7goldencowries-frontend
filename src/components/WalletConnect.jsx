@@ -1,3 +1,4 @@
+import { ensureTonUI } from "../utils/ton";
 import React, { useEffect, useState } from "react";
 
 const MANIFEST_URL = "https://7goldencowries.com/tonconnect-manifest.json";
@@ -35,6 +36,9 @@ function findTonAddress() {
 }
 
 export default function WalletConnect({ compact = false }) {
+// TON UI boot
+  useEffect(() => { try { ensureTonUI(); } catch(_) {} }, []);
+
   const [addr, setAddr] = useState(null);
 
   useEffect(() => {
