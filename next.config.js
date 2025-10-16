@@ -3,14 +3,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://sevengoldencow
 
 const CSP = [
   "default-src 'self' https: data:",
-  "img-src 'self' https: data:",
-  "script-src 'self' https://plausible.io 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  // Allow your API, analytics, Coingecko, and TON Connect bridges (HTTPS + WSS)
-  `connect-src 'self' ${API_BASE} https://plausible.io https://api.coingecko.com https://bridge.tonapi.io wss://bridge.tonapi.io https://connect.tonhubapi.com wss://connect.tonhubapi.com`,
-  "frame-ancestors 'self'",
-  "upgrade-insecure-requests"
-].join('; ');
+  "img-src 'self' https: data: blob:; ');
 
 module.exports = {
   reactStrictMode: false,
