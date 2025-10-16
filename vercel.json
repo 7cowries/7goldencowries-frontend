@@ -1,9 +1,8 @@
 {
-  "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "CI= npm run build",
-  "outputDirectory": ".next",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/:path*" }
+    { "source": "/api/(.*)", "destination": "https://sevengoldencowries-backend.onrender.com/api/$1" }
+  ],
+  "redirects": [
+    { "source": "/", "destination": "/isles", "permanent": false }
   ]
 }
