@@ -4,7 +4,7 @@ import { clampProgress } from '../lib/format';
 import { levelBadgeSrc } from '../config/progression';
 
 export default function ProfileWidget() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [me, setMe] = useState(null);
   const [error, setError] = useState('');
 

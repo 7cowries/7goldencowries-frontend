@@ -44,7 +44,7 @@ const ProgressMeter = ({ progress }) => {
 
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const walletRef = useRef('');
   const mountedRef = useRef(true);

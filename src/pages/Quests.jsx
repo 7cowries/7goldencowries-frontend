@@ -43,7 +43,7 @@ function responseRequiresProof(res) {
 
 export default function Quests() {
   const [quests, setQuests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [blockedClaims, setBlockedClaims] = useState({});

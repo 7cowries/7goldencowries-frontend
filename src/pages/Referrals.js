@@ -28,7 +28,7 @@ function Toast({ msg, type = "info", onClose }) {
 }
 
 export default function Referrals() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [code, setCode] = useState("");
   const [referees, setReferees] = useState([]);
   const [toast, setToast] = useState({ msg: "", type: "info" });

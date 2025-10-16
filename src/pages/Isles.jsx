@@ -237,7 +237,7 @@ function useProfile(address) {
     levelProgress: 0,
     levelTier: "shellborn",
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
