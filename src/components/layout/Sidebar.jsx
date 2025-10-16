@@ -1,3 +1,4 @@
+import WalletConnect from "../../components/WalletConnect";
 import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 // using /logo.svg from public

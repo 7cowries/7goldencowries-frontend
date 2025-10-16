@@ -1,63 +1,110 @@
-// src/components/WalletConnect.jsx
 import React, { useEffect, useState } from "react";
-import {
-  connectWallet,
-  disconnectWallet,
-  getWalletAccount,
-} from "../hooks/useWallet";
 
-const MANIFEST =
-  process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
-  "https://7goldencowries.com/tonconnect-manifest.json";
+const MANIFEST_URL = "https://7goldencowries.com/tonconnect-manifest.json";
 
-export default function WalletConnect({ className = "" }) {
-  const [account, setAccount] = useState(null);
-  const [busy, setBusy] = useState(false);
+function findTonAddress() {
+  try {
+    const w = typeof window !== "undefined" ? window : {};
+    const maybe =
+      w?.ton?.account?.address ||
+      w?.tonConnectUI?.account?.address ||
+      w?.tonkeeper?.account?.address;
+    if (maybe) return maybe;
+  } catch (_) {}
 
-  const refresh = async () => {
-    const acc = await getWalletAccount();
-    setAccount(acc);
-  };
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      const v = localStorage.getItem(k);
+      if (!v) continue;
+      if (/ton|wallet/i.test(k)) {
+        try {
+          const j = JSON.parse(v);
+          const a =
+            j?.account?.address ||
+            j?.address ||
+            j?.wallet?.account?.address ||
+            j?.state?.account?.address;
+          if (a) return a;
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+export default function WalletConnect({ compact = false }) {
+  const [addr, setAddr] = useState(null);
 
   useEffect(() => {
-    refresh();
+    const update = () => setAddr(findTonAddress());
+    update();
+    window.addEventListener("storage", update);
+    const t = setInterval(update, 2000); // light poll as a fallback
+    return () => {
+      window.removeEventListener("storage", update);
+      clearInterval(t);
+    };
   }, []);
 
-  const onConnect = async () => {
-    setBusy(true);
+  const connect = async () => {
     try {
-      await connectWallet(MANIFEST);
-      await refresh();
-    } finally {
-      setBusy(false);
-    }
+      if (window.tonConnectUI?.openModal) {
+        await window.tonConnectUI.openModal();
+        return;
+      }
+    } catch (_) {}
+    // Fallback: open manifest (wallets that support TonConnect can pick this up)
+    window.open(MANIFEST_URL, "_blank");
   };
 
-  const onDisconnect = async () => {
-    setBusy(true);
+  const disconnect = async () => {
+    try { if (window.tonConnectUI?.disconnect) await window.tonConnectUI.disconnect(); } catch(_) {}
+    try { if (window.ton?.disconnect) await window.ton.disconnect(); } catch(_) {}
+
     try {
-      await disconnectWallet();
-      await refresh();
-    } finally {
-      setBusy(false);
-    }
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && /ton|wallet/i.test(k)) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+    } catch (_) {}
+
+    setAddr(null);
+    setTimeout(() => location.reload(), 150);
   };
 
-  if (account) {
-    const addr =
-      account.account?.address ??
-      account.account?.address?.toString?.() ??
-      "connected";
+  const short = addr ? addr.slice(0, 4) + "…" + addr.slice(-4) : "";
+  const base = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: compact ? "6px 10px" : "10px 14px",
+    borderRadius: 12,
+    border: "1px solid #94A3B8",
+    color: "#e7e7ff",
+    fontWeight: 600,
+    background: "rgba(255,255,255,0.08)",
+    textDecoration: "none",
+    cursor: "pointer"
+  };
+
+  if (!addr) {
     return (
-      <button className={`wallet-button ${className}`} onClick={onDisconnect} disabled={busy}>
-        Disconnect ({String(addr).slice(0, 6)}…{String(addr).slice(-4)})
+      <button onClick={connect} style={{ ...base, background: "#0b2240" }}>
+        Connect Wallet
       </button>
     );
   }
 
   return (
-    <button className={`wallet-button ${className}`} onClick={onConnect} disabled={busy}>
-      {busy ? "Connecting…" : "Connect Wallet"}
-    </button>
+    <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ ...base, cursor: "default" }}>Connected {short}</div>
+      <button onClick={disconnect} style={{ ...base, background: "transparent" }}>
+        Disconnect
+      </button>
+    </div>
   );
 }

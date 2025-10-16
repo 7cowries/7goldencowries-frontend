@@ -44,3 +44,6 @@ export default function LeftNav() {
     </aside>
   );
 }
+
+/* Wallet footer */
+/* render somewhere in your nav container: <WalletConnect compact /> */
