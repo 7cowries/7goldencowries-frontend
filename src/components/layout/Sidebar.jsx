@@ -65,7 +65,8 @@ export default function Sidebar() {
             <span className="emoji">🌈</span>
             <span>Theme</span>
           </button>
-        </nav>
+          <div style={{margin:"12px 10px 12px"}}><WalletConnect compact /></div>
+</nav>
       </aside>
     </>
   );
