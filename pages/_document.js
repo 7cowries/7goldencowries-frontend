@@ -10,7 +10,7 @@ export default function Document() {
       <Head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#0b2240" />
         <meta name="description" content={description} />
         <link rel="canonical" href={url} />
