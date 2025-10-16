@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
-import logo from "../../assets/logo.svg";
+// using /logo.svg from public
 import { toggleTheme } from "../../utils/theme";
 
 const items = [
@@ -43,7 +43,7 @@ export default function Sidebar() {
       <aside className={`leftnav ${open ? "open" : "closed"}`} role="navigation">
         {/* Brand link */}
         <Link to="/" className="brand" aria-label="7GoldenCowries Home">
-          <img src={logo} alt="7GoldenCowries logo" className="brand-logo" />
+          <img src="/logo.svg" alt="7GoldenCowries logo" className="brand-logo" />
           <span className="brand-text">7GoldenCowries</span>
         </Link>
 
