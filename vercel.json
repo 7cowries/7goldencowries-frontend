@@ -1,6 +1,4 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://sevengoldencowries-backend.onrender.com/api/$1" }
   ],
