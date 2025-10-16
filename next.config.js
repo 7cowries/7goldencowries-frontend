@@ -6,7 +6,6 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   async rewrites() {
     if (!API_BASE) return [];
-    // Proxy /api/* on the site to the backend /api/* (keeps /v1/... etc.)
     return [{ source: '/api/:path*', destination: `${API_BASE}/api/:path*` }];
   },
 };
