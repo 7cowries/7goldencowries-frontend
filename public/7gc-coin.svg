@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .gold{fill:#f1c34b}
+      .ink{fill:#0b2240}
+      .aqua{fill:none;stroke:#46c0c6;stroke-width:14;stroke-linecap:round}
+      .dot{fill:#fff}
+    </style>
+  </defs>
+  <circle cx="128" cy="128" r="110" class="gold"/>
+  <rect x="112" y="46" width="32" height="164" rx="16" class="ink"/>
+  <path class="aqua" d="M60 88a90 90 0 0 1 136 0"/>
+  <path class="aqua" d="M60 168a90 90 0 0 0 136 0"/>
+  <circle cx="86" cy="178" r="6" class="dot"/>
+  <circle cx="170" cy="78" r="6" class="dot"/>
+</svg>

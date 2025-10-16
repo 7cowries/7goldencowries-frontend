@@ -52,7 +52,7 @@ export default function Home() {
               gap:"1rem",
               gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))"
             }}>
-              <Card title="GigDzBot" text="A Telegram bot that feels human. Connect your wallets, trade, and earn with natural chat." />
+              <Card title="GigiP2Bot" text="A Telegram bot that feels human. Connect your wallets, trade, and earn with natural chat." />
               <Card title="MaxEng"  text="Telegram companion for memberships, campaigns, and provable actions on-chain." />
             </div>
           </section>
