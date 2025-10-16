@@ -1,5 +1,6 @@
 {
+  "buildCommand": "npm run build",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://sevengoldencowries-backend.onrender.com/api/$1" }
+    { "source": "/api/:path*", "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" }
   ]
 }
