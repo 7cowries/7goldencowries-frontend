@@ -23,6 +23,15 @@ export default function Document() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={ogImage} />
+    <link rel="preload" as="image" href="/logo.svg" />
+    <link rel="preconnect" href="https://plausible.io" />
+    <script type="application/ld+json">{
+      "@context":"https://schema.org",
+      "@type":"Organization",
+      "name":"7GoldenCowries",
+      "url":"https://7goldencowries.com",
+      "logo":"https://7goldencowries.com/logo.svg"
+    }</script>
       </Head>
       <body>
         <Main />

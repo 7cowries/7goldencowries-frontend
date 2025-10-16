@@ -10,7 +10,9 @@ export default function Home() {
         <meta property="og:title" content="7GoldenCowries" />
         <meta property="og:description" content="Sail the Seven Isles — complete quests, earn XP, and unlock perks." />
         <link rel="icon" href="/favicon.ico" />
-      </Head>
+        <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+</Head>
 
       <main style={{
         minHeight: "100vh",

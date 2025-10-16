@@ -3,16 +3,22 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   'https://sevengoldencowries-backend.onrender.com';
 
+const CSP = [
+  "default-src 'self' https: data:",
+  "img-src 'self' https: data:",
+  "script-src 'self' https://plausible.io 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "connect-src 'self' https://sevengoldencowries-backend.onrender.com https://plausible.io",
+  "frame-ancestors 'self'",
+  "upgrade-insecure-requests"
+].join('; ');
+
 module.exports = {
   reactStrictMode: false,
   eslint: { ignoreDuringBuilds: true },
-
-  // Proxy your API to the backend
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${API_BASE}/api/:path*` }];
   },
-
-  // 👇 Send all www traffic to apex
   async redirects() {
     return [
       {
@@ -23,10 +29,9 @@ module.exports = {
       },
     ];
   },
-
-  // Security + long cache for images/icons
   async headers() {
     const security = [
+      { key: 'Content-Security-Policy', value: CSP },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
