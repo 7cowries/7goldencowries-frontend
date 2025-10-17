@@ -1,6 +1,6 @@
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
-import '../src/styles/globals.css';
+import '../styles/globals.css';
 
 const TonProvider = dynamic(
   () => import('../src/context/TonProvider').then(m => m.default),
