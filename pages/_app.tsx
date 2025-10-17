@@ -1,18 +1,16 @@
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
+import '../src/styles/globals.css';
 
-import { TonProvider } from '../src/context/TonProvider';
+const TonProvider = dynamic(
+  () => import('../src/context/TonProvider').then(m => m.default),
+  { ssr: false }
+);
 
-const WalletConnect = dynamic(() => import('../src/components/WalletConnect'), { ssr: false });
-
-export default function App({ Component, pageProps }: AppProps) {
+export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <TonProvider>
       <Component {...pageProps} />
-      {/* Site-wide fallback connect (hidden visually until needed) */}
-      <div style={{ position:'fixed', left:12, bottom:12, zIndex:1000 }}>
-        <WalletConnect compact />
-      </div>
     </TonProvider>
   );
 }
