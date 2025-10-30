@@ -4,6 +4,6 @@ const ClientApp = dynamic(() => import('../src/ClientApp.jsx'), {
   ssr: false,
 });
 
-export default function IndexPage() {
+export default function CatchAllPage() {
   return <ClientApp />;
 }

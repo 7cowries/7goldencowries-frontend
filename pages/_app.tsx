@@ -1,7 +1,26 @@
 import Head from 'next/head';
+import type { AppProps } from 'next/app';
+
+// Next global
 import '../styles/globals.css';
 
-export default function MyApp({ Component, pageProps }) {
+// CRA global + page CSS (these files now exist again under src/)
+import '../src/App.css';
+import '../src/pages/Landing.css';
+import '../src/pages/Leaderboard.css';
+import '../src/pages/Quests.css';
+import '../src/pages/Isles.css';
+import '../src/pages/Referral.css';
+import '../src/pages/Profile.css';
+import '../src/pages/Subscription.css';
+import '../src/pages/TokenSale.css';
+import '../src/components/ConnectButtons.css';
+import '../src/components/XPModal.css';
+import '../src/components/layout/Sidebar.css';
+
+import { WalletProvider } from '../src/context/WalletProvider';
+
+export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
@@ -11,7 +30,9 @@ export default function MyApp({ Component, pageProps }) {
         <link rel="icon" href="/favicon.ico" />
         <title>7 Golden Cowries</title>
       </Head>
-      <Component {...pageProps} />
+      <WalletProvider>
+        <Component {...pageProps} />
+      </WalletProvider>
     </>
   );
 }
