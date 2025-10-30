@@ -17,21 +17,21 @@ import '../src/components/ConnectButtons.css';
 import '../src/components/XPModal.css';
 import '../src/components/layout/Sidebar.css';
 
-import { WalletProvider } from '@/context/WalletProvider';
+import { WalletProvider } from '../src/context/WalletProvider';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <>
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#071f34" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.ico" />
-        <title>7 Golden Cowries</title>
-      </Head>
-      <WalletProvider>
+    <WalletProvider>
+      <>
+        <Head>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <meta name="theme-color" content="#071f34" />
+          <link rel="manifest" href="/manifest.json" />
+          <link rel="icon" href="/favicon.ico" />
+          <title>7 Golden Cowries</title>
+        </Head>
         <Component {...pageProps} />
-      </WalletProvider>
-    </>
+      </>
+    </WalletProvider>
   );
 }
