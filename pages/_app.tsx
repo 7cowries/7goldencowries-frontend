@@ -1,7 +1,6 @@
 import Head from 'next/head';
 import type { AppProps } from 'next/app';
-
-import "../styles/globals.css";
+import '../styles/globals.css';
 
 /* Load ONLY global styles here */
 import '../src/App.css';
