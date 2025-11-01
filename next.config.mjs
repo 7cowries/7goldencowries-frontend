@@ -1,13 +1,12 @@
-// next.config.mjs
-/** @type {import('next').NextConfig} */
+k// next.config.mjs
+const BACKEND = process.env.BACKEND_BASE || "https://sevengoldencowries-backend.onrender.com";
+
 const nextConfig = {
-  reactStrictMode: false,
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination:
-          "https://sevengoldencowries-backend.onrender.com/api/:path*",
+        destination: `${BACKEND}/api/:path*`,
       },
     ];
   },
