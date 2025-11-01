@@ -1,4 +1,4 @@
-k// next.config.mjs
+// next.config.mjs
 const BACKEND = process.env.BACKEND_BASE || "https://sevengoldencowries-backend.onrender.com";
 
 const nextConfig = {
@@ -13,4 +13,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
