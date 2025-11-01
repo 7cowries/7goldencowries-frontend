@@ -1,5 +1,5 @@
 // src/utils/api.js
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || ""; // <-- export for legacy imports
 
 export const API_URLS = {
   health: "/api/health",
@@ -30,6 +30,7 @@ async function req(method, path, body) {
   });
   return res;
 }
+
 async function fetchFirst(method, candidates, body) {
   let lastErr;
   for (const p of candidates) {
@@ -40,6 +41,7 @@ async function fetchFirst(method, candidates, body) {
   }
   throw new Error(`No working endpoint among: ${candidates.join(", ")}${lastErr ? " — " + lastErr : ""}`);
 }
+
 export async function getJSON(path){ const r=await req("GET",path); if(!r.ok) throw new Error(`GET ${path} ${r.status}`); return r.json(); }
 export async function postJSON(path,body){ const r=await req("POST",path,body); if(!r.ok) throw new Error(`POST ${path} ${r.status}`); return r.json(); }
 
@@ -50,15 +52,19 @@ export async function getMe({force=false}={}) {
   const candidates=[API_URLS.me,"/api/user/me","/api/users/me","/api/profile","/me","/user/me","/users/me"];
   _meCache=await fetchFirst("GET",candidates); return _meCache;
 }
+
 export function clearUserCache(){ _meCache=null; try{sessionStorage.removeItem("me"); localStorage.removeItem("me");}catch{} }
+
 export async function disconnectSession(){
   const sets=[API_URLS.auth.logoutCandidates, ["/auth/logout","/auth/wallet/logout","/auth/session/logout"]];
   for(const list of sets){ try{ await fetchFirst("POST", list, {}); clearUserCache(); return {ok:true}; } catch{} }
   clearUserCache(); return {ok:false};
 }
+
 export async function bindWallet(address){
   const candidates=[API_URLS.wallet.bind,"/auth/wallet/session","/auth/session/wallet","/api/auth/wallet"];
-  return fetchFirst("POST", candidates, { address, wallet: address }); // support either param name
+  // Support both {address} and {wallet} payload shapes
+  return fetchFirst("POST", candidates, { address, wallet: address });
 }
 
 // Quests
@@ -69,19 +75,22 @@ export async function submitProof(key,proof){ return fetchFirst("POST",[API_URLS
 // Referrals
 export async function claimReferralReward(refCode){ return fetchFirst("POST",[API_URLS.referrals.claim,"/referrals/claim","/api/referral/claim"],{refCode}); }
 
-// Subscriptions
-export async function getSubscriptionStatus(){
-  return fetchFirst("GET",[API_URLS.subscriptions.status,"/subscriptions/status","/api/subscription/status"]);
-}
+// Subscriptions (live upsert)
 export async function upsertSubscription({ tier, provider="TON", tx_id, tonPaid, usdPaid }){
   const body = { tier, provider, tx_id, tonPaid, usdPaid };
   const candidates = ["/api/subscriptions/upsert", API_URLS.subscriptions.subscribe, "/subscriptions/activate", "/api/subscriptions/activate"];
   return fetchFirst("POST", candidates, body);
 }
+export async function getSubscriptionStatus(){
+  return fetchFirst("GET",[API_URLS.subscriptions.status,"/subscriptions/status","/api/subscription/status"]);
+}
 export async function claimSubscriptionBonus(){
   return fetchFirst("POST",[API_URLS.subscriptions.claimBonus,"/subscriptions/claim-bonus","/api/subscription/claim-bonus"],{});
 }
-export const claimSubscriptionReward = claimSubscriptionBonus;
+
+// Back-compat for existing code:
+export const subscribeToTier = upsertSubscription; // <-- alias expected by Subscription.jsx
+export const claimSubscriptionReward = claimSubscriptionBonus; // legacy name
 
 // Leaderboard
 export async function getLeaderboard(){ return fetchFirst("GET",[API_URLS.leaderboard,"/leaderboard"]); }
