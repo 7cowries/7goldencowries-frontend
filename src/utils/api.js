@@ -1,9 +1,53 @@
 // src/utils/api.js
 
-// Keep same-origin calls. In prod this is "/api" via rewrite; locally you can set it too.
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+// raw env from Next (Vercel)
+export const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
-/** Canonical endpoints; helpers below will fall back if needed */
+// normalized base
+// examples:
+//  ""      -> ""
+//  "/api"  -> "/api"
+//  "https://sevengoldencowries-backend.onrender.com" -> that
+export const API_BASE = RAW_API_BASE.trim().replace(/\/$/, "") || "";
+
+/**
+ * Build the final URL to call.
+ * Important: when API_BASE === "/api" and the path already starts with "/api/",
+ * we must NOT produce "/api/api/...". We just return the path.
+ */
+function buildUrl(path) {
+  if (!API_BASE) return path;
+  if (API_BASE === "/api" && path.startsWith("/api/")) {
+    return path; // avoid /api/api/...
+  }
+  return `${API_BASE}${path}`;
+}
+
+const defaultHeaders = {
+  "Content-Type": "application/json",
+  "X-Requested-With": "XMLHttpRequest",
+};
+
+async function req(method, path, body) {
+  const url = buildUrl(path);
+  const init =
+    method === "GET"
+      ? {
+          method,
+          credentials: "include",
+        }
+      : {
+          method,
+          credentials: "include",
+          headers: defaultHeaders,
+          body: JSON.stringify(body || {}),
+        };
+
+  const res = await fetch(url, init);
+  return res;
+}
+
+// ---- canonical FE <-> BE routes we prefer ----
 export const API_URLS = {
   health: "/api/health",
   me: "/api/me",
@@ -20,49 +64,40 @@ export const API_URLS = {
     claim: "/api/quests/claim",
     submitProof: "/api/quests/proof",
   },
-  referrals: { claim: "/api/referrals/claim" },
+  referrals: {
+    claim: "/api/referrals/claim",
+  },
   subscriptions: {
     status: "/api/subscriptions/status",
-    subscribe: "/api/subscriptions/upsert", // ← real BE route
+    subscribe: "/api/subscriptions/subscribe",
     claimBonus: "/api/subscriptions/claim-bonus",
+    upsert: "/api/subscriptions/upsert",
   },
   leaderboard: "/api/leaderboard",
-  tokenSale: { start: "/api/token-sale/start" },
-  wallet: { bind: "/api/auth/wallet/session" },
+  tokenSale: {
+    start: "/api/token-sale/start",
+  },
+  wallet: {
+    bind: "/api/auth/wallet/session",
+  },
 };
-
-const defaultHeaders = {
-  "Content-Type": "application/json",
-  "X-Requested-With": "XMLHttpRequest",
-};
-
-async function req(method, path, body) {
-  const url = `${API_BASE}${path}`;
-  const init =
-    method === "GET"
-      ? { method, credentials: "include" }
-      : {
-          method,
-          credentials: "include",
-          headers: defaultHeaders,
-          body: JSON.stringify(body || {}),
-        };
-  const res = await fetch(url, init);
-  return res;
-}
 
 export async function getJSON(path) {
   const r = await req("GET", path);
   if (!r.ok) throw new Error(`GET ${path} ${r.status}`);
   return r.json();
 }
+
 export async function postJSON(path, body) {
   const r = await req("POST", path, body);
   if (!r.ok) throw new Error(`POST ${path} ${r.status}`);
   return r.json();
 }
 
-/** Try candidates until one returns 2xx */
+/**
+ * Try candidates until one works (200-299).
+ * Used to stay compatible with older BE deployments.
+ */
 async function fetchFirst(method, candidates, body) {
   let lastErr;
   for (const p of candidates) {
@@ -76,23 +111,26 @@ async function fetchFirst(method, candidates, body) {
   throw new Error(
     `No working endpoint among: ${candidates.join(", ")}${
       lastErr ? " — " + lastErr : ""
-    }`,
+    }`
   );
 }
 
-/* -------- High-level helpers (with fallbacks) -------- */
-
-// Cache for /me
+// ---- user / session ----
 let _meCache = null;
 
 export async function getMe({ force = false } = {}) {
   if (!force && _meCache) return _meCache;
+
   const candidates = [
     API_URLS.me,
     "/api/user/me",
     "/api/users/me",
     "/api/profile",
+    "/me",
+    "/user/me",
+    "/users/me",
   ];
+
   _meCache = await fetchFirst("GET", candidates);
   return _meCache;
 }
@@ -101,98 +139,124 @@ export function clearUserCache() {
   _meCache = null;
   try {
     sessionStorage.removeItem("me");
+  } catch {}
+  try {
     localStorage.removeItem("me");
   } catch {}
 }
 
 export async function disconnectSession() {
-  const sets = [
+  const candidateSets = [
     API_URLS.auth.logoutCandidates,
-    ["/api/auth/logout", "/api/auth/wallet/logout", "/api/auth/session/logout"],
+    ["/auth/logout", "/auth/wallet/logout", "/auth/session/logout"],
   ];
-  for (const list of sets) {
+  for (const list of candidateSets) {
     try {
       await fetchFirst("POST", list, {});
       clearUserCache();
       return { ok: true };
-    } catch {}
+    } catch (_) {}
   }
   clearUserCache();
   return { ok: false };
 }
 
-export async function bindWallet(address) {
+export async function bindWallet(wallet) {
   const candidates = [
-    API_URLS.wallet.bind, // POST {address}
+    API_URLS.wallet.bind,
+    "/auth/wallet/session",
+    "/auth/session/wallet",
     "/api/auth/wallet",
   ];
-  return fetchFirst("POST", candidates, { address });
+  return fetchFirst("POST", candidates, { address: wallet, wallet });
 }
 
-/* Quests (backend may return [] if none seeded) */
+// ---- quests ----
 export async function getQuests() {
-  const candidates = [API_URLS.quests.list];
+  const candidates = [API_URLS.quests.list, "/quests"];
   return fetchFirst("GET", candidates);
 }
+
 export async function claimQuest(key) {
-  const candidates = [API_URLS.quests.claim];
+  const candidates = [
+    API_URLS.quests.claim,
+    "/quests/claim",
+    "/api/quest/claim",
+  ];
   return fetchFirst("POST", candidates, { key });
 }
+
 export async function submitProof(key, proof) {
-  const candidates = [API_URLS.quests.submitProof];
+  const candidates = [API_URLS.quests.submitProof, "/quests/proof"];
   return fetchFirst("POST", candidates, { key, proof });
 }
 
-/* Referrals */
+// ---- referrals ----
 export async function claimReferralReward(refCode) {
-  const candidates = [API_URLS.referrals.claim];
+  const candidates = [
+    API_URLS.referrals.claim,
+    "/referrals/claim",
+    "/api/referral/claim",
+  ];
   return fetchFirst("POST", candidates, { refCode });
 }
 
-/* Subscriptions */
+// ---- subscriptions ----
 export async function getSubscriptionStatus() {
   const candidates = [
     API_URLS.subscriptions.status,
+    "/subscriptions/status",
     "/api/subscription/status",
   ];
   return fetchFirst("GET", candidates);
 }
+
 export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
-  // The backend expects { tier, provider, tx_id } at /api/subscriptions/upsert.
-  // Accept both shapes for convenience.
-  const payload =
-    txHash || tonPaid || usdPaid
-      ? { tier, txHash, tonPaid, usdPaid }
-      : { tier };
+  // our BE has /api/subscriptions/upsert wired
+  const body = {
+    tier,
+    txHash,
+    tonPaid,
+    usdPaid,
+  };
   const candidates = [
     API_URLS.subscriptions.subscribe,
+    API_URLS.subscriptions.upsert,
+    "/subscriptions/activate",
     "/api/subscriptions/activate",
   ];
-  return fetchFirst("POST", candidates, payload);
+  return fetchFirst("POST", candidates, body);
 }
+
 export async function claimSubscriptionBonus() {
   const candidates = [
     API_URLS.subscriptions.claimBonus,
+    "/subscriptions/claim-bonus",
     "/api/subscription/claim-bonus",
   ];
   return fetchFirst("POST", candidates, {});
 }
-// Back-compat alias some pages import:
+
+// Back-compat name some pages use
 export const claimSubscriptionReward = claimSubscriptionBonus;
 
-/* Leaderboard */
+// ---- leaderboard ----
 export async function getLeaderboard() {
-  const candidates = [API_URLS.leaderboard];
+  const candidates = [API_URLS.leaderboard, "/leaderboard"];
   return fetchFirst("GET", candidates);
 }
 
-/* Token sale */
+// ---- token sale ----
 export async function startTokenSalePurchase(payload) {
-  const candidates = [API_URLS.tokenSale.start];
+  const candidates = [
+    API_URLS.tokenSale.start,
+    "/token-sale/start",
+    "/api/tokensale/start",
+  ];
   return fetchFirst("POST", candidates, payload);
 }
 
-/* Tier multiplier helpers */
+// ---- helpers ----
 export function tierMultiplier(tier) {
   switch ((tier || "").toLowerCase()) {
     case "tier 3":
@@ -205,3 +269,4 @@ export function tierMultiplier(tier) {
       return 1.0;
   }
 }
+
