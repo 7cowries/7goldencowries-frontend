@@ -7,10 +7,6 @@ export async function setSession(wallet: string) {
     body: JSON.stringify({ wallet })
   });
 }
-
 export async function clearSession() {
-  await fetch('/api/session', {
-    method: 'DELETE',
-    credentials: 'include'
-  });
+  await fetch('/api/session', { method: 'DELETE', credentials: 'include' });
 }
