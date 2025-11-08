@@ -1,8 +1,6 @@
 {
   "rewrites": [
     { "source": "/api/:path*",              "destination": "https://sevengoldencowries-backend.onrender.com/api/:path*" },
-
-    /* PRD legacy aliases kept for safety (frontend-level) */
     { "source": "/api/user/me",             "destination": "https://sevengoldencowries-backend.onrender.com/api/me" },
     { "source": "/api/user/quests",         "destination": "https://sevengoldencowries-backend.onrender.com/api/quests" },
     { "source": "/api/user/leaderboard",    "destination": "https://sevengoldencowries-backend.onrender.com/api/leaderboard" },
