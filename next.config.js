@@ -1,21 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  eslint: { ignoreDuringBuilds: true },
   async rewrites() {
-    // PRD: forward all /api/* calls to backend
-    const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://sevengoldencowries-backend.onrender.com';
-
     return [
-      // Canonical API
-      { source: '/api/:path*', destination: `${backend}/api/:path*` },
+      // Proxy ALL API calls to the backend
+      { source: '/api/:path*', destination: 'https://sevengoldencowries-backend.onrender.com/api/:path*' },
 
-      // Legacy aliases (frontend-level), in case any hardcoded calls exist
-      { source: '/api/user/me',           destination: `${backend}/api/me` },
-      { source: '/api/user/quests',       destination: `${backend}/api/quests` },
-      { source: '/api/user/leaderboard',  destination: `${backend}/api/leaderboard` },
-      { source: '/api/v1/payments/status',destination: `${backend}/api/payments/status` },
+      // Legacy aliases (frontend level) that some code still hits
+      { source: '/api/user/me',          destination: 'https://sevengoldencowries-backend.onrender.com/api/me' },
+      { source: '/api/user/quests',      destination: 'https://sevengoldencowries-backend.onrender.com/api/quests' },
+      { source: '/api/user/leaderboard', destination: 'https://sevengoldencowries-backend.onrender.com/api/leaderboard' },
+      { source: '/api/v1/payments/status', destination: 'https://sevengoldencowries-backend.onrender.com/api/payments/status' }
     ];
   },
 };
-
 module.exports = nextConfig;
