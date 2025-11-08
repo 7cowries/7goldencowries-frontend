@@ -1,6 +1,16 @@
 import { ensureWalletBound } from './walletBind';
 import { bindWallet, getMe, getQuests } from './api';
 
+let __lastBound = null;
+let __bindTimer = null;
+function scheduleBind(addr, binder) {
+  if (!addr) return;
+  if (addr === __lastBound) return;    // idempotent
+  __lastBound = addr;
+  clearTimeout(__bindTimer);
+  __bindTimer = setTimeout(() => binder(addr), 600); // debounce 600ms
+}
+
 export function setupWalletSync() {
   let inflight = false;
   let lastBindAt = 0;
@@ -15,7 +25,7 @@ export function setupWalletSync() {
         if (!inflight && now - lastBindAt > BIND_COOLDOWN_MS) {
           inflight = true;
           await ensureWalletBound(w);
-          await bindWallet(w);
+          await scheduleBind(w, bindWallet);
           lastBindAt = Date.now();
           inflight = false;
         }
