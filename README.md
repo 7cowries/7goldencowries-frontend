@@ -103,3 +103,5 @@ Coverage includes:
 6. Run `npm run build` to ensure `GENERATE_SOURCEMAP=false` keeps CRA quiet and assets render with the ocean-glass styling.
 
 > **Product Requirements (Single Source of Truth):** see `docs/7goldencowries_Final_Full_PRD_v1.2.pdf` (tag: `prd-v1.2`).
+
+> **Product Requirements (Single Source of Truth):** see `docs/7goldencowries_Final_Full_PRD_v1.2.pdf` (tag: `prd-v1.2`).
