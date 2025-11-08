@@ -101,3 +101,5 @@ Coverage includes:
 4. Claim the Subscription XP bonus once to see `+N XP earned`, confirm the button disables, and attempt a second claim (expect `xpDelta=0`).
 5. Visit the leaderboard to confirm it loads once and reflects the claimed XP.
 6. Run `npm run build` to ensure `GENERATE_SOURCEMAP=false` keeps CRA quiet and assets render with the ocean-glass styling.
+
+> **Product Requirements (Single Source of Truth):** see `docs/7goldencowries_Final_Full_PRD_v1.2.pdf` (tag: `prd-v1.2`).
