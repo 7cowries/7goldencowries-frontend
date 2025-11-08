@@ -1,3 +1,8 @@
+> **PRD v1.2 – Single Source of Truth**  
+> Canonical PDF: [./docs/7goldencowries_Final_Full_PRD_v1.2.pdf](./docs/7goldencowries_Final_Full_PRD_v1.2.pdf)  
+> Read first. All features/flows MUST match the PRD.
+
+
 # 7GoldenCowries Frontend
 
 A production-ready Create React App powering the 7GoldenCowries experience. The UI leans into an ocean-inspired glassmorphism theme, celebrates achievements with confetti bursts, and talks to the backend in `backend/` exclusively through same-origin `/api` requests (rewritten by Vercel). Leave `REACT_APP_API_URL` blank in production so those rewrites keep all calls on-origin.
