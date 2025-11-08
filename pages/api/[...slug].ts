@@ -11,37 +11,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const parts = Array.isArray(req.query.slug) ? req.query.slug : [];
     const targetUrl = `${BACKEND}/api/${parts.join('/')}`;
 
-    // Copy headers except "host" (and anything undefined/array)
+    // Copy headers except host (drop undefined/array values)
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(req.headers)) {
       if (k.toLowerCase() === 'host') continue;
       if (typeof v === 'string') headers[k] = v;
     }
 
-    // Read body if needed (since bodyParser is disabled)
-    let body: Buffer | undefined;
+    // Only read body for non-GET/HEAD
+    let bodyBuffer: Buffer | undefined;
     if (req.method && !['GET', 'HEAD'].includes(req.method)) {
       const chunks: Buffer[] = [];
       await new Promise<void>((resolve) => {
-        req.on('data', (c) => chunks.push(c));
+        req.on('data', (c) => chunks.push(c as Buffer));
         req.on('end', () => resolve());
       });
-      body = Buffer.concat(chunks);
+      bodyBuffer = Buffer.concat(chunks);
     }
 
-    const resp = await fetch(targetUrl, {
+    // Build fetch init; omit body entirely for GET/HEAD to avoid type noise
+    const init: RequestInit = {
       method: req.method,
       headers,
-      body,
-    });
+      // Node Buffers are not in DOM BodyInit types; cast for TS only
+      ...(bodyBuffer ? ({ body: bodyBuffer } as unknown as RequestInit) : {}),
+      // If body were a stream in Node 18+, duplex helps, but safe to omit when Buffer
+      // @ts-ignore - 'duplex' is Undici-specific and harmless if ignored by runtime
+      duplex: bodyBuffer ? 'half' : undefined,
+    };
 
-    // Pass through status and key headers
+    const resp = await fetch(targetUrl, init);
+
     res.status(resp.status);
-    const ct = resp.headers.get('content-type');
-    if (ct) res.setHeader('content-type', ct);
-    const cc = resp.headers.get('cache-control');
-    if (cc) res.setHeader('cache-control', cc);
+    // Pass through key headers (content-type, cache-control, location, etc.)
+    const passthrough = ['content-type','cache-control','location','set-cookie','etag'];
+    for (const h of passthrough) {
+      const v = resp.headers.get(h);
+      if (v) res.setHeader(h, v);
+    }
 
+    // Pipe body as text (covers JSON & text). Could stream if needed later.
     const text = await resp.text();
     res.send(text);
   } catch (err: any) {
