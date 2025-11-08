@@ -1,20 +1,16 @@
 export async function setSession(wallet: string) {
-  try {
-    await fetch('/api/session', {
-      method: 'POST',
-      headers: {'content-type': 'application/json'},
-      body: JSON.stringify({ wallet }),
-      credentials: 'include'
-    });
-  } catch {}
+  if (!wallet) return;
+  await fetch('/api/session', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ wallet })
+  });
 }
 
 export async function clearSession() {
-  try {
-    await fetch('/api/logout', {
-      method: 'POST',
-      headers: {'content-type': 'application/json'},
-      credentials: 'include'
-    });
-  } catch {}
+  await fetch('/api/session', {
+    method: 'DELETE',
+    credentials: 'include'
+  });
 }

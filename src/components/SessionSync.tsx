@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { setSession, clearSession } from '@/src/lib/session';
+import { setSession, clearSession } from '@/lib/session';
 
 /**
  * Heuristic readers for wallet address from various TON Connect sources.
