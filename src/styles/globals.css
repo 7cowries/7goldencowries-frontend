@@ -1,2 +1,17 @@
-@import "tailwindcss";
-/* your custom css can go below */
+/* --- Global app styles (safe defaults) --- */
+:root{color-scheme:dark light}
+html,body,#__next{height:100%}
+html,body{margin:0;padding:0}
+*{box-sizing:border-box}
+img{max-width:100%;height:auto;display:block}
+button{font:inherit}
+a{color:inherit;text-decoration:none}
+/* layout helpers */
+.container{max-width:1200px;margin:0 auto;padding:16px}
+/* prevent FOUC on first paint */
+body{visibility:visible}
+/* keep existing site look minimally if tailwind/emotion is used later */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
