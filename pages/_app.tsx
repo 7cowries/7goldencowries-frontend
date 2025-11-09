@@ -1,6 +1,6 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
-import '@/styles/globals.css';           // <- styled UI lives here
+import '@/styles/globals.css';
 import SessionSync from '@/components/SessionSync';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
