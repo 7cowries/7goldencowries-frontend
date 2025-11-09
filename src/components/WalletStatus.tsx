@@ -1,5 +1,5 @@
 'use client';
-import useWallet from '@/hooks/useWallet';
+import { useWallet } from '@/hooks/useWallet';
 
 export default function WalletStatus() {
   const wallet = useWallet();
