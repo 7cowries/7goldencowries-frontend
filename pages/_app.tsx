@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import SessionSync from "@/components/SessionSync";
 import type { AppProps } from 'next/app';
 import '@/styles/globals.css';
 
@@ -20,6 +21,7 @@ import { WalletProvider } from '../src/context/WalletProvider';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
+      <SessionSync />
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
