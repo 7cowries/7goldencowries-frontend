@@ -1,6 +1,6 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
-import '@/styles/globals.css';
+import '@/styles/globals.css';           // <- styled UI lives here
 import SessionSync from '@/components/SessionSync';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -9,7 +9,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-
       <SessionSync />
       <Component {...pageProps} />
     </>
