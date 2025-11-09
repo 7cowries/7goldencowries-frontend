@@ -10,4 +10,4 @@ export default function IndexPage() {
   return <ClientApp />;
 }
 
-}
+/** Server session probe (safe, optional) */
