@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { readWalletFromCookie } from '@/lib/getSession';
+import { readWalletCookie, noStore } from '@/lib/cookies';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  const wallet = readWalletFromCookie(req.headers.cookie || '');
-  res.status(200).json({ ok:true, wallet: wallet ?? null });
+  noStore(res);
+  const wallet = readWalletCookie(req);
+  return res.status(200).json({ wallet: wallet || null });
 }
