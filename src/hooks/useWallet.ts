@@ -12,9 +12,12 @@ export function useWallet() {
       const detail = (e as CustomEvent).detail as { wallet?: string | null } | undefined;
       setWallet(detail?.wallet ?? null);
     };
+
     window.addEventListener('gc-wallet', onEvt as EventListener);
     return () => window.removeEventListener('gc-wallet', onEvt as EventListener);
   }, []);
 
   return wallet;
 }
+
+export default useWallet;
