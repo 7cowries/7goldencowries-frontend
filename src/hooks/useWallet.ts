@@ -1,25 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-export default function useWallet() {
+export function useWallet() {
   const [wallet, setWallet] = useState<string | null>(null);
 
-  // 1) read server (cookie) once on mount
   useEffect(() => {
-    fetch('/api/me', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : { wallet: null })
-      .then(d => setWallet(d.wallet ?? null))
-      .catch(() => {});
-  }, []);
+    const w = (window as any).__GC_WALLET__ as string | null | undefined;
+    if (w) setWallet(w);
 
-  // 2) react instantly to SessionSync broadcasts
-  useEffect(() => {
     const onEvt = (e: Event) => {
-      const detail = (e as CustomEvent).detail || {};
-      if (detail && 'wallet' in detail) setWallet(detail.wallet || null);
+      const detail = (e as CustomEvent).detail as { wallet?: string | null } | undefined;
+      setWallet(detail?.wallet ?? null);
     };
-    window.addEventListener('gc-session', onEvt as EventListener);
-    return () => window.removeEventListener('gc-session', onEvt as EventListener);
+    window.addEventListener('gc-wallet', onEvt as EventListener);
+    return () => window.removeEventListener('gc-wallet', onEvt as EventListener);
   }, []);
 
   return wallet;
