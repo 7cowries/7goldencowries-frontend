@@ -74,3 +74,5 @@ function applyToGlobals(addr: string | null) {
     (window as Any).__gcShimCleanup = () => window.clearInterval(iv);
   }
 })();
+
+export {};
