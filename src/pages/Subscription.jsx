@@ -249,7 +249,7 @@ export default function SubscriptionPage() {
   }, [status?.nextRenewal]);
 
   const statusLabel = useMemo(() => {
-    if (!isConnected) return "<WalletStatus />";
+    if (!isConnected) return <WalletStatus />;
     if (!status?.wallet) return "Inactive";
     if (status?.canClaim) return "Active";
     if (status?.claimedAt) return "Bonus claimed";
@@ -332,7 +332,7 @@ export default function SubscriptionPage() {
         <div className="wallet-section">
           {/* WalletConnect now global */}
           <span className="wallet-status">
-            {isConnected ? `Connected: ${walletShort}` : "<WalletStatus />"}
+            {isConnected ? `Connected: ${walletShort}` : <WalletStatus />}
           </span>
         </div>
 
