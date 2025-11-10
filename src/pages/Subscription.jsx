@@ -1,3 +1,4 @@
+import WalletStatus from '@/components/WalletStatus';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Page from "../components/Page";
@@ -248,7 +249,7 @@ export default function SubscriptionPage() {
   }, [status?.nextRenewal]);
 
   const statusLabel = useMemo(() => {
-    if (!isConnected) return "Wallet disconnected";
+    if (!isConnected) return "<WalletStatus />";
     if (!status?.wallet) return "Inactive";
     if (status?.canClaim) return "Active";
     if (status?.claimedAt) return "Bonus claimed";
@@ -331,7 +332,7 @@ export default function SubscriptionPage() {
         <div className="wallet-section">
           {/* WalletConnect now global */}
           <span className="wallet-status">
-            {isConnected ? `Connected: ${walletShort}` : "Wallet disconnected"}
+            {isConnected ? `Connected: ${walletShort}` : "<WalletStatus />"}
           </span>
         </div>
 

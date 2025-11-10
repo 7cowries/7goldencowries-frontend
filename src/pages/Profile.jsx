@@ -1,3 +1,4 @@
+import WalletStatus from '@/components/WalletStatus';
 // src/pages/Profile.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Page from "../components/Page";
@@ -309,7 +310,7 @@ export default function Profile() {
       setReferralCode('');
       setMe(DEFAULT_ME);
       setHasProfile(false);
-      setToast('Wallet disconnected ✅');
+      setToast('<WalletStatus /> ✅');
       window.setTimeout(() => setToast(''), 2600);
       await loadMe({ force: true });
     } catch (e) {
