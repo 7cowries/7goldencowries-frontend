@@ -1,18 +1,22 @@
-import LoadTonShim from '@/components/LoadTonShim';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
+
 import '@/styles/globals.css';
-import "@/utils/ton-shim";
 import SessionSync from '@/components/SessionSync';
-import ServerWalletInjector from '@/components/ServerWalletInjector';
+
+// Load the TON shim only on the client (prevents SSR touching window)
+const TonShim = dynamic(() => import('@/components/LoadTonShim'), { ssr: false });
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <>
-      <Head><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
-      <LoadTonShim />
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
       <SessionSync />
-      <ServerWalletInjector />
+      <TonShim />
       <Component {...pageProps} />
     </>
   );

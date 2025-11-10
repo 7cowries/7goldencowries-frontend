@@ -3,8 +3,11 @@ import { useEffect } from 'react';
 
 export default function LoadTonShim() {
   useEffect(() => {
-    // import at runtime on the client only
-    import('@/utils/ton-shim').catch(() => {});
+    let dispose: (() => void) | undefined;
+    import('@/utils/ton-shim')
+      .then(m => { dispose = m.default?.(); })
+      .catch(() => {});
+    return () => { try { dispose?.(); } catch {} };
   }, []);
   return null;
 }
