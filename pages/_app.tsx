@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
+import LoadTonShim from "@/components/LoadTonShim";
 
 import '@/styles/globals.css';
 import SessionSync from '@/components/SessionSync';
