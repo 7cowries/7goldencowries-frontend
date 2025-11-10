@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '@/styles/globals.css';
+import "@/utils/ton-shim";
 import SessionSync from '@/components/SessionSync';
 import ServerWalletInjector from '@/components/ServerWalletInjector';
 
