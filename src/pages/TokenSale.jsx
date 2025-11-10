@@ -1,3 +1,4 @@
+import WalletStatus from '@/components/WalletStatus';
 // src/pages/TokenSale.js
 import React, { useEffect, useState } from "react";
 import Page from "../components/Page";
@@ -117,7 +118,7 @@ export default function TokenSale() {
           <div className="ts-wallet-row">
             {/* WalletConnect now global */}
             <span className="ts-wallet-status">
-              {wallet ? `Connected: ${shortWallet}` : "No wallet connected"}
+              {wallet ? `Connected: ${shortWallet}` : "<WalletStatus />"}
             </span>
           </div>
 
