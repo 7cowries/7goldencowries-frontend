@@ -1,48 +1,117 @@
-'use client';
-import { useEffect, useState } from 'react';
+// src/hooks/useWallet.ts
+import { useEffect, useState } from "react";
+
+type WalletState = {
+  wallet: string | null;
+  isConnected: boolean;
+  disconnect: () => void;
+};
 
 function readWallet(): string | null {
-  try {
-    const w = (document?.documentElement?.dataset as any)?.gcWallet;
-    if (typeof w === 'string' && w.length > 20) return w;
-  } catch {}
-  try {
-    const a =
-      (globalThis as any)?.tonconnectUI?.wallet?.account?.address ||
-      (globalThis as any)?.ton?.wallet?.account?.address;
-    if (typeof a === 'string' && a.length > 20) return a;
-  } catch {}
-  try {
-    for (const k of ['ton-connect-ui_wallet', 'ton-connect-ui']) {
-      const raw = localStorage.getItem(k);
-      if (!raw) continue;
-      const p = JSON.parse(raw);
-      const addr = p?.account?.address || p?.address;
-      if (typeof addr === 'string' && addr.length > 20) return addr;
+  // Guard for SSR
+  if (typeof window === "undefined") {
+    try {
+      const root = document.documentElement as HTMLElement & {
+        dataset: DOMStringMap & { gwallet?: string };
+      };
+      return root.dataset?.gwallet || null;
+    } catch {
+      return null;
     }
-  } catch {}
+  }
+
+  try {
+    const root = document.documentElement as HTMLElement & {
+      dataset: DOMStringMap & { gwallet?: string };
+    };
+    if (root.dataset?.gwallet) {
+      return root.dataset.gwallet;
+    }
+  } catch {
+    // ignore
+  }
+
+  const anyWindow = window as any;
+  const tonconnectUI = anyWindow.tonconnectUI;
+  const ton = anyWindow.ton;
+
+  const addr =
+    tonconnectUI?.wallet?.account?.address || ton?.wallet?.account?.address;
+
+  if (typeof addr === "string" && addr.length > 0) {
+    // also mirror into dataset so other code (WalletStatus, etc.) can read it
+    try {
+      const root = document.documentElement as HTMLElement & {
+        dataset: DOMStringMap & { gwallet?: string };
+      };
+      root.dataset.gwallet = addr;
+    } catch {
+      // ignore
+    }
+    return addr;
+  }
+
   return null;
 }
 
-export function useWallet() {
-  const [wallet, setWallet] = useState<string | null>(null);
+const useWalletImpl = (): WalletState => {
+  const [wallet, setWallet] = useState<string | null>(() => {
+    // Initial value on the client
+    if (typeof window === "undefined") return null;
+    return readWallet();
+  });
 
+  // Keep in sync with gwallet + tonconnect events
   useEffect(() => {
-    const apply = () => setWallet(readWallet());
-    apply();
+    if (typeof window === "undefined") return;
 
-    const onGc = () => apply();
-    window.addEventListener('gc-session', onGc as any);
+    const handler = () => {
+      setWallet(readWallet());
+    };
 
-    const id = setInterval(apply, 1000);
+    // Immediate sync (in case gwallet was updated before mount)
+    handler();
+
+    window.addEventListener("wallet:changed", handler as EventListener);
     return () => {
-      window.removeEventListener('gc-session', onGc as any);
-      clearInterval(id);
+      window.removeEventListener("wallet:changed", handler as EventListener);
     };
   }, []);
 
-  const short = wallet ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : '';
-  return { wallet, short, isConnected: !!wallet };
-}
+  const disconnect = () => {
+    try {
+      if (typeof window !== "undefined") {
+        const anyWindow = window as any;
 
-export default useWallet; // also export default to avoid import mismatches
+        // Ask TonConnect UI / injected provider to disconnect
+        anyWindow.tonconnectUI?.disconnect?.();
+        anyWindow.ton?.disconnect?.();
+
+        try {
+          const root = document.documentElement as HTMLElement & {
+            dataset: DOMStringMap & { gwallet?: string };
+          };
+          root.dataset.gwallet = "";
+        } catch {
+          // ignore
+        }
+
+        // notify listeners (Profile, Subscription, etc.)
+        window.dispatchEvent(new Event("wallet:changed"));
+      }
+    } catch (e) {
+      console.error("[useWallet] disconnect error", e);
+    } finally {
+      setWallet(null);
+    }
+  };
+
+  return {
+    wallet,
+    isConnected: !!wallet,
+    disconnect,
+  };
+};
+
+// IMPORTANT: default export so `import useWallet from "../hooks/useWallet"`
+export default useWalletImpl;
