@@ -1,214 +1,194 @@
-import WalletStatus from '@/components/WalletStatus';
-// src/pages/TokenSale.js
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import Page from "../components/Page";
-// // import WalletConnect from "../components/WalletConnect";
+import PaymentGuard from "../components/PaymentGuard";
+import WalletStatus from "@/components/WalletStatus";
 import useWallet from "../hooks/useWallet";
 import { startTokenSalePurchase } from "../utils/api";
-import { SALE_START_ISO, downloadSaleReminder, inviteFriend } from "../utils/launch";
 
-const TARGET = Date.UTC(2025, 9, 4, 0, 0, 0); // Oct 4, 2025 00:00:00 UTC
-
-function getTimeLeft() {
-  const now = Date.now();
-  let diff = Math.max(0, Math.floor((TARGET - now) / 1000));
-  const days = Math.floor(diff / 86400);
-  diff -= days * 86400;
-  const hours = Math.floor(diff / 3600);
-  diff -= hours * 3600;
-  const mins = Math.floor(diff / 60);
-  const secs = diff % 60;
-  return { days, hours, mins, secs, finished: TARGET - now <= 0 };
-}
-
-export default function TokenSale() {
-  const [time, setTime] = useState(getTimeLeft());
+export default function TokenSalePage() {
   const { wallet, isConnected } = useWallet();
-  const [amount, setAmount] = useState("");
+  const [amountUsd, setAmountUsd] = useState("250");
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState("info");
 
-  useEffect(() => {
-    const id = setInterval(() => setTime(getTimeLeft()), 1000);
-    return () => clearInterval(id);
+  const setNotice = useCallback((text, tone = "info") => {
+    setMessage(text || "");
+    setMessageTone(tone);
   }, []);
 
-  const { days, hours, mins, secs, finished } = time;
-  const parsedAmount = Number(amount);
-  const disableSubmit =
-    submitting || !amount || Number.isNaN(parsedAmount) || parsedAmount <= 0;
+  const handleChangeAmount = (e) => {
+    setAmountUsd(e.target.value);
+  };
 
-  const shortWallet = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : "";
-
-  const handlePurchase = async (event) => {
-    event.preventDefault();
-    setFormError("");
-    setNotice("");
-    if (!isConnected || !wallet) {
-      setFormError("Connect your TON wallet to continue.");
+  const handlePurchase = useCallback(async () => {
+    const value = Number(amountUsd);
+    if (!wallet || !isConnected) {
+      setNotice("Connect your wallet before proceeding to payment.", "warn");
       return;
     }
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      setFormError("Enter a positive amount in USD.");
+    if (!value || Number.isNaN(value) || value <= 0) {
+      setNotice("Enter a valid USD amount greater than 0.", "warn");
       return;
     }
+
     setSubmitting(true);
+    setNotice("");
+
     try {
-      const res = await startTokenSalePurchase({ wallet, amount: parsedAmount });
-      const paymentLink = res?.paymentLink;
-      if (paymentLink) {
-        window.location.href = paymentLink;
-      } else {
-        setNotice("Reservation created. Check your email to finish payment.");
+      // Payload is generic; backend can read amount + wallet
+      const res = await startTokenSalePurchase({
+        amountUsd: value,
+        wallet,
+      });
+
+      // If backend returns a checkout / redirect URL, follow it
+      if (res && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+        return;
       }
-    } catch (e) {
-      setFormError(e?.message || "Failed to start purchase. Please try again.");
+
+      // Otherwise just show a friendly notice
+      setNotice(
+        res && res.message
+          ? res.message
+          : "Token sale request received. If nothing happened, the first wave might not be live yet.",
+        "info"
+      );
+    } catch (err) {
+      setNotice(
+        err?.message || "Failed to start token sale payment. Please try again.",
+        "error"
+      );
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [amountUsd, wallet, isConnected, setNotice]);
 
   return (
     <Page>
-      <div className="container">
-        {/* HERO */}
-        <section className="section ts-hero card gradient-border pad-24 fade-in">
-          <div className="ts-hero-head">
-            <h1 className="soft-title text-glow">$GCT — <span className="yolo-gradient">Golden Cowrie Token</span></h1>
-            <div className="ts-badge">First Wave • Oct 4, 2025 (UTC)</div>
-          </div>
+      <div className="section token-sale-wrapper fade-in">
+        <h1 className="token-sale-title text-glow">$GCT — Golden Cowrie Token</h1>
 
-          <p className="muted ts-hero-sub">
-            Forged from the Seven Isles, <b>$GCT</b> powers quests, boosts XP, unlocks
-            premium paths, and grants a voice in shaping new tides. No purchase here—just
-            the story, the vision, and the countdown.
-          </p>
+        {/* Wallet pill at the top (FIX: render component, not raw text) */}
+        <div className="wallet-section">
+          <span className="wallet-status">
+            <WalletStatus />
+          </span>
+        </div>
 
-          {/* COUNTDOWN */}
-          <div className="ts-countdown">
-            <div className="ts-countdown-title">
-              {finished ? "🌊 The First Wave Has Begun" : "🌊 The Tide Approaches"}
+        <div className="token-sale-hero gradient-border hover">
+          <div className="token-sale-hero-content">
+            <p className="token-wave-pill">First Wave • Oct 4, 2025 (UTC)</p>
+            <p className="token-sale-blurb">
+              Forged from the Seven Isles, $GCT powers quests, boosts XP, unlocks premium paths,
+              and grants a voice in shaping new tides. No purchase here—just the story, the vision,
+              and the countdown.
+            </p>
+            <h2 className="token-sale-subtitle">🌊 The First Wave Has Begun</h2>
+            <p className="token-sale-copy">
+              Follow updates in-app and on socials—waves are moving.
+            </p>
+            <div className="token-sale-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  try {
+                    if ("Notification" in window) {
+                      // just a graceful placeholder
+                      new Notification("Reminder set for the first $GCT wave.");
+                    }
+                  } catch {
+                    // ignore
+                  }
+                }}
+              >
+                Set Reminder
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  const shareText =
+                    "Reserve your wave in the $GCT — Golden Cowrie Token sale at 7goldencowries.com/token-sale 🌊";
+                  const shareUrl = "https://7goldencowries.com/token-sale";
+                  if (navigator.share) {
+                    navigator
+                      .share({ title: "$GCT — Golden Cowrie Token", text: shareText, url: shareUrl })
+                      .catch(() => {});
+                  } else {
+                    navigator.clipboard
+                      ?.writeText(`${shareText} ${shareUrl}`)
+                      .catch(() => {});
+                    alert("Invite link copied to clipboard.");
+                  }
+                }}
+              >
+                Invite a Friend
+              </button>
             </div>
-            {!finished ? (
-              <div className="ts-countdown-grid">
-                <div className="ts-time"><span>{String(days).padStart(2, '0')}</span><label>days</label></div>
-                <div className="ts-time"><span>{String(hours).padStart(2, '0')}</span><label>hours</label></div>
-                <div className="ts-time"><span>{String(mins).padStart(2, '0')}</span><label>mins</label></div>
-                <div className="ts-time"><span>{String(secs).padStart(2, '0')}</span><label>secs</label></div>
-              </div>
-            ) : (
-              <div className="ts-live-note">Follow updates in-app and socials—waves are moving.</div>
-            )}
           </div>
+        </div>
 
-          {/* CTA ROW (JS handlers so they always work) */}
-          <div className="ts-cta">
-            <button
-              className="btn aqua ripple"
-              onClick={() => downloadSaleReminder({ startIso: SALE_START_ISO })}
-            >
-              Set Reminder
-            </button>
-            <button className="btn ghost ripple" onClick={() => inviteFriend({})}>
-              Invite a Friend
-            </button>
+        {message && (
+          <div className={`subscription-alert ${messageTone}`} style={{ marginTop: 16 }}>
+            {message}
           </div>
+        )}
 
-          <div className="ts-wallet-row">
-            {/* WalletConnect now global */}
-            <span className="ts-wallet-status">
-              {wallet ? `Connected: ${shortWallet}` : "<WalletStatus />"}
-            </span>
-          </div>
-
-          {/* Decorative waves */}
-          <div className="ts-waves">
-            <span className="wave w1" />
-            <span className="wave w2" />
-            <span className="wave w3" />
-          </div>
-        </section>
-
-        <section className="section card gradient-border pad-24 hover ts-purchase">
-          <h2 className="soft-title">Reserve Wave 1 Allocation</h2>
-          <p className="muted">
-            Enter the USD amount you wish to allocate. You&apos;ll be redirected to our
-            payment partner to complete checkout.
+        <div className="token-sale-card gradient-border hover">
+          <h2 className="token-sale-card-title">Reserve Wave 1 Allocation</h2>
+          <p className="token-sale-card-text">
+            Enter the USD amount you wish to allocate. You&apos;ll be redirected to our payment
+            partner to complete checkout.
           </p>
-          <form className="ts-form" onSubmit={handlePurchase}>
-            <label htmlFor="token-sale-amount">Amount (USD)</label>
+
+          <label className="token-sale-label">
+            Amount (USD)
             <input
-              id="token-sale-amount"
               type="number"
-              inputMode="decimal"
               min="1"
               step="1"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={amountUsd}
+              onChange={handleChangeAmount}
+              className="token-sale-input"
               placeholder="250"
             />
-            {formError ? <p className="form-error">{formError}</p> : null}
-            {notice ? <p className="form-notice">{notice}</p> : null}
+          </label>
+
+          <PaymentGuard
+            loadingFallback={
+              <p style={{ marginTop: 16 }}>
+                Checking wallet and payment status…
+              </p>
+            }
+          >
             <button
-              type="submit"
-              className="btn aqua ripple"
-              disabled={disableSubmit}
+              type="button"
+              className="btn btn-primary token-sale-submit"
+              disabled={submitting}
+              onClick={handlePurchase}
             >
-              {submitting ? "Redirecting…" : "Proceed to Payment"}
+              {submitting ? "Processing…" : "Proceed to Payment"}
             </button>
-          </form>
-        </section>
+          </PaymentGuard>
+        </div>
 
-        {/* WHY / TOKENOMICS */}
-        <section className="section grid ts-why">
-          <div className="card gradient-border pad-24 hover">
-            <h3 className="soft-title">Why $GCT?</h3>
-            <ul className="ts-bullets">
-              <li>⚡ <b>Quest Power:</b> Boost XP multipliers and unlock insider quests.</li>
-              <li>👑 <b>Prestige:</b> Access premium tiers & exclusive Cowrie NFT badges.</li>
-              <li>🌍 <b>Governance:</b> Vote on new quests, events, and Isles expansions.</li>
-              <li>🎁 <b>Early Perks:</b> First-wave supporters receive XP blessings & cosmetics.</li>
-            </ul>
-          </div>
-          <div className="card gradient-border pad-24 hover">
-            <h3 className="soft-title">Tokenomics (Preview)</h3>
-            <ul className="ts-bullets">
-              <li>🌊 <b>Supply:</b> <i>To Be Announced</i> — whispered across the Seven Isles.</li>
-              <li>🌀 <b>Launch:</b> First Wave opens <b>Oct 4, 2025 (UTC)</b>.</li>
-              <li>⛓ <b>Chain:</b> TON — fast, low fees, mobile-native.</li>
-              <li>💫 <b>Utility:</b> Gameplay boosts, premium access, governance & lore unlocks.</li>
-            </ul>
-            <div className="small muted">Full details reveal at T-0. Stay anchored.</div>
-          </div>
-        </section>
-
-        {/* ROADMAP */}
-        <section className="section card gradient-border pad-24 hover ts-roadmap">
-          <h3 className="soft-title"><span className="yolo-gradient">Roadmap • Waves of Release</span></h3>
-          <ol className="ts-steps">
-            <li><b>First Wave</b> — Presale opens, XP blessing airdrops, lore reveal.</li>
-            <li><b>Second Wave</b> — Premium Isles unlocks, governance proposals begin.</li>
-            <li><b>Third Wave</b> — Cross-event quests, Cowrie NFT badge crafting.</li>
-          </ol>
-        </section>
-
-        {/* FAQ */}
-        <section className="section card gradient-border pad-24 hover ts-faq">
-          <h3 className="soft-title">FAQ</h3>
-          <details open>
-            <summary>Will I be able to buy here?</summary>
-            <p className="muted">No. This page is for countdown, story and info only. Transactions go live at First Wave.</p>
-          </details>
-          <details>
-            <summary>Where will the live details be posted?</summary>
-            <p className="muted">Inside the app and on our socials at T-0. Use “Set Reminder” to add it to your calendar.</p>
-          </details>
-          <details>
-            <summary>Is the total supply fixed?</summary>
-            <p className="muted">Supply is <i>To Be Announced</i>. The reveal is part of the Seven Isles lore drop.</p>
-          </details>
-        </section>
+        <div className="token-sale-why gradient-border">
+          <h2 className="token-sale-card-title">Why $GCT?</h2>
+          <ul className="token-sale-list">
+            <li>
+              ⚡ <strong>Quest Power</strong>: Boost XP multipliers and unlock insider quests.
+            </li>
+            <li>
+              👑 <strong>Prestige</strong>: Access premium tiers & story arcs across the Seven Isles.
+            </li>
+            <li>
+              🌐 <strong>Voice</strong>: Help steer the tides of 7GoldenCowries governance.
+            </li>
+          </ul>
+        </div>
       </div>
     </Page>
   );
