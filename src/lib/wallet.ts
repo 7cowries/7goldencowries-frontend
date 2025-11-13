@@ -6,10 +6,16 @@ import useWallet from '@/hooks/useWallet';
 export { useWallet };
 
 /**
- * Convenience helper: always returns a string.
- * When there is no wallet, returns an empty string.
+ * Convenience helper: always returns a wallet address string.
+ * If no wallet is connected, returns an empty string.
  */
 export function useWalletAddress(): string {
-  const addr = useWallet();
-  return addr ?? '';
+  const state = useWallet() as any;
+
+  const addr =
+    state && typeof state.address === 'string'
+      ? (state.address as string)
+      : '';
+
+  return addr || '';
 }
