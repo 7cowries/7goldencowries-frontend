@@ -2,7 +2,6 @@ import WalletStatus from '@/components/WalletStatus';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Page from "../components/Page";
-// // import WalletConnect from "../components/WalletConnect";
 import XPModal from "../components/XPModal";
 import PaymentGuard from "../components/PaymentGuard";
 import useWallet from "../hooks/useWallet";
@@ -123,6 +122,7 @@ export default function SubscriptionPage() {
     }
   }, []);
 
+  // TON price
   useEffect(() => {
     fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd"
@@ -175,6 +175,7 @@ export default function SubscriptionPage() {
     loadSubscription();
   }, [loadSubscription]);
 
+  // cleanup
   useEffect(() => () => {
     abortRef.current?.abort();
     if (toastTimerRef.current) {
@@ -183,6 +184,7 @@ export default function SubscriptionPage() {
     }
   }, []);
 
+  // react to profile updates
   useEffect(() => {
     const onProfileUpdated = () => {
       loadSubscription();
@@ -193,6 +195,7 @@ export default function SubscriptionPage() {
     };
   }, [loadSubscription]);
 
+  // react to wallet change
   useEffect(() => {
     const onWalletChanged = () => {
       loadSubscription();
@@ -203,6 +206,7 @@ export default function SubscriptionPage() {
     };
   }, [loadSubscription]);
 
+  // handle /subscription?status=...
   const statusParam = searchParams.get("status");
   useEffect(() => {
     if (!statusParam) return;
@@ -235,7 +239,6 @@ export default function SubscriptionPage() {
 
   const displayTier = activeTier?.name || (status?.tier ? String(status.tier) : "Free");
   const mult = tierMultiplier(displayTier);
-  const walletShort = wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : "";
 
   const renewalLabel = useMemo(() => {
     if (!status?.nextRenewal) return "—";
@@ -248,13 +251,11 @@ export default function SubscriptionPage() {
     });
   }, [status?.nextRenewal]);
 
-  const statusLabel = useMemo(() => {
-    if (!isConnected) return <WalletStatus />;
-    if (!status?.wallet) return "Inactive";
-    if (status?.canClaim) return "Active";
-    if (status?.claimedAt) return "Bonus claimed";
-    return status?.tier && status.tier !== "Free" ? "Active" : "Free tier";
-  }, [status, isConnected]);
+  // 👇 This is the label that shows on "Status:" line
+  const statusLabel =
+    !isConnected || !wallet
+      ? "Wallet disconnected"
+      : `Connected: ${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 
   const canClaimBonus = Boolean(status?.canClaim);
   const levelName = status?.levelName || "Shellborn";
@@ -330,9 +331,9 @@ export default function SubscriptionPage() {
         <h1 className="subscription-title text-glow">🌊 Your Subscription</h1>
 
         <div className="wallet-section">
-          {/* WalletConnect now global */}
+          {/* WalletConnect now global, but show a live status pill here */}
           <span className="wallet-status">
-            {<WalletStatus />
+            <WalletStatus />
           </span>
         </div>
 
@@ -414,9 +415,7 @@ export default function SubscriptionPage() {
                 {isActive && <div className="active-ribbon">Active</div>}
                 <h3>{tier.name}</h3>
                 <p className="tier-price">
-                  ${tier.usd}
-                  {" "}
-                  {tonPrice ? `(~${tonEquivalent} TON)` : ""}
+                  ${tier.usd} {tonPrice ? `(~${tonEquivalent} TON)` : ""}
                 </p>
                 <p className="tier-boost">{tier.boost}</p>
                 <ul>
@@ -449,3 +448,4 @@ export default function SubscriptionPage() {
     </Page>
   );
 }
+
