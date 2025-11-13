@@ -12,8 +12,8 @@ export const API_URLS = {
   health: "/api/health",
   me: "/api/me",
   auth: {
-    walletSession: "/api/auth/wallet/session",
-    logoutCandidates: ["/api/auth/logout", "/api/auth/wallet/logout", "/api/auth/session/logout"],
+    walletSession: "/api/v1/auth/wallet-session",
+    logoutCandidates: ["/api/v1/auth/logout", "/api/auth/wallet/logout", "/api/auth/session/logout"],
   },
   quests: {
     list: "/api/quests",
@@ -28,7 +28,7 @@ export const API_URLS = {
   },
   leaderboard: "/api/leaderboard",
   tokenSale: { start: "/api/token-sale/start" },
-  wallet: { bind: "/api/auth/wallet/session" },
+  wallet: { bind: "/api/v1/auth/wallet-session" },
 };
 
 const defaultHeaders = {
@@ -111,7 +111,7 @@ export function clearUserCache() {
 export async function disconnectSession() {
   const sets = [
     API_URLS.auth.logoutCandidates,
-    ["/api/auth/logout", "/api/auth/wallet/logout", "/api/auth/session/logout"],
+    ["/api/v1/auth/logout", "/api/auth/wallet/logout", "/api/auth/session/logout"],
   ];
   for (const list of sets) {
     try { await fetchFirst("POST", list, {}); clearUserCache(); return { ok: true }; }
@@ -124,8 +124,8 @@ export async function disconnectSession() {
 export async function bindWallet(address) {
   const candidates = [
     API_URLS.wallet.bind,
-    "/api/auth/wallet/session",
-    "/api/auth/session/wallet",
+    "/api/v1/auth/wallet-session",
+    "/api/v1/auth/session/wallet",
     "/api/auth/wallet",
   ];
   return fetchFirst("POST", candidates, { address });
