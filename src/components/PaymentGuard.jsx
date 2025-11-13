@@ -1,70 +1,85 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import PaywallButton from "./PaywallButton";
-import { getJSON } from "../utils/api";
+// src/components/PaymentGuard.jsx
+'use client';
 
-export default function PaymentGuard({ children, loadingFallback = null }) {
-  const [status, setStatus] = useState({ paid: null });
-  const [error, setError] = useState("");
-  const inflightRef = useRef(null);
-  const mountedRef = useRef(true);
+import React, { useEffect, useState } from 'react';
+import useWallet from '@/hooks/useWallet';
+import { getSubscriptionStatus } from '../utils/api';
 
-  const fetchStatus = useCallback(async () => {
-    if (inflightRef.current) {
-      return inflightRef.current;
-    }
-    const pending = getJSON("/api/v1/payments/status", { dedupe: true })
-      .then((res) => {
-        if (!mountedRef.current) return res;
-        setStatus({ paid: Boolean(res?.paid), raw: res });
-        setError("");
-        return res;
-      })
-      .catch((err) => {
-        if (!mountedRef.current) return null;
-        setError(err?.message || "Unable to load payment status");
-        setStatus({ paid: false });
-        return null;
-      })
-      .finally(() => {
-        inflightRef.current = null;
-      });
-    inflightRef.current = pending;
-    return pending;
-  }, []);
+export default function PaymentGuard({
+  children,
+  loadingFallback = null,
+}) {
+  const state = useWallet();
+  const wallet = state?.wallet || state?.address || state?.rawAddress || '';
+  const isConnected = !!wallet && !!state?.isConnected;
+
+  const [loading, setLoading] = useState(false);
+  const [allowed, setAllowed] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    mountedRef.current = true;
-    fetchStatus();
-    const rerun = () => {
-      fetchStatus();
-    };
-    window.addEventListener("profile-updated", rerun);
+    let cancelled = false;
+
+    async function check() {
+      if (!isConnected) {
+        setAllowed(false);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const status = await getSubscriptionStatus();
+        const tier = (status?.tier || 'Free').toString().toLowerCase();
+
+        // For now we just need a valid response; any tier is "allowed"
+        if (!cancelled) {
+          setAllowed(true);
+        }
+
+        console.debug('[PaymentGuard] subscription status', { tier, status });
+      } catch (e) {
+        if (cancelled) return;
+        console.error('[PaymentGuard] status check failed', e);
+        setError(
+          typeof e?.message === 'string'
+            ? e.message
+            : 'Unable to check subscription status.'
+        );
+        setAllowed(false);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    check();
+
     return () => {
-      mountedRef.current = false;
-      window.removeEventListener("profile-updated", rerun);
+      cancelled = true;
     };
-  }, [fetchStatus]);
+  }, [isConnected, wallet]);
 
-  if (status.paid == null) {
-    return loadingFallback || <p>Checking subscription status…</p>;
+  if (loading) {
+    return loadingFallback || null;
   }
 
-  if (status.paid) {
-    return <>{children}</>;
+  if (!isConnected) {
+    return (
+      <p className="muted">
+        Connect your wallet first to use subscription features.
+      </p>
+    );
   }
 
-  return (
-    <>
-      {error ? (
-        <p className="error" style={{ marginBottom: 12 }}>
-          {error}
-        </p>
-      ) : (
-        <p style={{ marginBottom: 12 }}>
-          Become a subscriber to unlock this reward.
-        </p>
-      )}
-      <PaywallButton onSuccess={fetchStatus} />
-    </>
-  );
+  if (!allowed) {
+    return (
+      <div className="subscription-alert error">
+        {error || 'Subscription status unavailable right now.'}
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
