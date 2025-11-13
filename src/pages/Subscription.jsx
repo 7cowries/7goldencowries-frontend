@@ -332,7 +332,7 @@ export default function SubscriptionPage() {
         <div className="wallet-section">
           {/* WalletConnect now global */}
           <span className="wallet-status">
-            {isConnected ? `Connected: ${walletShort}` : <WalletStatus />}
+            {<WalletStatus />
           </span>
         </div>
 
