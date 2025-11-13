@@ -1,21 +1,21 @@
 'use client';
-
 import React from 'react';
-import useWallet from '@/hooks/useWallet';
+import { useWalletState } from '@/lib/wallet';
 
 type Props = { showLabel?: boolean; className?: string };
 
 export default function WalletStatus({ showLabel = true, className = '' }: Props) {
-  const { wallet, isConnected } = useWallet() as any;
+  const { address, isConnected } = useWalletState();
+  const short = address ? `${address.slice(0, 4)}…${address.slice(-4)}` : '';
 
-  const short =
-    wallet && wallet.length > 8
-      ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}`
-      : wallet || '';
+  if (!isConnected) {
+    return <span className={`wallet-status ${className}`}>{showLabel ? 'Wallet disconnected' : ''}</span>;
+  }
 
   return (
     <span className={`wallet-status ${className}`}>
-      {isConnected ? (showLabel ? `Connected: ${short}` : short) : 'Wallet disconnected'}
+      {showLabel ? 'Connected: ' : null}
+      <code className="wallet-chip">{short}</code>
     </span>
   );
 }
