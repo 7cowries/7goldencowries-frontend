@@ -310,7 +310,7 @@ export default function Profile() {
       setReferralCode('');
       setMe(DEFAULT_ME);
       setHasProfile(false);
-      setToast('<WalletStatus /> ✅');
+      setToast('Wallet status updated ✅');
       window.setTimeout(() => setToast(''), 2600);
       await loadMe({ force: true });
     } catch (e) {
