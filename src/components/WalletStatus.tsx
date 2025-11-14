@@ -1,92 +1,55 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import useWallet from '@/hooks/useWallet';
-import { getMe } from '@/utils/api';
+import React, { useMemo } from "react";
+import useWallet, { WalletState } from "@/hooks/useWallet";
 
-type Props = {
-  showLabel?: boolean;
-  className?: string;
-};
+function shortAddress(addr: string) {
+  if (!addr) return "";
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
+}
 
-type WalletState = {
-  wallet?: string;
-  address?: string;
-  rawAddress?: string;
-  isConnected?: boolean;
-};
+const WalletStatus: React.FC = () => {
+  const hookState =
+    typeof useWallet === "function"
+      ? (useWallet() as WalletState)
+      : {
+          wallet: null,
+          isConnected: false,
+          connecting: false,
+          connect: async () => {},
+          disconnect: async () => {},
+        };
 
-export default function WalletStatus({
-  showLabel = true,
-  className = '',
-}: Props) {
-  // 1) Primary source: TonConnect hook
-  const hookState = (typeof useWallet === 'function'
-    ? (useWallet() as WalletState | null)
-    : null) as WalletState | null;
+  const { wallet, isConnected, connecting, connect, disconnect } = hookState;
 
-  // 2) Fallback source: backend /api/me session
-  const [backendWallet, setBackendWallet] = useState<string>('');
-  const [backendChecked, setBackendChecked] = useState<boolean>(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const me: any = await getMe().catch(() => null);
-        if (!me || cancelled) return;
-
-        const w: string =
-          me.wallet ||
-          me.address ||
-          me.tonWallet ||
-          me.ton_address ||
-          me.tonAddress ||
-          '';
-
-        if (!cancelled && w) {
-          setBackendWallet(w);
-        }
-      } finally {
-        if (!cancelled) {
-          setBackendChecked(true);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const wallet: string =
-    hookState?.wallet ||
-    hookState?.address ||
-    hookState?.rawAddress ||
-    backendWallet ||
-    '';
-
-  const isConnected: boolean =
-    (!!wallet && wallet.length > 0) || !!hookState?.isConnected;
-
-  const short =
-    wallet && wallet.length > 12
-      ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}`
-      : wallet;
-
-  const label =
-    !isConnected && backendChecked
-      ? 'Wallet disconnected'
-      : isConnected
-      ? short || 'Wallet connected'
-      : 'Wallet disconnected';
+  const label = useMemo(() => {
+    if (connecting) return "Connecting…";
+    if (isConnected && wallet) return `Connected ${shortAddress(wallet)}`;
+    return "Connect Wallet";
+  }, [wallet, isConnected, connecting]);
 
   return (
-    <span className={className}>
-      {showLabel
-        ? label
-        : short || (isConnected ? 'Connected' : 'Disconnected')}
-    </span>
+    <div className="sidebar-wallet">
+      <button
+        type="button"
+        className="sidebar-wallet-main"
+        onClick={isConnected ? undefined : connect}
+        disabled={connecting}
+      >
+        {label}
+      </button>
+      {isConnected && (
+        <button
+          type="button"
+          className="sidebar-wallet-disconnect"
+          onClick={disconnect}
+        >
+          Disconnect
+        </button>
+      )}
+    </div>
   );
-}
+};
+
+export default WalletStatus;

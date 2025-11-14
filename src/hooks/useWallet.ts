@@ -1,7 +1,7 @@
 // src/hooks/useWallet.ts
 import { useEffect, useState } from "react";
 
-type WalletState = {
+export type WalletState = {
   wallet: string | null;
   isConnected: boolean;
   connecting: boolean;
@@ -14,7 +14,6 @@ type WalletState = {
  * plus the <html data-gwallet="..."> attribute.
  */
 function readWallet(): string | null {
-  // SSR guard
   if (typeof window === "undefined") return null;
 
   // 1) Preferred: <html data-gwallet="...">
@@ -41,7 +40,7 @@ function readWallet(): string | null {
     // ignore
   }
 
-  // 3) Legacy / injected providers
+  // 3) Legacy / injected providers (extensions, etc.)
   try {
     const ton = anyWindow.ton;
     if (ton?.wallet?.account?.address) {
@@ -57,56 +56,62 @@ function readWallet(): string | null {
   return null;
 }
 
+function writeDataset(addr: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    const root = document.documentElement as HTMLElement & {
+      dataset: DOMStringMap & { gwallet?: string };
+    };
+    root.dataset.gwallet = addr || "";
+  } catch {
+    // ignore
+  }
+}
+
 const useWalletImpl = (): WalletState => {
   const [wallet, setWallet] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
 
-  // Initial sync + subscribe to changes
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Initial read
-    const initial = readWallet();
-    setWallet(initial);
+    const anyWindow = window as any;
 
-    // Helper to mirror into <html data-gwallet="...">
-    const writeDataset = (addr: string | null) => {
-      try {
-        const root = document.documentElement as HTMLElement & {
-          dataset: DOMStringMap & { gwallet?: string };
-        };
-        root.dataset.gwallet = addr || "";
-      } catch {
-        // ignore
-      }
-    };
-
-    writeDataset(initial);
-
-    // Handler for our custom "wallet:changed" events
-    const handler = () => {
+    // Helper: sync React state + <html data-gwallet> from globals
+    const syncFromGlobals = () => {
       const addr = readWallet();
-      setWallet(addr);
-      writeDataset(addr);
+      setWallet((prev) => {
+        if (prev !== addr) {
+          writeDataset(addr);
+        }
+        return addr;
+      });
     };
 
+    // Initial sync
+    syncFromGlobals();
+
+    // Listen to our custom event
+    const handler = () => {
+      syncFromGlobals();
+    };
     window.addEventListener("wallet:changed", handler as EventListener);
 
-    // Also subscribe directly to TonConnect status changes if available
+    // Also subscribe to TonConnect status changes if possible
     let unsubscribe: (() => void) | undefined;
     try {
-      const anyWindow = window as any;
       const tonconnectUI = anyWindow.tonconnectUI;
       if (tonconnectUI?.onStatusChange) {
         unsubscribe = tonconnectUI.onStatusChange(() => {
-          const addr = readWallet();
-          setWallet(addr);
-          writeDataset(addr);
+          syncFromGlobals();
         });
       }
     } catch {
       // ignore
     }
+
+    // EXTRA SAFETY: poll every 3s so account switches in extensions are picked up
+    const intervalId = window.setInterval(syncFromGlobals, 3000);
 
     return () => {
       window.removeEventListener("wallet:changed", handler as EventListener);
@@ -117,6 +122,7 @@ const useWalletImpl = (): WalletState => {
           // ignore
         }
       }
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -127,18 +133,17 @@ const useWalletImpl = (): WalletState => {
     try {
       setConnecting(true);
 
-      // TonConnect UI modal (primary path)
+      // TonConnect UI modal (primary)
       if (anyWindow.tonconnectUI?.openModal) {
         await anyWindow.tonconnectUI.openModal();
       } else if (anyWindow.ton?.connect) {
-        // Fallback for injected providers
+        // Fallback for injected provider
         await anyWindow.ton.connect();
       }
     } catch (e) {
       console.error("[useWallet] connect error", e);
     } finally {
       setConnecting(false);
-      // After connect, let readWallet + subscriptions update state
       try {
         window.dispatchEvent(new Event("wallet:changed"));
       } catch {
@@ -152,7 +157,6 @@ const useWalletImpl = (): WalletState => {
     const anyWindow = window as any;
 
     try {
-      // Ask TonConnect / providers to disconnect
       if (anyWindow.tonconnectUI?.disconnect) {
         await anyWindow.tonconnectUI.disconnect();
       } else if (anyWindow.ton?.disconnect) {
@@ -161,22 +165,12 @@ const useWalletImpl = (): WalletState => {
     } catch (e) {
       console.error("[useWallet] disconnect error", e);
     } finally {
-      // Clear dataset + notify listeners
-      try {
-        const root = document.documentElement as HTMLElement & {
-          dataset: DOMStringMap & { gwallet?: string };
-        };
-        root.dataset.gwallet = "";
-      } catch {
-        // ignore
-      }
-
+      writeDataset(null);
       try {
         window.dispatchEvent(new Event("wallet:changed"));
       } catch {
         // ignore
       }
-
       setWallet(null);
     }
   };
@@ -190,6 +184,4 @@ const useWalletImpl = (): WalletState => {
   };
 };
 
-// Default export so `import useWallet from "../hooks/useWallet"`
 export default useWalletImpl;
-export type { WalletState };
