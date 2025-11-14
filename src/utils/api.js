@@ -1,11 +1,9 @@
 // src/utils/api.js
 
-// All API calls go through this helper. We now talk directly to the Render backend.
-// You can override the base with NEXT_PUBLIC_API_BASE if needed.
-
-const PUBLIC_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  "https://sevengoldencowries-backend.onrender.com";
+// All frontend API calls go directly to the Render backend.
+// We do NOT rely on Next.js rewrites anymore.
+// IMPORTANT: keep this as the full origin of your backend.
+const PUBLIC_BASE = "https://sevengoldencowries-backend.onrender.com";
 
 export const RAW_API_BASE = PUBLIC_BASE; // back-compat for old imports
 export const API_BASE = PUBLIC_BASE;
@@ -43,16 +41,24 @@ const defaultHeaders = {
   "X-Requested-With": "XMLHttpRequest",
 };
 
-// Normalize base+path (drops a duplicate /api if someone passed it in by mistake)
+// Normalize base+path safely for absolute URLs
 function joinPath(base, path) {
   const b = (base || "").replace(/\/+$/, "");
   let p = path || "";
-  // If base already ends with /api and path begins with /api, drop one /api
+
+  if (!b) return p;
+  if (!p) return b;
+
+  // If base already ends with /api and path begins with /api, drop duplicate /api
   if (b.endsWith("/api") && p.startsWith("/api")) {
     p = p.replace(/^\/api/, "");
   }
-  const url = `${b}${p}`;
-  return url.replace(/\/{2,}/g, "/"); // collapse accidental double slashes
+
+  // Ensure exactly one slash between base and path, but DO NOT touch protocol (https://)
+  if (p.startsWith("/")) {
+    return `${b}${p}`;
+  }
+  return `${b}/${p}`;
 }
 
 async function req(method, path, body) {
@@ -144,7 +150,7 @@ export async function disconnectSession() {
 
 export async function bindWallet(address) {
   const candidates = [
-    API_URLS.wallet.bind, // /api/auth/wallet/session  (backend route)
+    API_URLS.wallet.bind, // /api/auth/wallet/session (backend route)
     "/api/auth/wallet/session",
     "/api/auth/wallet",
     "/api/auth/session/wallet",
@@ -196,6 +202,7 @@ export async function claimSubscriptionBonus() {
   ];
   return fetchFirst("POST", candidates, {});
 }
+
 // Back-compat alias:
 export const claimSubscriptionReward = claimSubscriptionBonus;
 
