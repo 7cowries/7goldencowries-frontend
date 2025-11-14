@@ -1,85 +1,29 @@
-// src/components/PaymentGuard.jsx
-'use client';
+import React from "react";
+import useWallet from "../hooks/useWallet";
 
-import React, { useEffect, useState } from 'react';
-import useWallet from '@/hooks/useWallet';
-import { getSubscriptionStatus } from '../utils/api';
+type PaymentGuardProps = {
+  children: React.ReactNode;
+  loadingFallback?: React.ReactNode;
+};
 
+/**
+ * PaymentGuard
+ *
+ * Old versions showed their own "Connect your wallet…" text here,
+ * which could get out of sync with the global wallet pill.
+ *
+ * This version is a thin pass-through: pages themselves are
+ * responsible for checking `useWallet()` and updating labels/buttons.
+ * That keeps ALL wallet messaging consistent everywhere.
+ */
 export default function PaymentGuard({
   children,
-  loadingFallback = null,
-}) {
-  const state = useWallet();
-  const wallet = state?.wallet || state?.address || state?.rawAddress || '';
-  const isConnected = !!wallet && !!state?.isConnected;
-
-  const [loading, setLoading] = useState(false);
-  const [allowed, setAllowed] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function check() {
-      if (!isConnected) {
-        setAllowed(false);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError('');
-
-      try {
-        const status = await getSubscriptionStatus();
-        const tier = (status?.tier || 'Free').toString().toLowerCase();
-
-        // For now we just need a valid response; any tier is "allowed"
-        if (!cancelled) {
-          setAllowed(true);
-        }
-
-        console.debug('[PaymentGuard] subscription status', { tier, status });
-      } catch (e) {
-        if (cancelled) return;
-        console.error('[PaymentGuard] status check failed', e);
-        setError(
-          typeof e?.message === 'string'
-            ? e.message
-            : 'Unable to check subscription status.'
-        );
-        setAllowed(false);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    check();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isConnected, wallet]);
-
-  if (loading) {
-    return loadingFallback || null;
-  }
-
-  if (!isConnected) {
-    return (
-      <p className="muted">
-        Connect your wallet first to use subscription features.
-      </p>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <div className="subscription-alert error">
-        {error || 'Subscription status unavailable right now.'}
-      </div>
-    );
-  }
+  loadingFallback, // kept for compatibility, currently unused
+}: PaymentGuardProps) {
+  // We still read the wallet so React keeps this component in the tree
+  // and we can extend it later if needed.
+  const { wallet } = useWallet();
+  void wallet; // avoid unused variable warnings
 
   return <>{children}</>;
 }
