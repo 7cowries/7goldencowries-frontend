@@ -1,9 +1,12 @@
 // src/utils/api.js
 
-// We build all paths WITH a leading /api/... and let Next.js rewrite /api → Render.
-// To avoid accidental double-prefixing (/api/api), we normalize in one place here.
+// All API calls go through this helper. We now talk directly to the Render backend.
+// You can override the base with NEXT_PUBLIC_API_BASE if needed.
 
-const PUBLIC_BASE = ""; // do NOT use NEXT_PUBLIC_API_BASE
+const PUBLIC_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  "https://sevengoldencowries-backend.onrender.com";
+
 export const RAW_API_BASE = PUBLIC_BASE; // back-compat for old imports
 export const API_BASE = PUBLIC_BASE;
 
@@ -154,10 +157,12 @@ export async function getQuests() {
   const candidates = [API_URLS.quests.list, "/api/quests"];
   return fetchFirst("GET", candidates);
 }
+
 export async function claimQuest(key) {
   const candidates = [API_URLS.quests.claim, "/api/quest/claim"];
   return fetchFirst("POST", candidates, { key });
 }
+
 export async function submitProof(key, proof) {
   const candidates = [API_URLS.quests.submitProof, "/api/quests/proof"];
   return fetchFirst("POST", candidates, { key, proof });
@@ -174,6 +179,7 @@ export async function getSubscriptionStatus() {
   const candidates = [API_URLS.subscriptions.status, "/api/subscription/status"];
   return fetchFirst("GET", candidates);
 }
+
 export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
   const payload = { tier, txHash, tonPaid, usdPaid };
   const candidates = [
@@ -182,8 +188,12 @@ export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
   ];
   return fetchFirst("POST", candidates, payload);
 }
+
 export async function claimSubscriptionBonus() {
-  const candidates = [API_URLS.subscriptions.claimBonus, "/api/subscription/claim-bonus"];
+  const candidates = [
+    API_URLS.subscriptions.claimBonus,
+    "/api/subscription/claim-bonus",
+  ];
   return fetchFirst("POST", candidates, {});
 }
 // Back-compat alias:
