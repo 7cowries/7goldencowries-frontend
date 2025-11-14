@@ -1,53 +1,61 @@
-"use client";
-
 import React, { useMemo } from "react";
-import useWallet, { WalletState } from "@/hooks/useWallet";
+import useWallet from "@/hooks/useWallet";
 
-function shortAddress(addr: string) {
+/**
+ * Simple wallet status pill for the sidebar.
+ * Uses TonConnect via useWallet as the single source of truth.
+ */
+
+function shortAddress(addr: string | null): string {
   if (!addr) return "";
-  if (addr.length <= 12) return addr;
-  return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
+  if (addr.length <= 10) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
 const WalletStatus: React.FC = () => {
-  const hookState =
-    typeof useWallet === "function"
-      ? (useWallet() as WalletState)
-      : {
-          wallet: null,
-          isConnected: false,
-          connecting: false,
-          connect: async () => {},
-          disconnect: async () => {},
-        };
-
-  const { wallet, isConnected, connecting, connect, disconnect } = hookState;
+  const { wallet, isConnected, isConnecting, connect, disconnect } = useWallet();
 
   const label = useMemo(() => {
-    if (connecting) return "Connecting…";
-    if (isConnected && wallet) return `Connected ${shortAddress(wallet)}`;
-    return "Connect Wallet";
-  }, [wallet, isConnected, connecting]);
+    if (isConnecting) return "Connecting…";
+    if (isConnected && wallet) return shortAddress(wallet);
+    return "Not connected";
+  }, [isConnecting, isConnected, wallet]);
+
+  const buttonLabel = useMemo(() => {
+    if (isConnecting) return "Connecting…";
+    if (isConnected) return "Disconnect";
+    return "Connect";
+  }, [isConnecting, isConnected]);
+
+  const handleClick = async () => {
+    if (isConnecting) return;
+    try {
+      if (isConnected) {
+        await disconnect();
+      } else {
+        await connect();
+      }
+    } catch (e) {
+      // swallow – TonConnect UI will surface any errors
+      console.warn("[WalletStatus] wallet action failed:", e);
+    }
+  };
 
   return (
-    <div className="sidebar-wallet">
+    <div className="wallet-status">
+      <span className="wallet-status-label">
+        {isConnected && wallet ? "Connected" : "Wallet"}
+      </span>
       <button
         type="button"
-        className="sidebar-wallet-main"
-        onClick={isConnected ? undefined : connect}
-        disabled={connecting}
+        className={`wallet-status-button ${
+          isConnected ? "wallet-status-connected" : "wallet-status-disconnected"
+        }`}
+        onClick={handleClick}
+        disabled={isConnecting}
       >
-        {label}
+        {label || buttonLabel}
       </button>
-      {isConnected && (
-        <button
-          type="button"
-          className="sidebar-wallet-disconnect"
-          onClick={disconnect}
-        >
-          Disconnect
-        </button>
-      )}
     </div>
   );
 };
