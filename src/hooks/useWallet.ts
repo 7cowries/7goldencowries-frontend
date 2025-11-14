@@ -1,117 +1,127 @@
 // src/hooks/useWallet.ts
 import { useEffect, useState } from "react";
+import { useTonConnectUI, useTonAddress } from "./safeTon";
 
 type WalletState = {
+  // Canonical fields used by most pages
   wallet: string | null;
   isConnected: boolean;
-  disconnect: () => void;
+
+  // Extra fields for backwards compatibility
+  connected?: boolean;
+  walletAddress?: string | null;
+  address?: string | null;
+  rawAddress?: string | null;
+  contextReady?: boolean;
+
+  connect: () => Promise<void> | void;
+  disconnect: () => Promise<void> | void;
 };
 
-function readWallet(): string | null {
-  // Guard for SSR
-  if (typeof window === "undefined") {
-    try {
-      const root = document.documentElement as HTMLElement & {
-        dataset: DOMStringMap & { gwallet?: string };
-      };
-      return root.dataset?.gwallet || null;
-    } catch {
-      return null;
-    }
-  }
-
+function mirrorToDataset(address: string | null) {
+  if (typeof document === "undefined") return;
   try {
     const root = document.documentElement as HTMLElement & {
       dataset: DOMStringMap & { gwallet?: string };
     };
-    if (root.dataset?.gwallet) {
-      return root.dataset.gwallet;
-    }
+    root.dataset.gwallet = address || "";
   } catch {
     // ignore
   }
+}
 
-  const anyWindow = window as any;
-  const tonconnectUI = anyWindow.tonconnectUI;
-  const ton = anyWindow.ton;
+export default function useWallet(): WalletState {
+  let tonUI: any = null;
+  let rawAddress: string | null = null;
+  let contextReady = true;
 
-  const addr =
-    tonconnectUI?.wallet?.account?.address || ton?.wallet?.account?.address;
+  // Safely read TonConnect UI context (SSR-proof via safeTon)
+  try {
+    [tonUI] = useTonConnectUI();
+    rawAddress = useTonAddress();
+  } catch {
+    contextReady = false;
+  }
 
-  if (typeof addr === "string" && addr.length > 0) {
-    // also mirror into dataset so other code (WalletStatus, etc.) can read it
+  const [wallet, setWallet] = useState<string | null>(() => {
+    // Initial value on client: try to read from <html data-gwallet="...">
+    if (typeof window === "undefined") return null;
     try {
       const root = document.documentElement as HTMLElement & {
         dataset: DOMStringMap & { gwallet?: string };
       };
-      root.dataset.gwallet = addr;
+      return root.dataset.gwallet || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Keep wallet state in sync with TonConnect and mirror into dataset
+  useEffect(() => {
+    if (!contextReady) {
+      setWallet(null);
+      mirrorToDataset(null);
+      return;
+    }
+
+    let addr: string | null = null;
+
+    if (rawAddress && typeof rawAddress === "string" && rawAddress.length > 0) {
+      addr = rawAddress;
+    } else {
+      try {
+        const acc =
+          tonUI?.tonConnectUI?.account || tonUI?.tonconnectUI?.account;
+        addr = acc?.address ?? null;
+      } catch {
+        addr = null;
+      }
+    }
+
+    setWallet(addr);
+    mirrorToDataset(addr);
+  }, [contextReady, tonUI, rawAddress]);
+
+  const connect = async () => {
+    if (!contextReady || !tonUI?.openModal) return;
+    try {
+      await tonUI.openModal();
     } catch {
       // ignore
     }
-    return addr;
-  }
+  };
 
-  return null;
-}
-
-const useWalletImpl = (): WalletState => {
-  const [wallet, setWallet] = useState<string | null>(() => {
-    // Initial value on the client
-    if (typeof window === "undefined") return null;
-    return readWallet();
-  });
-
-  // Keep in sync with gwallet + tonconnect events
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handler = () => {
-      setWallet(readWallet());
-    };
-
-    // Immediate sync (in case gwallet was updated before mount)
-    handler();
-
-    window.addEventListener("wallet:changed", handler as EventListener);
-    return () => {
-      window.removeEventListener("wallet:changed", handler as EventListener);
-    };
-  }, []);
-
-  const disconnect = () => {
+  const disconnect = async () => {
     try {
-      if (typeof window !== "undefined") {
-        const anyWindow = window as any;
-
-        // Ask TonConnect UI / injected provider to disconnect
-        anyWindow.tonconnectUI?.disconnect?.();
-        anyWindow.ton?.disconnect?.();
-
-        try {
-          const root = document.documentElement as HTMLElement & {
-            dataset: DOMStringMap & { gwallet?: string };
-          };
-          root.dataset.gwallet = "";
-        } catch {
-          // ignore
-        }
-
-        // notify listeners (Profile, Subscription, etc.)
-        window.dispatchEvent(new Event("wallet:changed"));
+      if (contextReady && tonUI?.disconnect) {
+        await tonUI.disconnect();
       }
-    } catch (e) {
-      console.error("[useWallet] disconnect error", e);
-    } finally {
-      setWallet(null);
+    } catch {
+      // ignore
+    }
+    mirrorToDataset(null);
+    setWallet(null);
+    if (typeof window !== "undefined") {
+      // Let any listeners know the wallet changed
+      window.dispatchEvent(new Event("wallet:changed"));
     }
   };
 
+  const isConnected = !!wallet;
+
   return {
+    // Canonical fields
     wallet,
-    isConnected: !!wallet,
+    isConnected,
+
+    // Backwards-compatible aliases
+    connected: isConnected,
+    walletAddress: wallet,
+    address: wallet,
+    rawAddress: wallet,
+    contextReady,
+
+    connect,
     disconnect,
   };
-};
-
-// IMPORTANT: default export so `import useWallet from "../hooks/useWallet"`
-export default useWalletImpl;
+}
