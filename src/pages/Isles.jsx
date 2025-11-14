@@ -1,42 +1,41 @@
-// src/pages/Isles.js
-import { getJSON } from "../utils/api";
+// src/pages/Isles.jsx
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Page from "../components/Page";
-import { API_BASE, getMe } from "../utils/api"; // ✅ use session-aware profile first
+import { getJSON, getMe } from "../utils/api";
 import useWallet from "../hooks/useWallet";
 import { LEVELS as PROGRESSION_LEVELS } from "../config/progression";
 
-const API = API_BASE || "";
-
 /* ======================= Levels / Isles ======================= */
 const TAGLINES = {
-  'shellborn': "Born from tide and shell, a humble beginning.",
-  'wave-seeker': "Chaser of Naia’s whisper across waves.",
-  'tide-whisperer': "Speaks the sea’s secrets, calm yet deep.",
-  'current-binder': "Bends the ocean’s will, quiet and strong.",
-  'pearl-bearer': "Carries hidden virtue within.",
-  'isle-champion': "Defender of the Isles, storm tested.",
+  shellborn: "Born from tide and shell, a humble beginning.",
+  "wave-seeker": "Chaser of Naia’s whisper across waves.",
+  "tide-whisperer": "Speaks the sea’s secrets, calm yet deep.",
+  "current-binder": "Bends the ocean’s will, quiet and strong.",
+  "pearl-bearer": "Carries hidden virtue within.",
+  "isle-champion": "Defender of the Isles, storm tested.",
   default: "Myth reborn. Tidewalker. Legend.",
 };
 
 const PERKS = {
-  'shellborn': ["Starter badge", "Access to basic quests"],
-  'wave-seeker': ["Daily quests unlocked", "+2% XP boost"],
-  'tide-whisperer': ["Partner quests unlocked", "+4% XP boost"],
-  'current-binder': ["Onchain quests unlocked", "+7% XP boost"],
-  'pearl-bearer': ["Limited time quests", "+10% XP boost"],
-  'isle-champion': ["Exclusive drops", "+15% XP boost"],
+  shellborn: ["Starter badge", "Access to basic quests"],
+  "wave-seeker": ["Daily quests unlocked", "+2% XP boost"],
+  "tide-whisperer": ["Partner quests unlocked", "+4% XP boost"],
+  "current-binder": ["Onchain quests unlocked", "+7% XP boost"],
+  "pearl-bearer": ["Limited time quests", "+10% XP boost"],
+  "isle-champion": ["Exclusive drops", "+15% XP boost"],
   default: ["Mythic badge", "Priority perks", "Max XP boost"],
 };
 
 const LEVELS = PROGRESSION_LEVELS.map((level, index) => ({
   id: index + 1,
-  key: level.name,
+  key: level.key || level.name,
   name: level.name,
   emoji: level.emoji,
   tagline: TAGLINES[level.key] ?? TAGLINES.default,
   perks: PERKS[level.key] ?? PERKS.default,
 }));
+
 /* ======================= Helpers ======================= */
 function clamp01(n) {
   if (!Number.isFinite(n)) return 0;
@@ -45,17 +44,28 @@ function clamp01(n) {
 
 function normalizeUser(raw, prev = {}) {
   if (!raw || typeof raw !== "object") return prev;
+
   const base =
-    raw.profile && typeof raw.profile === "object" ? raw.profile :
-    raw.user && typeof raw.user === "object" ? raw.user :
+    (raw.profile && typeof raw.profile === "object" && raw.profile) ||
+    (raw.user && typeof raw.user === "object" && raw.user) ||
     raw;
 
-  const levelName = base.levelName ?? base.level ?? prev.levelName ?? "Shellborn";
+  const levelName =
+    base.levelName ?? base.level ?? prev.levelName ?? "Shellborn";
+
   const totalXPRaw =
-    base.totalXP ?? base.total_xp ?? prev.totalXP ?? prev.total_xp ?? base.xp ?? prev.xp ?? 0;
+    base.totalXP ??
+    base.total_xp ??
+    prev.totalXP ??
+    prev.total_xp ??
+    base.xp ??
+    prev.xp ??
+    0;
   const totalXP = Math.max(0, Number(totalXPRaw) || 0);
+
   const xpRaw = base.xp ?? prev.xp ?? totalXP;
   const xp = Math.max(0, Number(xpRaw) || 0);
+
   const rawNextXP =
     base.nextXP ??
     base.next_level_xp ??
@@ -91,9 +101,12 @@ function normalizeUser(raw, prev = {}) {
 /* ======================= Confetti ======================= */
 function Confetti({ active, onDone, duration = 4000 }) {
   const canvasRef = useRef(null);
+
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     let raf;
     let running = true;
@@ -143,13 +156,23 @@ function Confetti({ active, onDone, duration = 4000 }) {
       });
 
       if (elapsed < duration) raf = requestAnimationFrame(tick);
-      else { running = false; onDone?.(); }
+      else {
+        running = false;
+        onDone?.();
+      }
     }
     raf = requestAnimationFrame(tick);
-    return () => { running = false; cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
+
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
   }, [active, onDone, duration]);
 
-  return <canvas className={`confetti ${active ? "show" : ""}`} ref={canvasRef} />;
+  return (
+    <canvas className={`confetti ${active ? "show" : ""}`} ref={canvasRef} />
+  );
 }
 
 /* ======================= Level Up Toast ======================= */
@@ -158,22 +181,30 @@ function LevelToast({ show, level, onClose }) {
   return (
     <div className="toast" onClick={onClose}>
       <h3>Level Up</h3>
-      <p>You unlocked <b>{level.name}</b></p>
-      <ul>{level.perks.map((p, i) => <li key={i}>✅ {p}</li>)}</ul>
-      <a href="/quests" className="toast-cta">Go claim rewards</a>
+      <p>
+        You unlocked <b>{level.name}</b>
+      </p>
+      <ul>
+        {level.perks.map((p, i) => (
+          <li key={i}>✅ {p}</li>
+        ))}
+      </ul>
+      <a href="/quests" className="toast-cta">
+        Go claim rewards
+      </a>
     </div>
   );
 }
 
 /* ======================= Waypoints ======================= */
 const WAYPOINTS = [
-  { cx: 10,  cy: 82 },
-  { cx: 28,  cy: 64 },
-  { cx: 45,  cy: 56 },
-  { cx: 60,  cy: 42 },
-  { cx: 70,  cy: 30 },
-  { cx: 80,  cy: 20 },
-  { cx: 90,  cy: 18 },
+  { cx: 10, cy: 82 },
+  { cx: 28, cy: 64 },
+  { cx: 45, cy: 56 },
+  { cx: 60, cy: 42 },
+  { cx: 70, cy: 30 },
+  { cx: 80, cy: 20 },
+  { cx: 90, cy: 18 },
 ];
 
 /* ======================= Ring ======================= */
@@ -184,8 +215,21 @@ function Ring({ size = 84, stroke = 8, percent = 0, label }) {
   const rest = C - dash;
 
   return (
-    <svg className="ring" width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={label}>
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="ring-track" fill="none" />
+    <svg
+      className="ring"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-label={label}
+    >
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        strokeWidth={stroke}
+        className="ring-track"
+        fill="none"
+      />
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -197,7 +241,13 @@ function Ring({ size = 84, stroke = 8, percent = 0, label }) {
         strokeLinecap="round"
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
-      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" className="ring-text">
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="middle"
+        textAnchor="middle"
+        className="ring-text"
+      >
         {Math.round(percent)}%
       </text>
     </svg>
@@ -243,23 +293,23 @@ function useProfile(address) {
     let cancelled = false;
 
     async function fetchProfile() {
+      if (cancelled) return;
+      setLoading(true);
       try {
         // 1) Prefer session-aware /api/me
-        const me = await getMe().catch(() => null);
-        if (me?.authed) {
-          if (!cancelled) {
-            setProfile((prev) => normalizeUser(me, prev));
-          }
-        } else if (address) {
-          // 2) Fallback to legacy /api/profile?wallet=
-          const url = `${API}/api/profile?wallet=${encodeURIComponent(address)}`;
-          const res = await getJSON(url);
-          if (res.ok) {
-            const data = await res.json();
-            if (!cancelled) {
-              setProfile((prev) => normalizeUser(data, prev));
-            }
-          }
+        const me = await getMe({ force: true }).catch(() => null);
+        if (!cancelled && me) {
+          setProfile((prev) => normalizeUser(me, prev));
+          return;
+        }
+
+        // 2) Fallback to legacy /api/profile?wallet=
+        if (!address || cancelled) return;
+        const data = await getJSON(
+          `/api/profile?wallet=${encodeURIComponent(address)}`
+        );
+        if (!cancelled && data) {
+          setProfile((prev) => normalizeUser(data, prev));
         }
       } catch (e) {
         console.error("Isles profile fetch failed:", e);
@@ -269,13 +319,17 @@ function useProfile(address) {
     }
 
     fetchProfile();
+
     // periodic refresh
     const id = setInterval(fetchProfile, 10000);
+
     // refresh when user completes quests elsewhere
     const onQuests = () => fetchProfile();
     window.addEventListener("quests:updated", onQuests);
+
     // refresh when tab becomes visible again
-    const onVis = () => document.visibilityState === "visible" && fetchProfile();
+    const onVis = () =>
+      document.visibilityState === "visible" && fetchProfile();
     document.addEventListener("visibilitychange", onVis);
 
     return () => {
@@ -308,7 +362,9 @@ export default function Isles() {
 
   const currentIndex = useMemo(() => {
     const idx = LEVELS.findIndex(
-      (l) => (profile.levelName || "").toLowerCase() === l.key.toLowerCase()
+      (l) =>
+        (profile.levelName || "").toLowerCase() ===
+        (l.key || "").toLowerCase()
     );
     return idx === -1 ? 0 : idx;
   }, [profile.levelName]);
@@ -325,7 +381,6 @@ export default function Isles() {
     lastLevelRef.current = profile.levelName || "Shellborn";
   }, [profile.levelName]);
 
-  // auto-hide toast after a few seconds
   useEffect(() => {
     if (!toastOn) return;
     const t = setTimeout(() => setToastOn(false), 5000);
@@ -336,117 +391,148 @@ export default function Isles() {
     <Page>
       <div className="isles-page">
         <Confetti active={confettiOn} onDone={() => setConfettiOn(false)} />
-      <LevelToast show={toastOn} level={LEVELS[currentIndex]} onClose={() => setToastOn(false)} />
+        <LevelToast
+          show={toastOn}
+          level={LEVELS[currentIndex]}
+          onClose={() => setToastOn(false)}
+        />
 
-      <header className="isles-header">
-        <div>
-          <h1>Seven Isles of Tides</h1>
-          <p className="subtitle">
-            Journey across the Isles. Unlock virtues. Become <span className="accent">Cowrie Ascendant</span>.
-          </p>
-        </div>
-
-        <div className="profile-chip">
-          <div className="chip-left">
-            <span className="chip-title">{profile.levelName}</span>
-            <span className="chip-sub">XP {xpDisplay} / {nextXPDisplay}</span>
+        <header className="isles-header">
+          <div>
+            <h1>Seven Isles of Tides</h1>
+            <p className="subtitle">
+              Journey across the Isles. Unlock virtues. Become{" "}
+              <span className="accent">Cowrie Ascendant</span>.
+            </p>
           </div>
-          <Ring percent={progressPct} label="Level progress" />
-        </div>
-      </header>
 
-      {!loading ? (
-        <main className="isles-map">
-          <svg className="route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-            <defs>
-              <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#ffd445" stopOpacity="1" />
-                <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
-                <stop offset="100%" stopColor="#79c3ff" stopOpacity="1" />
-              </linearGradient>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            <path
-              d="M10,82 C25,60 35,65 45,55 S65,40 70,30 S80,15 90,18"
-              className="route-path animated"
-              stroke="url(#routeGrad)"
-              filter="url(#glow)"
-            />
-            {WAYPOINTS.map((p, i) => (
-              <g key={i} className={`waypoint ${i <= currentIndex ? "lit" : ""}`}>
-                <circle cx={p.cx} cy={p.cy} r="1.8" className="wp-core" />
-                <circle cx={p.cx} cy={p.cy} r="3.5" className="wp-bloom" />
-              </g>
-            ))}
-          </svg>
+          <div className="profile-chip">
+            <div className="chip-left">
+              <span className="chip-title">{profile.levelName}</span>
+              <span className="chip-sub">
+                XP {xpDisplay} / {nextXPDisplay}
+              </span>
+            </div>
+            <Ring percent={progressPct} label="Level progress" />
+          </div>
+        </header>
 
-          <ul className="isle-grid">
-            {LEVELS.map((isle, i) => {
-              const unlocked = i <= currentIndex;
-              const isCurrent = i === currentIndex;
-              const locked = i > currentIndex;
-
-              return (
-                <li
-                  key={isle.key}
-                  className={[
-                    "isle-card",
-                    unlocked ? "unlocked" : "",
-                    locked ? "locked" : "",
-                    isCurrent ? "current" : "",
-                    `pos-${i + 1}`,
-                  ].join(" ")}
-                  aria-current={isCurrent ? "step" : undefined}
-                  data-level={isle.key}
+        {!loading ? (
+          <main className="isles-map">
+            <svg
+              className="route"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden
+            >
+              <defs>
+                <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#ffd445" stopOpacity="1" />
+                  <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#79c3ff" stopOpacity="1" />
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur
+                    stdDeviation="1.5"
+                    result="coloredBlur"
+                  />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <path
+                d="M10,82 C25,60 35,65 45,55 S65,40 70,30 S80,15 90,18"
+                className="route-path animated"
+                stroke="url(#routeGrad)"
+                filter="url(#glow)"
+              />
+              {WAYPOINTS.map((p, i) => (
+                <g
+                  key={i}
+                  className={`waypoint ${i <= currentIndex ? "lit" : ""}`}
                 >
-                  <div className="isle-top">
-                    <span className="isle-emoji" aria-hidden>{isle.emoji}</span>
-                    <h3 className="isle-name">{isle.name}</h3>
-                  </div>
+                  <circle cx={p.cx} cy={p.cy} r="1.8" className="wp-core" />
+                  <circle cx={p.cx} cy={p.cy} r="3.5" className="wp-bloom" />
+                </g>
+              ))}
+            </svg>
 
-                  <p className="isle-tagline">{isle.tagline}</p>
+            <ul className="isle-grid">
+              {LEVELS.map((isle, i) => {
+                const unlocked = i <= currentIndex;
+                const isCurrent = i === currentIndex;
+                const locked = i > currentIndex;
 
-                  {isCurrent ? (
-                    <div className="isle-progress">
-                      <Ring size={72} stroke={7} percent={progressPct} />
-                      <div className="progress-copy">
-                        <strong>Current Isle</strong>
-                        <span>Keep questing to advance</span>
+                return (
+                  <li
+                    key={isle.key}
+                    className={[
+                      "isle-card",
+                      unlocked ? "unlocked" : "",
+                      locked ? "locked" : "",
+                      isCurrent ? "current" : "",
+                      `pos-${i + 1}`,
+                    ].join(" ")}
+                    aria-current={isCurrent ? "step" : undefined}
+                    data-level={isle.key}
+                  >
+                    <div className="isle-top">
+                      <span className="isle-emoji" aria-hidden>
+                        {isle.emoji}
+                      </span>
+                      <h3 className="isle-name">{isle.name}</h3>
+                    </div>
+
+                    <p className="isle-tagline">{isle.tagline}</p>
+
+                    {isCurrent ? (
+                      <div className="isle-progress">
+                        <Ring size={72} stroke={7} percent={progressPct} />
+                        <div className="progress-copy">
+                          <strong>Current Isle</strong>
+                          <span>Keep questing to advance</span>
+                        </div>
                       </div>
-                    </div>
-                  ) : unlocked ? (
-                    <div className="isle-state"><span className="pill good">Unlocked</span></div>
-                  ) : (
-                    <div className="isle-state">
-                      <span className="pill">Locked</span>
-                      <small className="unlock-hint">Reach <b>{LEVELS[i - 1]?.name || "previous level"}</b></small>
-                    </div>
-                  )}
+                    ) : unlocked ? (
+                      <div className="isle-state">
+                        <span className="pill good">Unlocked</span>
+                      </div>
+                    ) : (
+                      <div className="isle-state">
+                        <span className="pill">Locked</span>
+                        <small className="unlock-hint">
+                          Reach{" "}
+                          <b>{LEVELS[i - 1]?.name || "previous level"}</b>
+                        </small>
+                      </div>
+                    )}
 
-                  <div className="isle-perks">
-                    {isle.perks.slice(0, 3).map((perk, idx) => (
-                      <span className="perk" key={idx}>{perk}</span>
-                    ))}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </main>
-      ) : (
-        <SkeletonGrid />
-      )}
+                    <div className="isle-perks">
+                      {isle.perks.slice(0, 3).map((perk, idx) => (
+                        <span className="perk" key={idx}>
+                          {perk}
+                        </span>
+                      ))}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </main>
+        ) : (
+          <SkeletonGrid />
+        )}
 
-      <footer className="isles-footer">
-        <a className="cta ghost" href="/profile">View Profile</a>
-        <a className="cta primary" href="/quests">Continue Quests</a>
-      </footer>
+        <footer className="isles-footer">
+          <a className="cta ghost" href="/profile">
+            View Profile
+          </a>
+          <a className="cta primary" href="/quests">
+            Continue Quests
+          </a>
+        </footer>
       </div>
     </Page>
   );

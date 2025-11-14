@@ -9,6 +9,7 @@ export const API_BASE = PUBLIC_BASE;
 export const API_URLS = {
   health: "/api/health",
   me: "/api/me",
+
   auth: {
     walletSession: "/api/auth/wallet/session",
     logoutCandidates: [
@@ -17,20 +18,34 @@ export const API_URLS = {
       "/api/auth/session/logout",
     ],
   },
+
   quests: {
     list: "/api/quests",
     claim: "/api/quests/claim",
     submitProof: "/api/quests/proof",
   },
-  referrals: { claim: "/api/referrals/claim" },
+
+  referrals: {
+    claim: "/api/referrals/claim",
+  },
+
   subscriptions: {
-    status: "/subscriptions/status",         // root-level route works in curl
+    // root-level subscription routes (your curl to /subscriptions/status hits these)
+    status: "/subscriptions/status",
     subscribe: "/subscriptions/subscribe",
     claimBonus: "/subscriptions/claim-bonus",
   },
+
   leaderboard: "/api/leaderboard",
-  tokenSale: { start: "/api/token-sale/start" },
-  wallet: { bind: "/api/auth/wallet/session" },
+
+  tokenSale: {
+    // canonical token-sale route under /api
+    start: "/api/token-sale/start",
+  },
+
+  wallet: {
+    bind: "/api/auth/wallet/session",
+  },
 };
 
 const defaultHeaders = {
@@ -45,6 +60,7 @@ function joinPath(base, path) {
   if (!b) return p;
   if (!p) return b;
 
+  // Avoid double /api/api when both sides include it
   if (b.endsWith("/api") && p.startsWith("/api")) {
     p = p.replace(/^\/api/, "");
   }
@@ -85,7 +101,6 @@ async function fetchFirst(method, candidates, body) {
     try {
       const r = await req(method, p, body);
       if (r.ok) return r.json();
-      // remember last non-OK response as an Error-like message
       lastErr = new Error(`${method} ${p} ${r.status}`);
     } catch (e) {
       lastErr = e;
@@ -105,10 +120,17 @@ let _meCache = null;
 export async function getMe({ force = false } = {}) {
   if (!force && _meCache) return _meCache;
 
-  // Prefer /api/me, but fall back to /me if needed
   const candidates = [API_URLS.me, "/me"];
-  _meCache = await fetchFirst("GET", candidates);
-  return _meCache;
+
+  try {
+    _meCache = await fetchFirst("GET", candidates);
+    return _meCache;
+  } catch (err) {
+    // If /api/me (and /me) don’t exist yet, don’t break the UI
+    console.warn("getMe failed", err);
+    _meCache = null;
+    return null;
+  }
 }
 
 export function clearUserCache() {
@@ -145,17 +167,13 @@ export async function bindWallet(address) {
 }
 
 /* Quests */
+
 export async function getQuests() {
-  const candidates = [
-    API_URLS.quests.list,
-    "/api/quests",
-    "/quests",
-  ];
+  const candidates = [API_URLS.quests.list, "/api/quests", "/quests"];
   return fetchFirst("GET", candidates);
 }
 
-// IMPORTANT: use the canonical /api/quests/claim only,
-// so real backend errors surface instead of "No working endpoint among"
+// Canonical /api/quests/claim so backend errors surface directly
 export async function claimQuest(key) {
   return postJSON(API_URLS.quests.claim, { key });
 }
@@ -173,7 +191,7 @@ export async function claimReferralReward(refCode) {
 
 /* Subscriptions */
 
-// Canonical GET /subscriptions/status (no preflight issues)
+// Canonical GET /subscriptions/status
 export async function getSubscriptionStatus() {
   return getJSON(API_URLS.subscriptions.status);
 }
@@ -192,12 +210,14 @@ export async function claimSubscriptionBonus() {
 export const claimSubscriptionReward = claimSubscriptionBonus;
 
 /* Leaderboard */
+
 export async function getLeaderboard() {
   const candidates = [API_URLS.leaderboard, "/api/leaderboard", "/leaderboard"];
   return fetchFirst("GET", candidates);
 }
 
 /* Token sale */
+
 export async function startTokenSalePurchase(payload) {
   const candidates = [
     API_URLS.tokenSale.start,
@@ -209,6 +229,7 @@ export async function startTokenSalePurchase(payload) {
 }
 
 /* Tier multiplier helpers */
+
 export function tierMultiplier(tier) {
   switch ((tier || "").toLowerCase()) {
     case "tier 3":
