@@ -1,5 +1,6 @@
 // src/hooks/useWallet.ts
 import { useEffect, useState } from "react";
+import { useTonConnectUI, useTonAddress } from "./safeTon";
 
 export type WalletState = {
   wallet: string | null;
@@ -8,76 +9,99 @@ export type WalletState = {
   disconnect: () => Promise<void>;
 };
 
-function getTonAddress(): string | null {
-  if (typeof window === "undefined") return null;
-  const anyWin = window as any;
-
+function setGlobalWallet(addr: string | null) {
+  if (typeof document === "undefined") return;
   try {
-    // Check TonConnect UI context
-    const tonUI = anyWin.tonconnectUI || anyWin.TonConnectUI;
-    const addr =
-      tonUI?.wallet?.account?.address ||
-      tonUI?.account?.address ||
-      anyWin?.ton?.wallet?.account?.address ||
-      anyWin?.ton?.account?.address ||
-      null;
-
-    if (addr && typeof addr === "string") {
-      document.documentElement.dataset.gwallet = addr;
-      return addr;
-    }
-  } catch {}
-  return document.documentElement.dataset?.gwallet || null;
+    const root = document.documentElement as HTMLElement & {
+      dataset: DOMStringMap & { gwallet?: string };
+    };
+    root.dataset.gwallet = addr || "";
+  } catch {
+    // ignore
+  }
 }
 
 export default function useWallet(): WalletState {
-  const [wallet, setWallet] = useState<string | null>(() => getTonAddress());
-  const [isConnected, setIsConnected] = useState<boolean>(!!wallet);
+  // Read from TonConnect UI React hooks (same source as the sidebar)
+  let tonUI: any = null;
+  let rawAddress: string | null = null;
+  let contextReady = true;
+
+  try {
+    [tonUI] = useTonConnectUI();
+    rawAddress = useTonAddress();
+  } catch {
+    contextReady = false;
+  }
+
+  const [wallet, setWallet] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const sync = () => {
-      const addr = getTonAddress();
-      setWallet(addr);
-      setIsConnected(!!addr);
-    };
-
-    sync();
-
-    window.addEventListener("wallet:changed", sync);
-    const anyWin = window as any;
-    if (anyWin.tonconnectUI) {
-      anyWin.tonconnectUI.onStatusChange?.(sync);
+    if (!contextReady || !tonUI) {
+      setIsConnected(false);
+      setWallet(null);
+      setGlobalWallet(null);
+      return;
     }
-    return () => {
-      window.removeEventListener("wallet:changed", sync);
-    };
-  }, []);
+
+    // 1) Prefer the hook address
+    if (rawAddress && typeof rawAddress === "string" && rawAddress.length > 0) {
+      setIsConnected(true);
+      setWallet(rawAddress);
+      setGlobalWallet(rawAddress);
+      window.dispatchEvent(new Event("wallet:changed"));
+      return;
+    }
+
+    // 2) Fallback: read from TonConnect UI instance
+    try {
+      const acc =
+        tonUI?.tonConnectUI?.account ||
+        tonUI?.account ||
+        tonUI?.wallet?.account;
+
+      if (acc?.address && typeof acc.address === "string") {
+        setIsConnected(true);
+        setWallet(acc.address);
+        setGlobalWallet(acc.address);
+        window.dispatchEvent(new Event("wallet:changed"));
+      } else {
+        setIsConnected(false);
+        setWallet(null);
+        setGlobalWallet(null);
+      }
+    } catch {
+      setIsConnected(false);
+      setWallet(null);
+      setGlobalWallet(null);
+    }
+  }, [contextReady, tonUI, rawAddress]);
 
   const connect = async () => {
-    if (typeof window === "undefined") return;
-    const anyWin = window as any;
+    if (!contextReady || !tonUI?.openModal) return;
     try {
-      await anyWin.tonconnectUI?.openModal?.();
+      await tonUI.openModal();
     } catch (e) {
       console.error("[useWallet] connect error", e);
     }
-    setTimeout(() => window.dispatchEvent(new Event("wallet:changed")), 500);
   };
 
   const disconnect = async () => {
-    if (typeof window === "undefined") return;
-    const anyWin = window as any;
+    if (!contextReady || !tonUI?.disconnect) return;
     try {
-      await anyWin.tonconnectUI?.disconnect?.();
-      document.documentElement.dataset.gwallet = "";
+      await tonUI.disconnect();
     } catch (e) {
       console.error("[useWallet] disconnect error", e);
     }
-    setWallet(null);
     setIsConnected(false);
-    window.dispatchEvent(new Event("wallet:changed"));
+    setWallet(null);
+    setGlobalWallet(null);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("wallet:changed"));
+    }
   };
 
   return { wallet, isConnected, connect, disconnect };
