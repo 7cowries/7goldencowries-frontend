@@ -1,14 +1,11 @@
 // src/utils/api.js
 
 // All frontend API calls go directly to the Render backend.
-// We do NOT rely on Next.js rewrites anymore.
-// IMPORTANT: keep this as the full origin of your backend.
 const PUBLIC_BASE = "https://sevengoldencowries-backend.onrender.com";
 
-export const RAW_API_BASE = PUBLIC_BASE; // back-compat for old imports
+export const RAW_API_BASE = PUBLIC_BASE;
 export const API_BASE = PUBLIC_BASE;
 
-// Canonical endpoints (always start with /api/.. on the backend router)
 export const API_URLS = {
   health: "/api/health",
   me: "/api/me",
@@ -27,9 +24,9 @@ export const API_URLS = {
   },
   referrals: { claim: "/api/referrals/claim" },
   subscriptions: {
-    status: "/api/subscriptions/status",
-    subscribe: "/api/subscriptions/subscribe",
-    claimBonus: "/api/subscriptions/claim-bonus",
+    status: "/subscriptions/status",         // root-level route works in curl
+    subscribe: "/subscriptions/subscribe",
+    claimBonus: "/subscriptions/claim-bonus",
   },
   leaderboard: "/api/leaderboard",
   tokenSale: { start: "/api/token-sale/start" },
@@ -41,7 +38,6 @@ const defaultHeaders = {
   "X-Requested-With": "XMLHttpRequest",
 };
 
-// Normalize base+path safely for absolute URLs
 function joinPath(base, path) {
   const b = (base || "").replace(/\/+$/, "");
   let p = path || "";
@@ -49,15 +45,11 @@ function joinPath(base, path) {
   if (!b) return p;
   if (!p) return b;
 
-  // If base already ends with /api and path begins with /api, drop duplicate /api
   if (b.endsWith("/api") && p.startsWith("/api")) {
     p = p.replace(/^\/api/, "");
   }
 
-  // Ensure exactly one slash between base and path, but DO NOT touch protocol (https://)
-  if (p.startsWith("/")) {
-    return `${b}${p}`;
-  }
+  if (p.startsWith("/")) return `${b}${p}`;
   return `${b}/${p}`;
 }
 
@@ -93,6 +85,8 @@ async function fetchFirst(method, candidates, body) {
     try {
       const r = await req(method, p, body);
       if (r.ok) return r.json();
+      // remember last non-OK response as an Error-like message
+      lastErr = new Error(`${method} ${p} ${r.status}`);
     } catch (e) {
       lastErr = e;
     }
@@ -104,22 +98,15 @@ async function fetchFirst(method, candidates, body) {
   );
 }
 
-/* -------- High-level helpers (with fallbacks) -------- */
+/* -------- High-level helpers -------- */
 
-// Cache for /me
 let _meCache = null;
 
 export async function getMe({ force = false } = {}) {
   if (!force && _meCache) return _meCache;
-  const candidates = [
-    API_URLS.me,
-    "/api/user/me",
-    "/api/users/me",
-    "/api/profile",
-    "/me",
-    "/user/me",
-    "/users/me",
-  ];
+
+  // Prefer /api/me, but fall back to /me if needed
+  const candidates = [API_URLS.me, "/me"];
   _meCache = await fetchFirst("GET", candidates);
   return _meCache;
 }
@@ -150,8 +137,7 @@ export async function disconnectSession() {
 
 export async function bindWallet(address) {
   const candidates = [
-    API_URLS.wallet.bind, // /api/auth/wallet/session (backend route)
-    "/api/auth/wallet/session",
+    API_URLS.wallet.bind,
     "/api/auth/wallet",
     "/api/auth/session/wallet",
   ];
@@ -162,81 +148,52 @@ export async function bindWallet(address) {
 export async function getQuests() {
   const candidates = [
     API_URLS.quests.list,
-    "/api/quests", // explicit duplicate, fine
-    "/quests", // Render is redirecting this → /api/quests
+    "/api/quests",
+    "/quests",
   ];
   return fetchFirst("GET", candidates);
 }
 
+// IMPORTANT: use the canonical /api/quests/claim only,
+// so real backend errors surface instead of "No working endpoint among"
 export async function claimQuest(key) {
-  const candidates = [
-    API_URLS.quests.claim,
-    "/api/quest/claim",
-    "/quests/claim",
-  ];
-  return fetchFirst("POST", candidates, { key });
+  return postJSON(API_URLS.quests.claim, { key });
 }
 
 export async function submitProof(key, proof) {
-  const candidates = [
-    API_URLS.quests.submitProof,
-    "/api/quests/proof",
-    "/quests/proof",
-  ];
-  return fetchFirst("POST", candidates, { key, proof });
+  return postJSON(API_URLS.quests.submitProof, { key, proof });
 }
 
 /* Referrals */
+
+// Canonical POST /api/referrals/claim
 export async function claimReferralReward(refCode) {
-  const candidates = [
-    API_URLS.referrals.claim,
-    "/api/referral/claim",
-    "/referrals/claim",
-    "/referral/claim",
-  ];
-  return fetchFirst("POST", candidates, { refCode });
+  return postJSON(API_URLS.referrals.claim, { refCode });
 }
 
 /* Subscriptions */
+
+// Canonical GET /subscriptions/status (no preflight issues)
 export async function getSubscriptionStatus() {
-  const candidates = [
-    API_URLS.subscriptions.status,
-    "/api/subscription/status", // singular typo alias
-    "/subscriptions/status", // root-level route (this one works in curl)
-  ];
-  return fetchFirst("GET", candidates);
+  return getJSON(API_URLS.subscriptions.status);
 }
 
+// Canonical POST /subscriptions/subscribe
 export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
   const payload = { tier, txHash, tonPaid, usdPaid };
-  const candidates = [
-    API_URLS.subscriptions.subscribe,
-    "/api/subscriptions/upsert", // old backend route name
-    "/subscriptions/subscribe",
-    "/subscriptions/upsert",
-  ];
-  return fetchFirst("POST", candidates, payload);
+  return postJSON(API_URLS.subscriptions.subscribe, payload);
 }
 
+// Canonical POST /subscriptions/claim-bonus
 export async function claimSubscriptionBonus() {
-  const candidates = [
-    API_URLS.subscriptions.claimBonus,
-    "/api/subscription/claim-bonus",
-    "/subscriptions/claim-bonus",
-  ];
-  return fetchFirst("POST", candidates, {});
+  return postJSON(API_URLS.subscriptions.claimBonus, {});
 }
 
-// Back-compat alias:
 export const claimSubscriptionReward = claimSubscriptionBonus;
 
 /* Leaderboard */
 export async function getLeaderboard() {
-  const candidates = [
-    API_URLS.leaderboard,
-    "/api/leaderboard",
-    "/leaderboard",
-  ];
+  const candidates = [API_URLS.leaderboard, "/api/leaderboard", "/leaderboard"];
   return fetchFirst("GET", candidates);
 }
 
@@ -245,7 +202,7 @@ export async function startTokenSalePurchase(payload) {
   const candidates = [
     API_URLS.tokenSale.start,
     "/api/tokensale/start",
-    "/token-sale/start", // root-level route (curl shows 502 but exists)
+    "/token-sale/start",
     "/tokensale/start",
   ];
   return fetchFirst("POST", candidates, payload);
