@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
- * We treat TonConnect UI as the single source of truth for the wallet.
- * No more /api/auth/wallet/session or other backend wallet-bind calls.
+ * TonConnect UI = single source of truth for wallet.
+ * Frontend only. No backend wallet binding required.
  */
 
 declare global {
   interface Window {
     tonConnectUI?: {
       wallet?: { account?: { address?: string } };
-      /**
-       * TonConnect UI v2 style status listener:
-       *   const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {...})
-       */
+
       onStatusChange?: (cb: (walletInfo: any | null) => void) => () => void;
 
-      /**
-       * Helper methods – exact names differ per integration, so we
-       * defensively support a couple of common ones.
-       */
       connectWallet?: () => Promise<void>;
       openModal?: () => Promise<void>;
       disconnect?: () => Promise<void>;
@@ -26,8 +19,9 @@ declare global {
   }
 }
 
-/** Helper: read the current wallet address from TonConnect, if any */
+/** Read address from TonConnect */
 function readWalletFromTonConnect(): string | null {
+  if (typeof window === "undefined") return null;
   const ui = (window as any).tonConnectUI;
   const addr = ui?.wallet?.account?.address;
   return typeof addr === "string" && addr.length > 0 ? addr : null;
@@ -37,8 +31,9 @@ export function useWallet() {
   const [wallet, setWallet] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Listen to TonConnect UI changes, and also poll as a fallback.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     // Initial read
     setWallet(readWalletFromTonConnect());
 
@@ -47,13 +42,15 @@ export function useWallet() {
     let pollId: number | undefined;
 
     if (ui && typeof ui.onStatusChange === "function") {
-      // Preferred: reactive updates from TonConnect
+      // Reactive listener
       unsubscribe = ui.onStatusChange((walletInfo: any | null) => {
         const addr = walletInfo?.account?.address ?? null;
-        setWallet(typeof addr === "string" && addr.length > 0 ? addr : null);
+        setWallet(
+          typeof addr === "string" && addr.length > 0 ? addr : null
+        );
       });
     } else {
-      // Fallback: poll every 1.5s
+      // Poll fallback
       pollId = window.setInterval(() => {
         setWallet((prev) => {
           const current = readWalletFromTonConnect();
@@ -69,21 +66,22 @@ export function useWallet() {
   }, []);
 
   const connect = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
     const ui = (window as any).tonConnectUI;
     if (!ui) {
-      alert("TonConnect UI is not initialised on this page.");
+      alert("TonConnect UI is not initialised.");
       return;
     }
 
     setIsConnecting(true);
     try {
-      // Some setups use connectWallet, some openModal.
       if (typeof ui.connectWallet === "function") {
         await ui.connectWallet();
       } else if (typeof ui.openModal === "function") {
         await ui.openModal();
       } else {
-        console.warn("[useWallet] No connectWallet/openModal found on tonConnectUI.");
+        console.warn("[useWallet] Missing connectWallet/openModal.");
       }
     } finally {
       setIsConnecting(false);
@@ -91,15 +89,17 @@ export function useWallet() {
   }, []);
 
   const disconnect = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
     const ui = (window as any).tonConnectUI;
+
     try {
       if (ui && typeof ui.disconnect === "function") {
         await ui.disconnect();
       }
-    } catch (e) {
-      console.warn("[useWallet] TonConnect disconnect failed:", e);
+    } catch (err) {
+      console.warn("[useWallet] disconnect failed:", err);
     } finally {
-      // In case TonConnect doesn't clear immediately, force local state reset.
       setWallet(null);
     }
   }, []);
@@ -113,4 +113,8 @@ export function useWallet() {
   };
 }
 
+/** Type for consumers */
 export type UseWalletReturn = ReturnType<typeof useWallet>;
+
+/** DEFAULT EXPORT — required for WalletStatus.tsx */
+export default useWallet;
