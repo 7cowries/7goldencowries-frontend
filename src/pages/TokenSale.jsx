@@ -7,6 +7,8 @@ import { startTokenSalePurchase } from "../utils/api";
 
 export default function TokenSalePage() {
   const { wallet, isConnected } = useWallet();
+  const isWalletConnected = !!wallet;
+
   const [amountUsd, setAmountUsd] = useState("250");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -23,7 +25,8 @@ export default function TokenSalePage() {
 
   const handlePurchase = useCallback(async () => {
     const value = Number(amountUsd);
-    if (!wallet || !isConnected) {
+
+    if (!isWalletConnected) {
       setNotice("Connect your wallet before proceeding to payment.", "warn");
       return;
     }
@@ -63,14 +66,14 @@ export default function TokenSalePage() {
     } finally {
       setSubmitting(false);
     }
-  }, [amountUsd, wallet, isConnected, setNotice]);
+  }, [amountUsd, wallet, isWalletConnected, setNotice]);
 
   return (
     <Page>
       <div className="section token-sale-wrapper fade-in">
         <h1 className="token-sale-title text-glow">$GCT — Golden Cowrie Token</h1>
 
-        {/* Wallet pill at the top (FIX: render component, not raw text) */}
+        {/* Wallet pill at the top */}
         <div className="wallet-section">
           <span className="wallet-status">
             <WalletStatus />
@@ -167,10 +170,14 @@ export default function TokenSalePage() {
             <button
               type="button"
               className="btn btn-primary token-sale-submit"
-              disabled={submitting}
-              onClick={handlePurchase}
+              disabled={submitting || !isWalletConnected}
+              onClick={isWalletConnected ? handlePurchase : undefined}
             >
-              {submitting ? "Processing…" : "Proceed to Payment"}
+              {submitting
+                ? "Processing…"
+                : isWalletConnected
+                ? "Proceed to Payment"
+                : "Connect wallet to continue"}
             </button>
           </PaymentGuard>
         </div>

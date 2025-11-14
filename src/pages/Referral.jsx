@@ -1,11 +1,14 @@
-import { getJSON } from '../utils/api';
 import React, { useEffect, useState } from 'react';
-import { burstConfetti } from '../utils/confetti';
-import { getMe } from '../utils/api';
 import Page from '../components/Page';
-
+import WalletStatus from '@/components/WalletStatus';
+import useWallet from '../hooks/useWallet';
+import { getJSON, getMe } from '../utils/api';
+import { burstConfetti } from '../utils/confetti';
 
 const Referral = () => {
+  const { wallet } = useWallet();
+  const isWalletConnected = !!wallet;
+
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [referrals, setReferrals] = useState([]);
@@ -33,10 +36,11 @@ const Referral = () => {
   useEffect(() => {
     if (!referralCode) return;
 
-    getJSON(`/api/referrals/`)
-      .then(res => res.json())
-      .then(data => setReferrals(data.entries || data.referrals || []))
-      .catch(err =>
+    getJSON('/api/referrals/')
+      .then((data) => {
+        setReferrals(data.entries || data.referrals || []);
+      })
+      .catch((err) =>
         console.error(
           'Referral fetch error:',
           err?.response?.data || err.message || err
@@ -47,9 +51,10 @@ const Referral = () => {
   useEffect(() => {
     const rerun = () => {
       if (referralCode) {
-        getJSON(`/api/referrals/`)
-          .then(res => res.json())
-          .then(data => setReferrals(data.entries || data.referrals || []))
+        getJSON('/api/referrals/')
+          .then((data) => {
+            setReferrals(data.entries || data.referrals || []);
+          })
           .catch(() => {});
       }
     };
@@ -58,17 +63,39 @@ const Referral = () => {
   }, [referralCode]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(referralLink);
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink).catch(() => {});
     setCopied(true);
-    burstConfetti({count:80,duration:1800});
+    burstConfetti({ count: 80, duration: 1800 });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const renderIntroText = () => {
+    if (referralCode) {
+      return 'Share your unique link and earn XP as explorers join the tides.';
+    }
+    if (!isWalletConnected) {
+      return '🔌 Connect your wallet to generate your referral link.';
+    }
+    return 'Generating your referral link… refresh if this takes too long.';
   };
 
   return (
     <Page>
       <div className="section referral-wrapper">
         <h1 className="referral-title">🧬 Invite the Shellborn</h1>
-        <p className="referral-sub">Earn XP as your friends explore the Seven Isles of Tides.</p>
+        <p className="referral-sub">
+          Earn XP as your friends explore the Seven Isles of Tides.
+        </p>
+
+        {/* Wallet status pill */}
+        <div className="wallet-section" style={{ marginBottom: 24 }}>
+          <span className="wallet-status">
+            <WalletStatus />
+          </span>
+        </div>
+
+        <p className="referral-info">{renderIntroText()}</p>
 
         {referralCode ? (
           <>
@@ -117,7 +144,12 @@ const Referral = () => {
               <button
                 className="share-btn"
                 onClick={() =>
-                  window.open(`https://twitter.com/intent/tweet?text=Join%207GoldenCowries!%20${referralLink}`, '_blank')
+                  window.open(
+                    `https://twitter.com/intent/tweet?text=Join%207GoldenCowries!%20${encodeURIComponent(
+                      referralLink
+                    )}`,
+                    '_blank'
+                  )
                 }
               >
                 🐦 Share on Twitter
@@ -125,16 +157,19 @@ const Referral = () => {
               <button
                 className="share-btn"
                 onClick={() =>
-                  window.open(`https://t.me/share/url?url=${referralLink}&text=Join%207GoldenCowries!`, '_blank')
+                  window.open(
+                    `https://t.me/share/url?url=${encodeURIComponent(
+                      referralLink
+                    )}&text=Join%207GoldenCowries!`,
+                    '_blank'
+                  )
                 }
               >
                 📣 Share on Telegram
               </button>
             </div>
           </>
-        ) : (
-          <p className="referral-info">🔌 Connect your wallet to generate your referral link.</p>
-        )}
+        ) : null}
       </div>
     </Page>
   );
@@ -143,5 +178,7 @@ const Referral = () => {
 export default Referral;
 
 function shorten(addr = '') {
+  if (!addr) return '';
+  if (addr.length <= 10) return addr;
   return addr.slice(0, 6) + '...' + addr.slice(-4);
 }

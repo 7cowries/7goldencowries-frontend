@@ -93,6 +93,8 @@ function normalizeStatus(raw) {
 
 export default function SubscriptionPage() {
   const { wallet, isConnected } = useWallet();
+  const isWalletConnected = !!wallet;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [tonPrice, setTonPrice] = useState(null);
   const [status, setStatus] = useState({ ...DEFAULT_STATUS });
@@ -251,11 +253,10 @@ export default function SubscriptionPage() {
     });
   }, [status?.nextRenewal]);
 
-  // 👇 This is the label that shows on "Status:" line
-  const statusLabel =
-    !isConnected || !wallet
-      ? "Wallet disconnected"
-      : `Connected: ${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
+  // Wallet status label for "Status:" line
+  const statusLabel = !isWalletConnected
+    ? "Wallet disconnected"
+    : `Connected: ${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 
   const canClaimBonus = Boolean(status?.canClaim);
   const levelName = status?.levelName || "Shellborn";
@@ -263,7 +264,7 @@ export default function SubscriptionPage() {
   const lastClaimDelta = Number(status?.lastClaimDelta || 0);
 
   const handleSubscribe = async (tier) => {
-    if (!wallet) {
+    if (!isWalletConnected) {
       showMessage("Connect your wallet to pick a tier.", "warn", true);
       return;
     }
@@ -293,7 +294,7 @@ export default function SubscriptionPage() {
 
   const handleClaimBonus = useCallback(async () => {
     if (claimingBonus) return;
-    if (!wallet) {
+    if (!isWalletConnected) {
       showMessage("Connect your wallet to claim the bonus.", "warn", true);
       return;
     }
@@ -323,7 +324,7 @@ export default function SubscriptionPage() {
     } finally {
       setClaimingBonus(false);
     }
-  }, [claimingBonus, wallet, loadSubscription, showMessage]);
+  }, [claimingBonus, isWalletConnected, loadSubscription, showMessage]);
 
   return (
     <Page>
@@ -331,7 +332,7 @@ export default function SubscriptionPage() {
         <h1 className="subscription-title text-glow">🌊 Your Subscription</h1>
 
         <div className="wallet-section">
-          {/* WalletConnect now global, but show a live status pill here */}
+          {/* Global wallet pill with live status */}
           <span className="wallet-status">
             <WalletStatus />
           </span>
@@ -383,11 +384,11 @@ export default function SubscriptionPage() {
                 <button
                   className="btn"
                   onClick={handleClaimBonus}
-                  disabled={!canClaimBonus || claimingBonus || !isConnected}
+                  disabled={!canClaimBonus || claimingBonus || !isWalletConnected}
                 >
                   {claimingBonus
                     ? "Working…"
-                    : canClaimBonus && isConnected
+                    : canClaimBonus && isWalletConnected
                     ? "Claim Subscription XP Bonus"
                     : "Bonus Already Claimed"}
                 </button>
@@ -432,7 +433,7 @@ export default function SubscriptionPage() {
                     ? "Active"
                     : isPending
                     ? "Redirecting…"
-                    : isConnected
+                    : isWalletConnected
                     ? "Subscribe"
                     : "Connect to Subscribe"}
                 </button>
