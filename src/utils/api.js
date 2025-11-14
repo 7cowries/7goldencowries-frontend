@@ -8,7 +8,7 @@ const PUBLIC_BASE = "https://sevengoldencowries-backend.onrender.com";
 export const RAW_API_BASE = PUBLIC_BASE; // back-compat for old imports
 export const API_BASE = PUBLIC_BASE;
 
-// Canonical endpoints (always start with /api/..)
+// Canonical endpoints (always start with /api/.. on the backend router)
 export const API_URLS = {
   health: "/api/health",
   me: "/api/me",
@@ -160,29 +160,50 @@ export async function bindWallet(address) {
 
 /* Quests */
 export async function getQuests() {
-  const candidates = [API_URLS.quests.list, "/api/quests"];
+  const candidates = [
+    API_URLS.quests.list,
+    "/api/quests", // explicit duplicate, fine
+    "/quests", // Render is redirecting this → /api/quests
+  ];
   return fetchFirst("GET", candidates);
 }
 
 export async function claimQuest(key) {
-  const candidates = [API_URLS.quests.claim, "/api/quest/claim"];
+  const candidates = [
+    API_URLS.quests.claim,
+    "/api/quest/claim",
+    "/quests/claim",
+  ];
   return fetchFirst("POST", candidates, { key });
 }
 
 export async function submitProof(key, proof) {
-  const candidates = [API_URLS.quests.submitProof, "/api/quests/proof"];
+  const candidates = [
+    API_URLS.quests.submitProof,
+    "/api/quests/proof",
+    "/quests/proof",
+  ];
   return fetchFirst("POST", candidates, { key, proof });
 }
 
 /* Referrals */
 export async function claimReferralReward(refCode) {
-  const candidates = [API_URLS.referrals.claim, "/api/referral/claim"];
+  const candidates = [
+    API_URLS.referrals.claim,
+    "/api/referral/claim",
+    "/referrals/claim",
+    "/referral/claim",
+  ];
   return fetchFirst("POST", candidates, { refCode });
 }
 
 /* Subscriptions */
 export async function getSubscriptionStatus() {
-  const candidates = [API_URLS.subscriptions.status, "/api/subscription/status"];
+  const candidates = [
+    API_URLS.subscriptions.status,
+    "/api/subscription/status", // singular typo alias
+    "/subscriptions/status", // root-level route (this one works in curl)
+  ];
   return fetchFirst("GET", candidates);
 }
 
@@ -190,7 +211,9 @@ export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
   const payload = { tier, txHash, tonPaid, usdPaid };
   const candidates = [
     API_URLS.subscriptions.subscribe,
-    "/api/subscriptions/upsert", // actual backend route
+    "/api/subscriptions/upsert", // old backend route name
+    "/subscriptions/subscribe",
+    "/subscriptions/upsert",
   ];
   return fetchFirst("POST", candidates, payload);
 }
@@ -199,6 +222,7 @@ export async function claimSubscriptionBonus() {
   const candidates = [
     API_URLS.subscriptions.claimBonus,
     "/api/subscription/claim-bonus",
+    "/subscriptions/claim-bonus",
   ];
   return fetchFirst("POST", candidates, {});
 }
@@ -208,13 +232,22 @@ export const claimSubscriptionReward = claimSubscriptionBonus;
 
 /* Leaderboard */
 export async function getLeaderboard() {
-  const candidates = [API_URLS.leaderboard, "/api/leaderboard"];
+  const candidates = [
+    API_URLS.leaderboard,
+    "/api/leaderboard",
+    "/leaderboard",
+  ];
   return fetchFirst("GET", candidates);
 }
 
 /* Token sale */
 export async function startTokenSalePurchase(payload) {
-  const candidates = [API_URLS.tokenSale.start, "/api/tokensale/start"];
+  const candidates = [
+    API_URLS.tokenSale.start,
+    "/api/tokensale/start",
+    "/token-sale/start", // root-level route (curl shows 502 but exists)
+    "/tokensale/start",
+  ];
   return fetchFirst("POST", candidates, payload);
 }
 
