@@ -552,8 +552,20 @@ export default function Profile() {
         {loading ? (
           <div className="skeleton" style={{ height: 160, borderRadius: 16 }} />
         ) : !address || !hasProfile ? (
-          <div style={{ textAlign: "center" }}>
-            <p>🔌 Connect your TON wallet to view your profile.</p>
+          <div className="glass-strong" style={{ padding: 18, borderRadius: 14, textAlign: "center" }}>
+            <p style={{ marginBottom: 6 }}>🔌 Connect your TON wallet to view your profile.</p>
+            <p className="muted" style={{ marginBottom: 12 }}>
+              We&apos;ll pull in your XP, referrals, and social links as soon as a wallet is
+              connected.
+            </p>
+            <WalletStatus />
+            <button
+              className="btn ghost"
+              style={{ marginTop: 12 }}
+              onClick={() => loadMe({ force: true })}
+            >
+              Refresh profile
+            </button>
           </div>
         ) : (
           <>

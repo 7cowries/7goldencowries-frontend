@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { TonConnectUIProvider } from "./hooks/safeTon";
 import App from "./App";
 import PrdBadge from "./components/PrdBadge";
+import { initTheme } from "./utils/theme";
 
 const manifestUrl =
   process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
@@ -11,6 +12,10 @@ const manifestUrl =
   (typeof window !== "undefined"
     ? `${window.location.origin}/tonconnect-manifest.json`
     : "/tonconnect-manifest.json");
+
+if (typeof window !== "undefined") {
+  initTheme();
+}
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
