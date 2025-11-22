@@ -1,50 +1,55 @@
 // src/utils/api.js
+// Centralized API client with a single configurable base URL.
 
-// All frontend API calls go directly to the Render backend (production).
-const PUBLIC_BASE = "https://sevengoldencowries-backend.onrender.com";
+const ENV_API_BASE =
+  (process.env.REACT_APP_API_BASE || process.env.NEXT_PUBLIC_API_BASE || "").trim();
 
-export const RAW_API_BASE = PUBLIC_BASE;
-export const API_BASE = PUBLIC_BASE;
+/**
+ * Normalize a base URL from environment variables. Supports:
+ *   • Absolute URLs (https://example.com)
+ *   • Relative prefixes (/api, api)
+ *   • Blank value for same-origin requests
+ */
+function normalizeBase(raw) {
+  if (!raw) return "";
+  const value = raw.replace(/\s+/g, "");
+  if (/^https?:\/\//i.test(value)) {
+    return value.replace(/\/+$/, "");
+  }
+  const withSlash = value.startsWith("/") ? value : `/${value}`;
+  return withSlash.replace(/\/+$/, "");
+}
 
-// Central list of canonical endpoints. Prefer these everywhere.
-// Only add fallbacks when we *know* they exist.
+export const API_BASE = normalizeBase(ENV_API_BASE);
+
 export const API_URLS = {
   health: "/api/health",
   me: "/api/me",
-
+  twitterStart: "/api/auth/twitter/start",
+  discordStart: "/api/auth/discord/start",
+  telegramEmbedAuth: "/api/auth/telegram/callback",
   auth: {
     walletSession: "/api/auth/wallet/session",
-    logoutCandidates: [
-      "/api/v1/auth/logout",
-      "/api/auth/wallet/logout",
-      "/api/auth/session/logout",
-    ],
+    logout: "/api/auth/session/logout",
   },
-
   quests: {
     list: "/api/quests",
     claim: "/api/quests/claim",
     submitProof: "/api/quests/proof",
   },
-
   referrals: {
+    list: "/api/referrals/",
     claim: "/api/referrals/claim",
   },
-
   subscriptions: {
-    // These are implemented at the root level on the backend
     status: "/subscriptions/status",
     subscribe: "/subscriptions/subscribe",
     claimBonus: "/subscriptions/claim-bonus",
   },
-
   leaderboard: "/api/leaderboard",
-
   tokenSale: {
-    // Canonical token sale start endpoint under /api
     start: "/api/token-sale/start",
   },
-
   wallet: {
     bind: "/api/auth/wallet/session",
   },
@@ -55,86 +60,51 @@ const defaultHeaders = {
   "X-Requested-With": "XMLHttpRequest",
 };
 
-/**
- * Join base + path safely, with some protection for double /api.
- */
 function joinPath(base, path) {
   const b = (base || "").replace(/\/+$/, "");
-  let p = path || "";
-
+  const p = path.startsWith("/") ? path : `/${path}`;
   if (!b) return p;
-  if (!p) return b;
-
-  // Avoid /api/api/... when base already ends with /api and path starts with /api
+  // Avoid /api/api/... when base already ends with /api
   if (b.endsWith("/api") && p.startsWith("/api")) {
-    p = p.replace(/^\/api/, "");
+    return `${b}${p.replace(/^\/api/, "")}`;
   }
-
-  if (p.startsWith("/")) return `${b}${p}`;
-  return `${b}/${p}`;
+  return `${b}${p}`;
 }
 
-async function req(method, path, body) {
+async function request(method, path, { body, signal } = {}) {
   const url = joinPath(API_BASE, path);
-  const opts = {
+  const options = {
     method,
     credentials: "include",
+    signal,
     ...(method !== "GET"
-      ? { headers: defaultHeaders, body: JSON.stringify(body || {}) }
+      ? { headers: defaultHeaders, body: body ? JSON.stringify(body) : undefined }
       : {}),
   };
 
-  const res = await fetch(url, opts);
-  return res;
-}
-
-export async function getJSON(path) {
-  const r = await req("GET", path);
-  if (!r.ok) throw new Error(`GET ${path} ${r.status}`);
-  return r.json();
-}
-
-export async function postJSON(path, body) {
-  const r = await req("POST", path, body);
-  if (!r.ok) throw new Error(`POST ${path} ${r.status}`);
-  return r.json();
-}
-
-/**
- * Try a list of candidate paths until one returns 200–299.
- * Only use this where we *really* need to probe multiple legacy paths.
- */
-async function fetchFirst(method, candidates, body) {
-  let lastErr;
-  for (const p of candidates) {
-    try {
-      const r = await req(method, p, body);
-      if (r.ok) return r.json();
-      lastErr = new Error(`${method} ${p} ${r.status}`);
-    } catch (e) {
-      lastErr = e;
-    }
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    throw new Error(`${method} ${path} ${res.status}`);
   }
-  throw new Error(
-    `No working endpoint among: ${candidates.join(", ")}${
-      lastErr ? " — " + lastErr : ""
-    }`
-  );
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+export function getJSON(path, options) {
+  return request("GET", path, options);
+}
+
+export function postJSON(path, body, options) {
+  return request("POST", path, { ...options, body });
 }
 
 /* ---------------- High-level helpers ---------------- */
 
 let _meCache = null;
 
-/**
- * Fetch the current session-aware user profile.
- * Prefer /api/me, but fall back to /me if it exists.
- */
-export async function getMe({ force = false } = {}) {
+export async function getMe({ force = false, signal } = {}) {
   if (!force && _meCache) return _meCache;
-
-  const candidates = [API_URLS.me, "/me"];
-  _meCache = await fetchFirst("GET", candidates);
+  _meCache = await getJSON(API_URLS.me, { signal });
   return _meCache;
 }
 
@@ -148,112 +118,73 @@ export function clearUserCache() {
   }
 }
 
-/**
- * Try a few logout endpoints; succeed as soon as one works.
- */
-export async function disconnectSession() {
-  const sets = [
-    API_URLS.auth.logoutCandidates,
-    ["/api/v1/auth/logout", "/api/auth/wallet/logout", "/api/auth/session/logout"],
-  ];
-
-  for (const list of sets) {
-    try {
-      await fetchFirst("POST", list, {});
-      clearUserCache();
-      return { ok: true };
-    } catch (_) {
-      // keep trying
-    }
+export async function disconnectSession(signal) {
+  try {
+    await postJSON(API_URLS.auth.logout, {}, { signal });
+  } finally {
+    clearUserCache();
   }
-
-  clearUserCache();
-  return { ok: false };
+  return { ok: true };
 }
 
-/**
- * Bind a TON wallet to the current backend session.
- * We probe both /api/... and root /auth/... variants in case the
- * routes are mounted differently.
- */
-export async function bindWallet(address) {
-  const payload = { address };
-
-  const candidates = [
-    API_URLS.wallet.bind,          // /api/auth/wallet/session
-    "/api/auth/wallet",           // legacy
-    "/api/auth/session/wallet",   // legacy
-    "/auth/wallet/session",       // non-/api mount
-    "/auth/wallet",               // extra fallback
-  ];
-
-  return fetchFirst("POST", candidates, payload);
+export async function bindWallet(address, options = {}) {
+  return postJSON(API_URLS.wallet.bind, { address }, options);
 }
 
 /* ---------------- Quests ---------------- */
 
-export async function getQuests() {
-  // Quests list has a single canonical endpoint; keep some safe fallbacks.
-  const candidates = [API_URLS.quests.list, "/api/quests", "/quests"];
-  return fetchFirst("GET", candidates);
+export function getQuests(options) {
+  return getJSON(API_URLS.quests.list, options);
 }
 
-/**
- * IMPORTANT: use the canonical /api/quests/claim only so that
- * real backend errors surface clearly (400, 401, etc.).
- */
-export async function claimQuest(key) {
-  return postJSON(API_URLS.quests.claim, { key });
+export function claimQuest(key, options) {
+  return postJSON(API_URLS.quests.claim, { key }, options);
 }
 
-export async function submitProof(key, proof) {
-  return postJSON(API_URLS.quests.submitProof, { key, proof });
+export function submitProof(key, proof, options) {
+  return postJSON(API_URLS.quests.submitProof, { key, proof }, options);
 }
 
 /* ---------------- Referrals ---------------- */
 
-export async function claimReferralReward(refCode) {
-  // Canonical POST /api/referrals/claim
-  return postJSON(API_URLS.referrals.claim, { refCode });
+export function listReferrals(options) {
+  return getJSON(API_URLS.referrals.list, options);
+}
+
+export function claimReferralReward(refCode, options) {
+  return postJSON(API_URLS.referrals.claim, { refCode }, options);
 }
 
 /* ---------------- Subscriptions ---------------- */
 
-export async function getSubscriptionStatus() {
-  // Canonical GET /subscriptions/status
-  return getJSON(API_URLS.subscriptions.status);
+export function getSubscriptionStatus(options) {
+  return getJSON(API_URLS.subscriptions.status, options);
 }
 
-export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
-  const payload = { tier, txHash, tonPaid, usdPaid };
-  return postJSON(API_URLS.subscriptions.subscribe, payload);
+export function subscribeToTier({ tier, txHash, tonPaid, usdPaid }, options) {
+  return postJSON(
+    API_URLS.subscriptions.subscribe,
+    { tier, txHash, tonPaid, usdPaid },
+    options
+  );
 }
 
-export async function claimSubscriptionBonus() {
-  return postJSON(API_URLS.subscriptions.claimBonus, {});
+export function claimSubscriptionBonus(options) {
+  return postJSON(API_URLS.subscriptions.claimBonus, {}, options);
 }
 
-// Alias used elsewhere in the app
 export const claimSubscriptionReward = claimSubscriptionBonus;
 
 /* ---------------- Leaderboard ---------------- */
 
-export async function getLeaderboard() {
-  const candidates = [API_URLS.leaderboard, "/api/leaderboard", "/leaderboard"];
-  return fetchFirst("GET", candidates);
+export function getLeaderboard(options) {
+  return getJSON(API_URLS.leaderboard, options);
 }
 
 /* ---------------- Token sale ---------------- */
 
-/**
- * Start a token sale contribution flow.
- *
- * We deliberately call a *single* canonical endpoint so that any problems
- * show up as a simple "POST /api/token-sale/start 4xx/5xx" instead of
- * "No working endpoint among ...".
- */
-export async function startTokenSalePurchase(payload) {
-  return postJSON(API_URLS.tokenSale.start, payload);
+export function startTokenSalePurchase(payload, options) {
+  return postJSON(API_URLS.tokenSale.start, payload, options);
 }
 
 /* ---------------- Tier multiplier helpers ---------------- */
@@ -270,3 +201,11 @@ export function tierMultiplier(tier) {
       return 1.0;
   }
 }
+
+// Simple facade for debugging / tests
+export const api = {
+  base: API_BASE,
+  urls: API_URLS,
+  getJSON,
+  postJSON,
+};

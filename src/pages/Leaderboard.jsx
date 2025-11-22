@@ -127,6 +127,12 @@ export default function Leaderboard() {
           {podium.length === 0 ? (
             <div className="podium-step ghost">
               <div className="podium-name muted">No champions yet.</div>
+              <p className="muted" style={{ marginTop: 8 }}>
+                Complete a quest or share a referral to claim the very first spot.
+              </p>
+              <button className="btn ghost" onClick={retry}>
+                Refresh leaderboard
+              </button>
             </div>
           ) : (
             podium.map((u, idx) => {
@@ -175,7 +181,15 @@ export default function Leaderboard() {
 
         <div className="leaderboard-list">
           {rest.length === 0 ? (
-            <div className="empty">No additional adventurers yet.</div>
+            <div className="empty">
+              <p style={{ marginBottom: 6 }}>No additional adventurers yet.</p>
+              <p className="muted" style={{ marginBottom: 10 }}>
+                Once the tide rolls in new explorers, their ranks will show here.
+              </p>
+              <button className="btn ghost" onClick={retry}>
+                Reload standings
+              </button>
+            </div>
           ) : (
             rest.map((u, idx) => {
               const rank = idx + 4;

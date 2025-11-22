@@ -1,8 +1,6 @@
 import WalletConnect from "../../components/WalletConnect";
 import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
-// using /logo.svg from public
-import { toggleTheme } from "../../utils/theme";
 
 const items = [
   { to: "/quests", label: "Quests", emoji: "⚡" },
@@ -12,6 +10,7 @@ const items = [
   { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
   { to: "/profile", label: "Profile", emoji: "🔗" },
   { to: "/isles", label: "Isles", emoji: "🌱" },
+  { to: "/theme", label: "Theme", emoji: "🌈" },
 ];
 
 // Responsive sidebar with mobile drawer behaviour
@@ -61,10 +60,6 @@ export default function Sidebar() {
               <span>{it.label}</span>
             </NavLink>
           ))}
-          <button type="button" className="nav-item" onClick={toggleTheme}>
-            <span className="emoji">🌈</span>
-            <span>Theme</span>
-          </button>
           <div style={{margin:"12px 10px 12px"}}><WalletConnect compact /></div>
 </nav>
       </aside>

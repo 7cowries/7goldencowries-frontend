@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Page from "../components/Page";
 import PaymentGuard from "../components/PaymentGuard";
 import WalletStatus from "@/components/WalletStatus";
@@ -67,6 +67,11 @@ export default function TokenSalePage() {
       setSubmitting(false);
     }
   }, [amountUsd, wallet, isWalletConnected, setNotice]);
+
+  useEffect(() => {
+    document.body.classList.add("no-ambient");
+    return () => document.body.classList.remove("no-ambient");
+  }, []);
 
   return (
     <Page>

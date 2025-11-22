@@ -811,3 +811,91 @@ input:focus, select:focus, textarea:focus {
 
 .bar-outer { height: 8px; background: var(--bar-bg); border-radius: 10px; overflow: hidden; }
 .bar-inner { height: 100%; background: var(--bar-fill); }
+
+/* Theme page controls */
+.theme-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pill-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill-option input {
+  accent-color: var(--aqua);
+}
+
+.pill-option.active {
+  border-color: var(--aqua);
+  box-shadow: 0 10px 28px rgba(0, 224, 255, 0.25);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.toggle input {
+  display: none;
+}
+
+.toggle .slider {
+  width: 46px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--aqua), var(--violet));
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.toggle .slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.toggle.off .slider {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
+}
+
+.toggle.off .slider::after {
+  transform: translateX(22px);
+}
+
+.toggle-label {
+  font-weight: 700;
+}
+
+/* Accessibility: reduce or remove motion */
+body.animations-off *,
+body.animations-off *::before,
+body.animations-off *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+body.animations-off .veil,
+body.animations-off #magic-orbs,
+body.no-ambient .veil,
+body.no-ambient #magic-orbs {
+  display: none !important;
+}

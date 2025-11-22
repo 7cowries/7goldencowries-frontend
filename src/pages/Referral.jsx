@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Page from '../components/Page';
 import WalletStatus from '@/components/WalletStatus';
 import useWallet from '../hooks/useWallet';
-import { getJSON, getMe } from '../utils/api';
+import { getMe, listReferrals } from '../utils/api';
 import { burstConfetti } from '../utils/confetti';
 
 const Referral = () => {
@@ -36,7 +36,7 @@ const Referral = () => {
   useEffect(() => {
     if (!referralCode) return;
 
-    getJSON('/api/referrals/')
+    listReferrals()
       .then((data) => {
         setReferrals(data.entries || data.referrals || []);
       })
@@ -51,7 +51,7 @@ const Referral = () => {
   useEffect(() => {
     const rerun = () => {
       if (referralCode) {
-        getJSON('/api/referrals/')
+        listReferrals()
           .then((data) => {
             setReferrals(data.entries || data.referrals || []);
           })
@@ -121,7 +121,15 @@ const Referral = () => {
             <div className="referral-list">
               <h2>🌊 Your Explorers</h2>
               {referrals.length === 0 ? (
-                <p>No referrals yet. Share your link to get started!</p>
+                <div className="glass-strong" style={{ padding: 16, borderRadius: 12 }}>
+                  <p style={{ margin: 0 }}>
+                    No referrals yet — share your link to start earning bonuses. When
+                    friends join, they will appear here with their join date and XP.
+                  </p>
+                  <button className="btn ghost" style={{ marginTop: 12 }} onClick={handleCopy}>
+                    Copy my invite link
+                  </button>
+                </div>
               ) : (
                 <ul>
                   {referrals.map((r, i) => (
@@ -169,7 +177,17 @@ const Referral = () => {
               </button>
             </div>
           </>
-        ) : null}
+        ) : (
+          <div className="glass-strong" style={{ padding: 18, borderRadius: 14 }}>
+            <p style={{ marginBottom: 6 }}>
+              You need a wallet-connected profile before we can generate your referral link.
+            </p>
+            <p className="muted" style={{ marginBottom: 12 }}>
+              Connect your TON wallet and refresh this page to create a shareable invite.
+            </p>
+            <WalletStatus />
+          </div>
+        )}
       </div>
     </Page>
   );

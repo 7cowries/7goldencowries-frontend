@@ -126,6 +126,11 @@ export default function SubscriptionPage() {
 
   // TON price
   useEffect(() => {
+    document.body.classList.add("no-ambient");
+    return () => document.body.classList.remove("no-ambient");
+  }, []);
+
+  useEffect(() => {
     fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd"
     )
