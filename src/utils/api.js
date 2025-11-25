@@ -498,11 +498,22 @@ export async function getMe({ signal, force } = {}) {
     const cached = cacheGet(key);
     if (cached) return Promise.resolve(cached);
   }
-  return getJSON("/api/me", { signal }).then((data) => {
-    const user = data && typeof data === "object" && "user" in data ? data.user : data;
-    if (user) cacheSet(key, user);
-    return user;
-  });
+
+  let data;
+  try {
+    data = await getJSON("/api/users/me", { signal });
+  } catch (err) {
+    // Older deployments exposed the profile at /api/me; fall back if the new route is missing
+    if (err instanceof ApiError && err.status === 404) {
+      data = await getJSON("/api/me", { signal });
+    } else {
+      throw err;
+    }
+  }
+
+  const user = data && typeof data === "object" && "user" in data ? data.user : data;
+  if (user) cacheSet(key, user);
+  return user;
 }
 
 export function claimQuest(id, opts = {}) {
