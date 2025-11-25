@@ -511,6 +511,14 @@ export async function getMe({ signal, force } = {}) {
       if (user) cacheSet(key, user);
       return user;
     });
+      }
+      throw err;
+    })
+    .then((data) => {
+      const user = data && typeof data === "object" && "user" in data ? data.user : data;
+      if (user) cacheSet(key, user);
+      return user;
+    });
 }
 
 export function claimQuest(id, opts = {}) {
