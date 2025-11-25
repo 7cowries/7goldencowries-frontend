@@ -1,14 +1,19 @@
-import React from "react";
-import OceanBackdrop from "./OceanBackdrop";
-import { useTheme } from "../../context/ThemeContext";
+import React from 'react';
+import OceanBackdrop from './OceanBackdrop';
+import OceanParticles from './OceanParticles';
+import OceanSidebar from './OceanSidebar';
 
-export default function PageContainer({ children }) {
-  const { overlays, particles, theme } = useTheme();
-
-  return (
-    <div className="page-container" data-theme={theme}>
-      <OceanBackdrop overlays={overlays} particles={particles} />
-      {children}
+const PageContainer = ({ children }) => (
+  <div className="page-shell">
+    <OceanBackdrop />
+    <OceanParticles />
+    <div className="ocean-sidebar-placeholder">
+      <OceanSidebar />
     </div>
-  );
-}
+    <main className="page-main">
+      <div className="page-main-inner">{children}</div>
+    </main>
+  </div>
+);
+
+export default PageContainer;
