@@ -1,4 +1,8 @@
-const API = process.env.REACT_APP_API_URL || process.env.BACKEND_ORIGIN || 'https://sevengoldencowries-backend.onrender.com';
+const API =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.REACT_APP_API_URL ||
+  process.env.BACKEND_ORIGIN ||
+  'https://7goldencowries-backend.onrender.com';
 
 export async function apiGet(path, opts={}) {
   const res = await fetch(API + path, { credentials: 'include', ...opts });

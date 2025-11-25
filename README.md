@@ -86,7 +86,7 @@ Coverage includes:
 
 ### Vercel frontend
 
-- Deploy the CRA build, honouring the repo-root `vercel.json`. Rewrites proxy `/api/*` and `/ref/*` to `https://sevengoldencowries-backend.onrender.com` and disable caching for API routes.
+- Deploy the CRA build, honouring the repo-root `vercel.json`. Rewrites proxy `/api/*` and `/ref/*` to `https://7goldencowries-backend.onrender.com` and disable caching for API routes.
 - Configure the Vercel Environment Variables with the values from `LAUNCH.md`. Leave `REACT_APP_API_URL` blank so production requests flow through the rewrite.
 - Enable apex + `www` domains in Vercel project settings to mirror Render CORS allowances.
 
