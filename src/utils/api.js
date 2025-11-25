@@ -496,13 +496,25 @@ export async function getMe({ signal, force } = {}) {
   const key = userKey("me");
   if (!force) {
     const cached = cacheGet(key);
-    if (cached) return Promise.resolve(cached);
+    if (cached) return cached;
   }
-  return getJSON("/api/me", { signal }).then((data) => {
-    const user = data && typeof data === "object" && "user" in data ? data.user : data;
-    if (user) cacheSet(key, user);
-    return user;
-  });
+
+  const fetchProfile = async () => {
+    try {
+      return await getJSON("/api/users/me", { signal });
+    } catch (err) {
+      // Older deployments exposed the profile at /api/me; fall back if the new route is missing
+      if (err instanceof ApiError && err.status === 404) {
+        return getJSON("/api/me", { signal });
+      }
+      throw err;
+    }
+  };
+
+  const data = await fetchProfile();
+  const user = data && typeof data === "object" && "user" in data ? data.user : data;
+  if (user) cacheSet(key, user);
+  return user;
 }
 
 export function claimQuest(id, opts = {}) {
