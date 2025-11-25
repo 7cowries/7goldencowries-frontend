@@ -1,13 +1,7 @@
 import dynamic from 'next/dynamic';
 
-const ClientApp = dynamic(() => import('../src/ClientApp.jsx'), {
-  ssr: false,
-});
+const Home = dynamic(() => import('../src/pages/index'), { ssr: false });
 
 export default function IndexPage() {
-
-
-  return <ClientApp />;
+  return <Home />;
 }
-
-/** Server session probe (safe, optional) */

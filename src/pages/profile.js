@@ -1,30 +1,56 @@
-// src/pages/profile.js
-import useWalletSession from "@/hooks/useWalletSession";
+import React, { useEffect, useState } from 'react';
+import PageContainer from '../components/ui/PageContainer';
+import GlassCard from '../components/ui/GlassCard';
+import CowryBadge from '../components/ui/CowryBadge';
+import XPBarWave from '../components/ui/XPBarWave';
+import { API_BASE } from '../config';
 
-export default function ProfilePage() {
-  const { me, sub, loading, connectWallet } = useWalletSession();
+const ProfilePage = () => {
+  const [me, setMe] = useState({ level: 1, xp: 0, history: [] });
 
-  if (loading) return <div style={{padding:20}}>Loading…</div>;
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch(`${API_BASE}/api/me`);
+        if (res.ok) {
+          const data = await res.json();
+          setMe({
+            level: data.level || 1,
+            xp: data.xp || 0,
+            history: data.history || [],
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('profile fallback', err);
+      }
+      setMe({ level: 9, xp: 12800, history: ['Completed Orb Quest', 'Unlocked Coral Tier'] });
+    }
+    load();
+  }, []);
 
   return (
-    <main style={{padding:24, maxWidth:800, margin:"0 auto"}}>
-      <h1>Profile</h1>
-      <div style={{marginTop:12}}>
-        <div><b>Wallet:</b> {me?.wallet || me?.address || "Not connected"}</div>
-        <div><b>Tier:</b> {sub?.tier || "Free"}</div>
-        <div><b>Active:</b> {sub?.active ? "Yes" : "No"}</div>
-        <div><b>XP Boost:</b> {sub?.xpBoost ?? 1}×</div>
-      </div>
-      {!me?.wallet && (
-        <button
-          style={{marginTop:16, padding:"8px 14px", borderRadius:10}}
-          onClick={() =>
-            connectWallet("UQCFcijJkLSyX-PMvC3fDHgIImrX14kX29XQ0R0G08yabakC")
-          }
-        >
-          Connect Wallet (test)
-        </button>
-      )}
-    </main>
+    <PageContainer>
+      <GlassCard title="Profile" subtitle="Glass header with neon edges">
+        <div className="flex-between" style={{ alignItems: 'flex-start', gap: 16 }}>
+          <CowryBadge level={me.level} label="Ascension" />
+          <div style={{ flex: 1 }}>
+            <h3>Explorer</h3>
+            <p className="small-label">XP Progress</p>
+            <XPBarWave progress={Math.min((me.xp % 10000) / 100, 100)} />
+            <div className="pill" style={{ marginTop: 10 }}>Total XP: {me.xp}</div>
+          </div>
+        </div>
+        <GlassCard title="Quest History">
+          <ul style={{ margin: 0, paddingLeft: 18, color: '#cfe6ff' }}>
+            {me.history.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </GlassCard>
+      </GlassCard>
+    </PageContainer>
   );
-}
+};
+
+export default ProfilePage;
