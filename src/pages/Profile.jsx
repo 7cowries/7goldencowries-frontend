@@ -1,4 +1,3 @@
-import WalletStatus from '@/components/WalletStatus';
 // src/pages/Profile.jsx
 import React, {
   useCallback,
@@ -825,7 +824,14 @@ export default function Profile() {
               {!loading &&
               (!Array.isArray(me?.questHistory) ||
                 me.questHistory.length === 0) ? (
-                <p>No quests completed yet.</p>
+                <div className="empty-state">
+                  <p className="muted">
+                    No quests completed yet. Finish a quest or refresh to sync your latest wins.
+                  </p>
+                  <button className="btn ghost" onClick={() => loadMe({ force: true })}>
+                    Refresh profile
+                  </button>
+                </div>
               ) : (
                 <ul>
                   {(me.questHistory || [])

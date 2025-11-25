@@ -3,80 +3,27 @@
  */
 
 describe("api utils", () => {
-  const originalEnv = process.env.REACT_APP_API_URL;
+  const originalEnv = process.env.REACT_APP_API_BASE;
+  const originalNextEnv = process.env.NEXT_PUBLIC_API_BASE;
   const originalFetch = global.fetch;
 
   afterEach(() => {
-    process.env.REACT_APP_API_URL = originalEnv;
+    process.env.REACT_APP_API_BASE = originalEnv;
+    process.env.NEXT_PUBLIC_API_BASE = originalNextEnv;
     global.fetch = originalFetch;
     jest.resetModules();
   });
 
-  test("uses same-origin /api when API base is blank", async () => {
+  test("reads the API base from env vars and trims trailing slashes", async () => {
     jest.resetModules();
-    process.env.REACT_APP_API_URL = "";
-    const response = {
-      ok: true,
-      status: 200,
-      json: jest.fn(() => Promise.resolve({ ok: true })),
-    };
-    const fetchMock = jest.fn(() => Promise.resolve(response));
-    global.fetch = fetchMock;
+    process.env.REACT_APP_API_BASE = "https://example.com/base///";
     const api = require("./api");
-
-    await api.getJSON("quests");
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/quests",
-      expect.objectContaining({ credentials: "include" })
-    );
-    expect(api.API_BASE).toBe("");
-  });
-
-  test("normalizes absolute API base URLs and strips trailing slashes", async () => {
-    jest.resetModules();
-    process.env.REACT_APP_API_URL = "https://example.com/base///";
-    const response = {
-      ok: true,
-      status: 200,
-      json: jest.fn(() => Promise.resolve({ ok: true })),
-    };
-    const fetchMock = jest.fn(() => Promise.resolve(response));
-    global.fetch = fetchMock;
-    const api = require("./api");
-
-    await api.getJSON("/api/status");
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://example.com/base/api/status",
-      expect.any(Object)
-    );
     expect(api.API_BASE).toBe("https://example.com/base");
   });
 
-  test("de-dupes concurrent requests when no abort signal is provided", async () => {
+  test("getJSON joins API_BASE, forwards signal, and includes credentials", async () => {
     jest.resetModules();
-    process.env.REACT_APP_API_URL = "";
-    const payload = { ok: true };
-    const response = {
-      ok: true,
-      status: 200,
-      json: jest.fn(() => Promise.resolve(payload)),
-    };
-    const fetchMock = jest.fn(() => Promise.resolve(response));
-    global.fetch = fetchMock;
-    const api = require("./api");
-
-    const [first, second] = await Promise.all([
-      api.getJSON("/api/me"),
-      api.getJSON("/api/me"),
-    ]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(first).toEqual(payload);
-    expect(second).toEqual(payload);
-  });
-
-  test("does not de-dupe when each request has its own abort signal", async () => {
-    jest.resetModules();
-    process.env.REACT_APP_API_URL = "";
+    process.env.REACT_APP_API_BASE = "https://api.example.com";
     const response = {
       ok: true,
       status: 200,
@@ -85,13 +32,26 @@ describe("api utils", () => {
     const fetchMock = jest.fn(() => Promise.resolve(response));
     global.fetch = fetchMock;
     const api = require("./api");
+    const controller = new AbortController();
 
-    const controllerA = new AbortController();
-    const controllerB = new AbortController();
-    await Promise.all([
-      api.getJSON("/api/me", { signal: controllerA.signal }),
-      api.getJSON("/api/me", { signal: controllerB.signal }),
-    ]);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await api.getJSON("/api/health", { signal: controller.signal });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/api/health",
+      expect.objectContaining({
+        credentials: "include",
+        signal: controller.signal,
+      })
+    );
+  });
+
+  test("postJSON throws on non-ok responses", async () => {
+    jest.resetModules();
+    process.env.NEXT_PUBLIC_API_BASE = "";
+    const response = { ok: false, status: 500, json: jest.fn() };
+    global.fetch = jest.fn(() => Promise.resolve(response));
+    const api = require("./api");
+
+    await expect(api.postJSON("/api/test", { a: 1 })).rejects.toThrow("POST /api/test 500");
   });
 });

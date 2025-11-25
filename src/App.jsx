@@ -10,6 +10,7 @@ import Isles from "./pages/Isles";
 import Referral from "./pages/Referral";
 import Subscription from "./pages/Subscription";
 import TokenSale from "./pages/TokenSale";
+import Theme from "./pages/Theme";
 
 const manifestUrl =
   process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/token-sale" element={<TokenSale />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/isles" element={<Isles />} />
+          <Route path="/theme" element={<Theme />} />
         </Routes>
       </Layout>
     </TonConnectUIProvider>
