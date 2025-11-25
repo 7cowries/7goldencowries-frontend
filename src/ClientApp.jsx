@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import React from 'react';
 import { BrowserRouter } from "react-router-dom";
 import App from "./App"; // your existing app component
+import { TonConnectUIProvider } from "./hooks/safeTon";
+import { ThemeProvider } from "./context/ThemeContext";
+import { getTonManifestUrl } from "./utils/tonconnect";
 
 export default function ClientApp() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,8 +22,12 @@ export default function ClientApp() {
   }, [menuOpen]);
 
   return (
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <TonConnectUIProvider manifestUrl={getTonManifestUrl()}>
+      <ThemeProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ThemeProvider>
+    </TonConnectUIProvider>
   );
 }

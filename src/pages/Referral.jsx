@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Page from '../components/Page';
 import WalletStatus from '@/components/WalletStatus';
 import useWallet from '../hooks/useWallet';
-import { getJSON, getMe } from '../utils/api';
+import { getMe, getReferralEntries } from '../utils/api';
 import { burstConfetti } from '../utils/confetti';
 
 const Referral = () => {
@@ -12,6 +12,8 @@ const Referral = () => {
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [referrals, setReferrals] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const referralLink = referralCode
     ? `${window.location.origin}/?ref=${referralCode}`
@@ -36,26 +38,36 @@ const Referral = () => {
   useEffect(() => {
     if (!referralCode) return;
 
-    getJSON('/api/referrals/')
-      .then((data) => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await getReferralEntries();
         setReferrals(data.entries || data.referrals || []);
-      })
-      .catch((err) =>
+      } catch (err) {
         console.error(
           'Referral fetch error:',
           err?.response?.data || err.message || err
-        )
-      );
+        );
+        setError('Unable to fetch referrals right now.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, [referralCode]);
 
   useEffect(() => {
     const rerun = () => {
       if (referralCode) {
-        getJSON('/api/referrals/')
+        setLoading(true);
+        getReferralEntries()
           .then((data) => {
             setReferrals(data.entries || data.referrals || []);
           })
-          .catch(() => {});
+          .catch(() => setError('Unable to fetch referrals right now.'))
+          .finally(() => setLoading(false));
       }
     };
     window.addEventListener('profile-updated', rerun);
@@ -120,8 +132,18 @@ const Referral = () => {
 
             <div className="referral-list">
               <h2>🌊 Your Explorers</h2>
-              {referrals.length === 0 ? (
-                <p>No referrals yet. Share your link to get started!</p>
+              {error && <p className="muted">{error}</p>}
+              {loading ? (
+                <p>Loading referrals…</p>
+              ) : referrals.length === 0 ? (
+                <div className="empty-state">
+                  <p className="muted">
+                    No referrals yet. Share your link or refresh once friends have joined.
+                  </p>
+                  <button className="btn ghost" onClick={() => window.location.reload()}>
+                    Refresh
+                  </button>
+                </div>
               ) : (
                 <ul>
                   {referrals.map((r, i) => (
