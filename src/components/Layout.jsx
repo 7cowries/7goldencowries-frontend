@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Sidebar from "./layout/Sidebar";
 import { useTheme } from "../context/ThemeContext";
+import ConnectWalletButton from "./ConnectWalletButton";
 
 /**
  * Responsive application shell shared by every routed page. The sidebar stays
@@ -19,6 +20,9 @@ export default function Layout({ children }) {
     <div className={`app-layout theme-${theme}`}>
       <Sidebar />
       <div className="main-view">
+        <div className="layout-wallet-bar">
+          <ConnectWalletButton />
+        </div>
         <div className="main-scroll">{children}</div>
       </div>
     </div>

@@ -69,6 +69,21 @@ a:hover, .quest-title a:hover { color: var(--link-hover); text-decoration: under
   background: linear-gradient(180deg, rgba(6, 19, 37, 0.95), rgba(6, 19, 37, 0.85));
 }
 
+.layout-wallet-bar {
+  position: absolute;
+  top: clamp(14px, 4vw, 22px);
+  right: clamp(12px, 4vw, 24px);
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.layout-wallet-bar .connect-wallet-button {
+  pointer-events: auto;
+}
+
 @media (min-width: 1024px) {
   .main-view {
     margin-left: var(--sidebar-w);
@@ -174,6 +189,21 @@ a:hover, .quest-title a:hover { color: var(--link-hover); text-decoration: under
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(calc(var(--blur) + 4px)) saturate(calc(var(--sat) + 30%));
   -webkit-backdrop-filter: blur(calc(var(--blur) + 4px)) saturate(calc(var(--sat) + 30%));
+}
+
+.connect-wallet-cta {
+  margin: 16px 0;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.connect-wallet-cta .cta-button {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Web3-inspired neon gradient border with chain-link effect */
