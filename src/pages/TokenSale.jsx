@@ -4,6 +4,7 @@ import PaymentGuard from "../components/PaymentGuard";
 import WalletStatus from "@/components/WalletStatus";
 import useWallet from "../hooks/useWallet";
 import { startTokenSalePurchase } from "../utils/api";
+import ConnectWalletPrompt from "../components/ConnectWalletPrompt";
 
 export default function TokenSalePage() {
   const { wallet, isConnected } = useWallet();
@@ -79,6 +80,10 @@ export default function TokenSalePage() {
             <WalletStatus />
           </span>
         </div>
+
+        {!isWalletConnected && (
+          <ConnectWalletPrompt message="Connect your TON wallet to reserve your $GCT allocation." />
+        )}
 
         <div className="token-sale-hero gradient-border hover">
           <div className="token-sale-hero-content">
