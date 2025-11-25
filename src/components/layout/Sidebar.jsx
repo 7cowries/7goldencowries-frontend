@@ -2,7 +2,7 @@ import WalletConnect from "../../components/WalletConnect";
 import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 // using /logo.svg from public
-import { toggleTheme } from "../../utils/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 const items = [
   { to: "/quests", label: "Quests", emoji: "⚡" },
@@ -12,12 +12,14 @@ const items = [
   { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
   { to: "/profile", label: "Profile", emoji: "🔗" },
   { to: "/isles", label: "Isles", emoji: "🌱" },
+  { to: "/theme", label: "Theme", emoji: "🎨" },
 ];
 
 // Responsive sidebar with mobile drawer behaviour
 export default function Sidebar() {
   const pathname = (typeof window !== 'undefined' ? window.location.pathname : '/');
   const [open, setOpen] = useState(false);
+  const { cycleTheme } = useTheme();
 
   // Close drawer on route change (ensures drawer hides after navigation on mobile)
   useEffect(() => {
@@ -61,12 +63,14 @@ export default function Sidebar() {
               <span>{it.label}</span>
             </NavLink>
           ))}
-          <button type="button" className="nav-item" onClick={toggleTheme}>
+          <button type="button" className="nav-item" onClick={cycleTheme}>
             <span className="emoji">🌈</span>
-            <span>Theme</span>
+            <span>Quick theme toggle</span>
           </button>
-          <div style={{margin:"12px 10px 12px"}}><WalletConnect compact /></div>
-</nav>
+          <div style={{ margin: "12px 10px 12px" }}>
+            <WalletConnect compact />
+          </div>
+        </nav>
       </aside>
     </>
   );

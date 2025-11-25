@@ -1,4 +1,3 @@
-import React from 'react';
 export function TonConnectUIProvider({ children }) { return children; }
 export function useTonAddress() { return ''; }
 export function useTonConnectUI() {

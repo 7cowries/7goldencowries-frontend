@@ -92,7 +92,7 @@ function normalizeStatus(raw) {
 }
 
 export default function SubscriptionPage() {
-  const { wallet, isConnected } = useWallet();
+  const { wallet } = useWallet();
   const isWalletConnected = !!wallet;
 
   const [searchParams, setSearchParams] = useSearchParams();

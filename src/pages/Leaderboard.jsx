@@ -110,6 +110,22 @@ export default function Leaderboard() {
     );
   }
 
+  if (!leaders.length) {
+    return (
+      <Page>
+        <div className="glass-strong lb-fallback">
+          <h2>No explorers on the board yet</h2>
+          <p className="muted">
+            We’ll list the top performers as soon as scores arrive. Try refreshing in a moment.
+          </p>
+          <button className="btn ghost" onClick={retry}>
+            Refresh leaderboard
+          </button>
+        </div>
+      </Page>
+    );
+  }
+
   const podium = leaders.slice(0, 3);
   const rest = leaders.slice(3);
 

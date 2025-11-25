@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 
 export default function FXCanvas({ paused=false }) {
   const ref = useRef(null);
-  const raf = useRef(0), dpr = window.devicePixelRatio || 1;
+  const raf = useRef(0);
   useEffect(() => {
+    const dpr = window.devicePixelRatio || 1;
     const c = ref.current; if (!c) return;
     const ctx = c.getContext('2d');
     const parts = Array.from({length: 28}).map(() => ({

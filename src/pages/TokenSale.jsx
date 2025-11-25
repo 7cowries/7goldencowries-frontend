@@ -6,7 +6,7 @@ import useWallet from "../hooks/useWallet";
 import { startTokenSalePurchase } from "../utils/api";
 
 export default function TokenSalePage() {
-  const { wallet, isConnected } = useWallet();
+  const { wallet } = useWallet();
   const isWalletConnected = !!wallet;
 
   const [amountUsd, setAmountUsd] = useState("250");

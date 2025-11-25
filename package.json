@@ -33,6 +33,7 @@
     "start": "next start",
     "build": "next build",
     "test": "react-scripts test",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "eject": "react-scripts eject",
     "dev": "next dev",
     "dev-proxy": "node server/dev-proxy.js",
@@ -44,14 +45,21 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    }
+  },
   "devDependencies": {
     "@types/node": "^24.7.2",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "eslint": "^9.39.1",
+    "eslint": "^8.57.1",
+    "eslint-config-react-app": "^7.0.1",
     "http-proxy-middleware": "^3.0.5",
+    "react-scripts": "5.0.1",
     "supertest": "^6.3.4",
-    "typescript": "^5.9.3"
+    "typescript": "^4.9.5"
   },
   "browserslist": {
     "production": [

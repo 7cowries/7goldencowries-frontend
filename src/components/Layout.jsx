@@ -1,5 +1,6 @@
 import Sidebar from "./layout/Sidebar";
 import MagicLayers from "./ui/MagicLayers";
+import { useTheme } from "../context/ThemeContext";
 
 /**
  * Responsive application shell shared by every routed page. The sidebar stays
@@ -8,13 +9,14 @@ import MagicLayers from "./ui/MagicLayers";
  * viewport width.
  */
 export default function Layout({ children }) {
+  const { ambientEnabled } = useTheme();
   return (
-    <div className="app-layout">
+    <div className={`app-layout${!ambientEnabled ? " no-ambient" : ""}`}>
       <Sidebar />
       <div className="main-view">
         <div className="main-scroll">{children}</div>
       </div>
-      <MagicLayers />
+      {ambientEnabled ? <MagicLayers /> : null}
     </div>
   );
 }
