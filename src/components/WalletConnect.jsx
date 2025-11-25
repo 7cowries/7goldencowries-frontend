@@ -77,7 +77,7 @@ export default function WalletConnect({ compact = false }) {
     } catch (_) {}
 
     setAddr(null);
-    setTimeout(() => location.reload(), 150);
+    setTimeout(() => window.location.reload(), 150);
   };
 
   const short = addr ? addr.slice(0, 4) + "…" + addr.slice(-4) : "";

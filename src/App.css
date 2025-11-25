@@ -671,6 +671,103 @@ input:focus, select:focus, textarea:focus {
   animation: holo-pulse 10s ease-in-out infinite;
 }
 
+/* Theme controls */
+.theme-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.theme-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.theme-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-card input { display: none; }
+
+.theme-card.active {
+  border-color: rgba(0, 224, 255, 0.55);
+  box-shadow: var(--shadow-lg);
+}
+
+.theme-card-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.theme-badge {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.theme-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.theme-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 12px;
+  margin: 0 0 4px;
+  opacity: 0.7;
+}
+
+.empty-state {
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.empty-state .btn {
+  margin-top: 8px;
+}
+
 @media (max-width: 520px) {
   .modal-box { padding: 20px !important; }
 }
@@ -684,6 +781,12 @@ input:focus, select:focus, textarea:focus {
   pointer-events: none;
   background: var(--veil);
   z-index: 0;
+}
+
+body.no-ambient .veil,
+body.no-ambient #magic-orbs,
+body.no-ambient .particles {
+  display: none !important;
 }
 
 @keyframes veil-pulse {
@@ -722,33 +825,6 @@ input:focus, select:focus, textarea:focus {
   100% { transform: translateY(0) translateX(0) scale(1); }
 }
 
-/* Web3 particle system */
-.particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.particle {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: var(--aqua);
-  border-radius: 50%;
-  opacity: 0.5;
-  animation: particle-drift 20s linear infinite;
-}
-
-.particle:nth-child(odd) { background: var(--gold); animation-duration: 25s; }
-.particle:nth-child(even) { background: var(--violet); animation-duration: 22s; }
-
-@keyframes particle-drift {
-  0% { transform: translateY(0) scale(1); opacity: 0.5; }
-  50% { transform: translateY(-50vh) scale(1.2); opacity: 0.8; }
-  100% { transform: translateY(-100vh) scale(1); opacity: 0; }
-}
-
 /* --------------------------------
    Nice scrollbars (Web3 neon)
 -----------------------------------*/
@@ -764,6 +840,18 @@ input:focus, select:focus, textarea:focus {
 /* --------------------------------
    Reduced motion support
 -----------------------------------*/
+body.no-animations * {
+  animation: none !important;
+  transition: none !important;
+}
+
+body.no-animations .section:hover,
+body.no-animations .card:hover,
+body.no-animations .feature-card:hover,
+body.no-animations .btn:hover {
+  transform: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btn:hover, .card:hover, .feature-card:hover, .section:hover { transform: none !important; }
   .progress-fill, .veil, #magic-orbs .orb, .particle, .gradient-border::before { animation: none !important; }

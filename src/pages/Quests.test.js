@@ -13,9 +13,10 @@ import useWallet from '../hooks/useWallet';
 import { detectSpecialClaimType } from '../lib/claimType';
 
 jest.mock('../utils/api');
-jest.mock('../hooks/useWallet', () => ({
-  useWallet: jest.fn(),
-}));
+jest.mock('../hooks/useWallet', () => {
+  const mock = jest.fn();
+  return { __esModule: true, default: mock, useWallet: mock };
+});
 
 const baseProfile = {
   wallet: 'w',
