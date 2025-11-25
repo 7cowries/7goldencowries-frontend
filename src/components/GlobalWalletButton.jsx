@@ -1,11 +1,11 @@
 import React from "react";
-import WalletConnect from "./WalletConnect";
-
+import ConnectWalletButton from "./ConnectWalletButton";
+import "./GlobalWalletButton.css";
 
 export default function GlobalWalletButton() {
   return (
     <div className="global-wallet-button">
-      <WalletConnect className="global-embed" />
+      <ConnectWalletButton className="global-embed" />
     </div>
   );
 }

@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import React from 'react';
 import { BrowserRouter } from "react-router-dom";
 import App from "./App"; // your existing app component
+import { TonConnectUIProvider } from "./hooks/safeTon";
+import WalletProvider from "./context/WalletContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 export default function ClientApp() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -18,9 +21,22 @@ export default function ClientApp() {
     }
   }, [menuOpen]);
 
+  const manifestUrl =
+    process.env.REACT_APP_TONCONNECT_MANIFEST_URL ||
+    process.env.NEXT_PUBLIC_TONCONNECT_MANIFEST_URL ||
+    (typeof window !== "undefined"
+      ? `${window.location.origin}/tonconnect-manifest.json`
+      : "/tonconnect-manifest.json");
+
   return (
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
+      <WalletProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ThemeProvider>
+      </WalletProvider>
+    </TonConnectUIProvider>
   );
 }

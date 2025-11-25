@@ -10,6 +10,7 @@ import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
 import QuestCard from '../components/QuestCard';
 import Page from '../components/Page';
+import ConnectWalletPrompt from '../components/ConnectWalletPrompt';
 import { burstConfetti } from '../utils/confetti';
 import useWallet from '../hooks/useWallet';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -105,6 +106,13 @@ export default function Quests() {
   }, [loadQuests]);
 
   useEffect(() => {
+    if (!wallet) {
+      setLoading(false);
+      setQuests([]);
+      setMe(null);
+      setError(null);
+      return;
+    }
     sync();
     loadMe();
   }, [wallet, loadMe, sync]);
@@ -241,6 +249,14 @@ export default function Quests() {
           ),
     [activeTab, quests]
   );
+  if (!isConnected) {
+    return (
+      <Page>
+        <ConnectWalletPrompt message="Connect your TON wallet to see quests and claim rewards." />
+      </Page>
+    );
+  }
+
   if (loading)
     return (
       <Page>
