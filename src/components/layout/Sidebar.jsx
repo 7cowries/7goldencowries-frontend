@@ -1,6 +1,6 @@
-import WalletConnect from "../../components/WalletConnect";
 import { Link, NavLink } from "react-router-dom";
 import React, { useEffect, useState } from "react";
+import ConnectWalletButton from "../ConnectWalletButton";
 
 const items = [
   { to: "/", label: "Home", emoji: "🏠" },
@@ -61,7 +61,7 @@ export default function Sidebar() {
             </NavLink>
           ))}
           <div style={{ margin: "12px 10px 12px" }}>
-            <WalletConnect compact />
+            <ConnectWalletButton />
           </div>
         </nav>
       </aside>
