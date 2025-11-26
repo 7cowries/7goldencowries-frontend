@@ -8,5 +8,8 @@ function normalizeBase(raw) {
 }
 
 export const API_BASE = normalizeBase(
-  process.env.REACT_APP_API_BASE || process.env.NEXT_PUBLIC_API_BASE || process.env.API_BASE
+  process.env.REACT_APP_API_URL ||
+    process.env.REACT_APP_API_BASE ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE
 );
