@@ -1,11 +1,11 @@
 // src/utils/api.js
 
-// All frontend API calls go directly to the Render backend (production).
-// Prefer environment configuration but fall back to the hosted backend.
+// All frontend API calls default to same-origin rewrites so CRA/Next proxies
+// can forward `/api/*` to the backend. Override via env when testing
+// against a standalone backend.
 import { API_BASE as CONFIG_API_BASE } from "../config";
 
-const PUBLIC_BASE =
-  CONFIG_API_BASE || "https://sevengoldencowries-backend.onrender.com";
+const PUBLIC_BASE = CONFIG_API_BASE || "";
 
 export const RAW_API_BASE = PUBLIC_BASE;
 export const API_BASE = PUBLIC_BASE;
@@ -15,6 +15,7 @@ export const API_BASE = PUBLIC_BASE;
 export const API_URLS = {
   // Social OAuth starts
   twitterStart: joinPath(API_BASE, "/api/auth/twitter/start"),
+  telegramStart: joinPath(API_BASE, "/api/auth/telegram/start"),
   discordStart: joinPath(API_BASE, "/api/auth/discord/start"),
   telegramEmbedAuth: joinPath(API_BASE, "/api/auth/telegram/callback"),
 
