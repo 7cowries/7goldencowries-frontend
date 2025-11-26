@@ -4,7 +4,7 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.REACT_APP_API_URL ||
   process.env.BACKEND_ORIGIN ||
-  'https://7goldencowries-backend.onrender.com';
+  'https://sevengoldencowries-backend.onrender.com';
 
 function safeOrigin(url) {
   try {
@@ -15,7 +15,8 @@ function safeOrigin(url) {
   }
 }
 
-const API_ORIGIN = safeOrigin(API_BASE) || 'https://7goldencowries-backend.onrender.com';
+const API_ORIGIN =
+  safeOrigin(API_BASE) || 'https://sevengoldencowries-backend.onrender.com';
 
 // Build a single CSP string (no newlines)
 const CSP = [
