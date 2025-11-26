@@ -1,4 +1,12 @@
+
+const API =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.REACT_APP_API_URL ||
+  process.env.BACKEND_ORIGIN ||
+  'https://sevengoldencowries-backend.onrender.com';
+
 import { API_BASE as CONFIG_API_BASE } from "../config";
+
 
 const API = normalizeBase(CONFIG_API_BASE);
 
