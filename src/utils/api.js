@@ -10,7 +10,7 @@ export const API_BASE = PUBLIC_BASE;
 // Only add fallbacks when we *know* they exist.
 export const API_URLS = {
   health: "/api/health",
-  me: "/api/me",
+  me: "/api/auth/me",
 
   auth: {
     walletSession: "/api/auth/wallet/session",
@@ -25,6 +25,11 @@ export const API_URLS = {
     list: "/api/quests",
     claim: "/api/quests/claim",
     submitProof: "/api/quests/proof",
+    verify: {
+      twitterFollow: "/api/quests/verify/twitter/follow",
+      twitterRetweet: "/api/quests/verify/twitter/retweet",
+      twitterQuote: "/api/quests/verify/twitter/quote",
+    },
   },
 
   referrals: {
@@ -32,17 +37,17 @@ export const API_URLS = {
   },
 
   subscriptions: {
-    // These are implemented at the root level on the backend
-    status: "/subscriptions/status",
-    subscribe: "/subscriptions/subscribe",
-    claimBonus: "/subscriptions/claim-bonus",
+    // Canonical v1 endpoints
+    status: "/api/v1/subscription/status",
+    subscribe: "/api/v1/subscription/subscribe",
+    claimBonus: "/api/v1/subscription/claim",
   },
 
   leaderboard: "/api/leaderboard",
 
   tokenSale: {
-    // Canonical token sale start endpoint under /api
-    start: "/api/token-sale/start",
+    // Canonical token sale start endpoint under /api/v1
+    start: "/api/v1/token-sale/start",
   },
 
   wallet: {
@@ -74,11 +79,12 @@ function joinPath(base, path) {
   return `${b}/${p}`;
 }
 
-async function req(method, path, body) {
+async function req(method, path, body, options = {}) {
   const url = joinPath(API_BASE, path);
   const opts = {
     method,
     credentials: "include",
+    signal: options.signal,
     ...(method !== "GET"
       ? { headers: defaultHeaders, body: JSON.stringify(body || {}) }
       : {}),
@@ -104,11 +110,11 @@ export async function postJSON(path, body) {
  * Try a list of candidate paths until one returns 200–299.
  * Only use this where we *really* need to probe multiple legacy paths.
  */
-async function fetchFirst(method, candidates, body) {
+async function fetchFirst(method, candidates, body, options = {}) {
   let lastErr;
   for (const p of candidates) {
     try {
-      const r = await req(method, p, body);
+      const r = await req(method, p, body, options);
       if (r.ok) return r.json();
       lastErr = new Error(`${method} ${p} ${r.status}`);
     } catch (e) {
@@ -133,7 +139,7 @@ let _meCache = null;
 export async function getMe({ force = false } = {}) {
   if (!force && _meCache) return _meCache;
 
-  const candidates = [API_URLS.me, "/me"];
+  const candidates = [API_URLS.me, "/api/me", "/me"];
   _meCache = await fetchFirst("GET", candidates);
   return _meCache;
 }
@@ -206,6 +212,33 @@ export async function claimQuest(key) {
   return postJSON(API_URLS.quests.claim, { key });
 }
 
+export async function verifyTwitterFollow({ questId, handle, url }) {
+  const payload = { questId, handle, url };
+  const candidates = [
+    API_URLS.quests.verify.twitterFollow,
+    "/quests/verify/twitter/follow",
+  ];
+  return fetchFirst("POST", candidates, payload);
+}
+
+export async function verifyTwitterRetweet({ questId, url }) {
+  const payload = { questId, url };
+  const candidates = [
+    API_URLS.quests.verify.twitterRetweet,
+    "/quests/verify/twitter/retweet",
+  ];
+  return fetchFirst("POST", candidates, payload);
+}
+
+export async function verifyTwitterQuote({ questId, url, text }) {
+  const payload = { questId, url, text };
+  const candidates = [
+    API_URLS.quests.verify.twitterQuote,
+    "/quests/verify/twitter/quote",
+  ];
+  return fetchFirst("POST", candidates, payload);
+}
+
 export async function submitProof(key, proof) {
   return postJSON(API_URLS.quests.submitProof, { key, proof });
 }
@@ -219,18 +252,21 @@ export async function claimReferralReward(refCode) {
 
 /* ---------------- Subscriptions ---------------- */
 
-export async function getSubscriptionStatus() {
-  // Canonical GET /subscriptions/status
-  return getJSON(API_URLS.subscriptions.status);
+export async function getSubscriptionStatus({ signal } = {}) {
+  // Canonical GET /api/v1/subscription/status
+  const candidates = [API_URLS.subscriptions.status, "/subscriptions/status"];
+  return fetchFirst("GET", candidates, undefined, { signal });
 }
 
-export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid }) {
-  const payload = { tier, txHash, tonPaid, usdPaid };
-  return postJSON(API_URLS.subscriptions.subscribe, payload);
+export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid, wallet }) {
+  const payload = { tier, txHash, tonPaid, usdPaid, wallet };
+  const candidates = [API_URLS.subscriptions.subscribe, "/subscriptions/subscribe"];
+  return fetchFirst("POST", candidates, payload);
 }
 
 export async function claimSubscriptionBonus() {
-  return postJSON(API_URLS.subscriptions.claimBonus, {});
+  const candidates = [API_URLS.subscriptions.claimBonus, "/subscriptions/claim-bonus"];
+  return fetchFirst("POST", candidates, {});
 }
 
 // Alias used elsewhere in the app
@@ -253,7 +289,8 @@ export async function getLeaderboard() {
  * "No working endpoint among ...".
  */
 export async function startTokenSalePurchase(payload) {
-  return postJSON(API_URLS.tokenSale.start, payload);
+  const candidates = [API_URLS.tokenSale.start, "/api/token-sale/start"];
+  return fetchFirst("POST", candidates, payload);
 }
 
 /* ---------------- Tier multiplier helpers ---------------- */
