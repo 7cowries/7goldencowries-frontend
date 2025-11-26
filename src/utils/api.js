@@ -10,9 +10,9 @@ export const API_BASE = PUBLIC_BASE;
 // Only add fallbacks when we *know* they exist.
 export const API_URLS = {
   // Social OAuth starts
-  twitterStart: "/api/auth/twitter/start",
-  discordStart: "/api/auth/discord/start",
-  telegramEmbedAuth: "/api/auth/telegram/callback",
+  twitterStart: joinPath(API_BASE, "/api/auth/twitter/start"),
+  discordStart: joinPath(API_BASE, "/api/auth/discord/start"),
+  telegramEmbedAuth: joinPath(API_BASE, "/api/auth/telegram/callback"),
 
   health: "/api/health",
   me: "/api/auth/me",
