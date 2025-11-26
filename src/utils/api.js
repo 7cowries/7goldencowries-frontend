@@ -61,7 +61,7 @@ const RAW_API_BASE =
   process.env.REACT_APP_API_URL ||
   "";
 
-export const API_BASE = ""; // via vercel.json rewrite
+export const API_BASE = normalizeBase(RAW_API_BASE);
 
 const DEFAULT_API_PREFIX = "/api";
 
@@ -503,8 +503,22 @@ export async function getMe({ signal, force } = {}) {
   });
 }
 
-export function claimQuest(id, opts = {}) {
-  return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => {
+export function claimQuest(id, opts = {}) { 
+  return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => { 
+    clearUserCache(); 
+    if (typeof window !== "undefined") { 
+      window.dispatchEvent(new Event("profile-updated")); 
+    }
+    return normalizeResponse(res); 
+  }); 
+} 
+
+export function verifyTwitterFollow({ questId, handle, url } = {}, opts = {}) {
+  return postJSON(
+    "/api/quests/verify/twitter/follow",
+    { questId, handle, url },
+    opts
+  ).then((res) => {
     clearUserCache();
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("profile-updated"));
@@ -513,11 +527,39 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
-export function claimSubscriptionReward({ questId } = {}, opts = {}) {
+export function verifyTwitterRetweet({ questId, url } = {}, opts = {}) {
   return postJSON(
-    "/api/v1/subscription/claim",
-    questId ? { questId } : {},
+    "/api/quests/verify/twitter/retweet",
+    { questId, url },
     opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
+export function verifyTwitterQuote({ questId, url, text } = {}, opts = {}) {
+  return postJSON(
+    "/api/quests/verify/twitter/quote",
+    { questId, url, text },
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
+export function claimSubscriptionReward({ questId } = {}, opts = {}) { 
+  return postJSON( 
+    "/api/v1/subscription/claim", 
+    questId ? { questId } : {}, 
+    opts 
   ).then((res) => {
     clearUserCache();
     if (typeof window !== "undefined") {
@@ -653,6 +695,9 @@ export const api = {
   startDiscord,
   startTwitter,
   claimQuest,
+  verifyTwitterFollow,
+  verifyTwitterRetweet,
+  verifyTwitterQuote,
   claimSubscriptionReward,
   claimReferralReward,
   submitProof,
