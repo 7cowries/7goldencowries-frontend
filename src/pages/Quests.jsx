@@ -5,6 +5,9 @@ import {
   getMe,
   claimSubscriptionReward,
   claimReferralReward,
+  verifyTwitterFollow,
+  verifyTwitterQuote,
+  verifyTwitterRetweet,
 } from '../utils/api';
 import Toast from '../components/Toast';
 import ProfileWidget from '../components/ProfileWidget';
@@ -17,6 +20,40 @@ import { detectSpecialClaimType } from '../lib/claimType';
 
 const PROOF_REQUIRED = 'proof-required';
 const TOAST_DISMISS_MS = process.env.NODE_ENV === 'test' ? 0 : 3000;
+
+function detectTwitterAction(quest) {
+  const haystack = [];
+  const push = (v) => {
+    if (v == null) return;
+    if (Array.isArray(v)) {
+      v.forEach((entry) => push(entry));
+      return;
+    }
+    if (typeof v === 'object') {
+      Object.values(v).forEach((entry) => push(entry));
+      return;
+    }
+    const text = String(v).toLowerCase();
+    if (text) haystack.push(text);
+  };
+
+  push(quest?.requirement);
+  push(quest?.requirementType);
+  push(quest?.requirement_type);
+  push(quest?.type);
+  push(quest?.tags);
+  push(quest?.slug);
+  push(quest?.code);
+  push(quest?.title);
+  push(quest?.actionType);
+  push(quest?.action?.type);
+  push(quest?.action?.category);
+
+  if (haystack.some((t) => t.includes('retweet'))) return 'retweet';
+  if (haystack.some((t) => t.includes('quote'))) return 'quote';
+  if (haystack.some((t) => t.includes('follow'))) return 'follow';
+  return null;
+}
 
 function normalizeStatus(status) {
   return String(status || '').toLowerCase();
@@ -154,9 +191,19 @@ export default function Quests() {
 
       try {
         const special = detectSpecialClaimType(quest);
+        const twitterAction = detectTwitterAction(quest);
+        const questUrl = quest?.url || quest?.link || quest?.target;
+        const questHandle =
+          quest?.handle || quest?.twitter || quest?.twitterHandle || quest?.targetHandle;
         let res;
 
-        if (special === 'subscription') {
+        if (twitterAction === 'follow') {
+          res = await verifyTwitterFollow({ questId: id, handle: questHandle, url: questUrl });
+        } else if (twitterAction === 'retweet') {
+          res = await verifyTwitterRetweet({ questId: id, url: questUrl });
+        } else if (twitterAction === 'quote') {
+          res = await verifyTwitterQuote({ questId: id, url: questUrl });
+        } else if (special === 'subscription') {
           res = await claimSubscriptionReward({ questId: id });
         } else if (special === 'referral') {
           res = await claimReferralReward({ questId: id });
@@ -306,6 +353,7 @@ export default function Quests() {
                 <QuestCard
                   key={q.id}
                   quest={q}
+                  twitterAction={detectTwitterAction(q)}
                   me={me}
                   onClaim={handleClaim}
                   claiming={!!claiming[q.id]}
