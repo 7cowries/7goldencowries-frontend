@@ -1,7 +1,11 @@
 // src/utils/api.js
 
 // All frontend API calls go directly to the Render backend (production).
-const PUBLIC_BASE = "https://sevengoldencowries-backend.onrender.com";
+// Prefer environment configuration but fall back to the hosted backend.
+import { API_BASE as CONFIG_API_BASE } from "../config";
+
+const PUBLIC_BASE =
+  CONFIG_API_BASE || "https://sevengoldencowries-backend.onrender.com";
 
 export const RAW_API_BASE = PUBLIC_BASE;
 export const API_BASE = PUBLIC_BASE;
