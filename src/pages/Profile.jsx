@@ -436,32 +436,11 @@ export default function Profile() {
     };
   }, []);
 
-  const state = b64(address || "");
-
-  const oauthStartUrls = useMemo(
-    () => ({
-      twitter: API_URLS.twitterStart || "/api/auth/twitter/start",
-      telegram: API_URLS.telegramStart || "/api/auth/telegram/start",
-      discord: API_URLS.discordStart || "/api/auth/discord/start",
-    }),
-    []
-  );
-
-  const withState = useCallback(
-    (url) => {
-      const target = url || "";
-      const sep = target.includes("?") ? "&" : "?";
-      const encoded = encodeURIComponent(state || "");
-      return `${target}${sep}state=${encoded}`;
-    },
-    [state]
-  );
-
   // Start Twitter OAuth on backend
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
     setConnecting((c) => ({ ...c, twitter: true }));
-    window.location.href = withState(oauthStartUrls.twitter);
+    window.location.href = API_URLS.twitterStart;
   };
 
   // Change "Connect Telegram" to scroll to the embedded widget
@@ -475,14 +454,14 @@ export default function Profile() {
       setTimeout(() => setToast(""), 4000);
       setConnecting((c) => ({ ...c, telegram: false }));
     } else {
-      window.location.href = withState(oauthStartUrls.telegram);
+      window.location.href = API_URLS.telegramStart;
     }
   };
 
   const connectDiscord = () => {
     if (!address) return alert("Connect wallet first");
     setConnecting((c) => ({ ...c, discord: true }));
-    window.location.href = withState(oauthStartUrls.discord);
+    window.location.href = API_URLS.discordStart;
   };
 
   const handleDisconnectWallet = useCallback(async () => {

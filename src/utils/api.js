@@ -87,6 +87,7 @@ const BASE_COMPONENTS = parseBaseComponents(API_BASE);
 export const API_URLS = {
   twitterStart: resolvePath("/api/auth/twitter/start"),
   discordStart: resolvePath("/api/auth/discord/start"),
+  telegramStart: resolvePath("/api/auth/telegram/start"),
   telegramEmbedAuth: resolvePath("/api/auth/telegram/callback"),
 };
 
@@ -656,18 +657,6 @@ export function subscribeToTier({ wallet, tier }, opts = {}) {
   );
 }
 
-export function startTelegram(opts = {}) {
-  return postJSON("/api/auth/telegram/start", {}, opts);
-}
-
-export function startDiscord(opts = {}) {
-  return postJSON("/api/auth/discord/start", {}, opts);
-}
-
-export function startTwitter(opts = {}) {
-  return postJSON("/api/auth/twitter/start", {}, opts);
-}
-
 export function getReferralInfo(opts = {}) {
   return getJSON("/api/referral/me", opts);
 }
@@ -699,9 +688,6 @@ export const api = {
   getSubscriptionStatus,
   subscribeToTier,
   claimSubscriptionBonus,
-  startTelegram,
-  startDiscord,
-  startTwitter,
   verifyTwitterFollow,
   verifyTwitterQuote,
   verifyTwitterRetweet,
