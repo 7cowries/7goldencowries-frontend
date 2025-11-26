@@ -4,17 +4,8 @@ function normalizeBase(rawValue) {
   const value = typeof rawValue === "string" ? rawValue.trim() : "";
   if (!value) return "";
 
-
   const stripTrailing = (input) =>
     input.endsWith("/") ? input.replace(/\/+$/, "") : input;
-
-// All frontend API calls default to same-origin rewrites so CRA/Next proxies
-// can forward `/api/*` to the backend. Override via env when testing
-// against a standalone backend.
-import { API_BASE as CONFIG_API_BASE } from "../config";
-
-const PUBLIC_BASE = CONFIG_API_BASE || "";
-
 
   if (/^https?:\/\//i.test(value)) {
     return stripTrailing(value);
@@ -65,16 +56,12 @@ export class ApiError extends Error {
   }
 }
 
-const DEFAULT_API_BASE = "https://sevengoldencowries-backend.onrender.com";
-
 const RAW_API_BASE =
   (typeof window !== "undefined" && window.__API_BASE) ||
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.REACT_APP_API_URL ||
-  process.env.BACKEND_ORIGIN ||
-  DEFAULT_API_BASE;
+  "";
 
-export const API_BASE = normalizeBase(RAW_API_BASE);
+export const API_BASE = ""; // via vercel.json rewrite
 
 const DEFAULT_API_PREFIX = "/api";
 
@@ -98,62 +85,9 @@ function parseBaseComponents(base) {
 const BASE_COMPONENTS = parseBaseComponents(API_BASE);
 
 export const API_URLS = {
-
   twitterStart: resolvePath("/api/auth/twitter/start"),
   discordStart: resolvePath("/api/auth/discord/start"),
   telegramEmbedAuth: resolvePath("/api/auth/telegram/callback"),
-
-  // Social OAuth starts
-  twitterStart: joinPath(API_BASE, "/api/auth/twitter/start"),
-  telegramStart: joinPath(API_BASE, "/api/auth/telegram/start"),
-  discordStart: joinPath(API_BASE, "/api/auth/discord/start"),
-  telegramEmbedAuth: joinPath(API_BASE, "/api/auth/telegram/callback"),
-
-  health: "/api/health",
-  me: "/api/auth/me",
-
-  auth: {
-    walletSession: "/api/auth/wallet/session",
-    logoutCandidates: [
-      "/api/v1/auth/logout",
-      "/api/auth/wallet/logout",
-      "/api/auth/session/logout",
-    ],
-  },
-
-  quests: {
-    list: "/api/quests",
-    claim: "/api/quests/claim",
-    submitProof: "/api/quests/proof",
-    verify: {
-      twitterFollow: "/api/quests/verify/twitter/follow",
-      twitterRetweet: "/api/quests/verify/twitter/retweet",
-      twitterQuote: "/api/quests/verify/twitter/quote",
-    },
-  },
-
-  referrals: {
-    claim: "/api/referrals/claim",
-  },
-
-  subscriptions: {
-    // Canonical v1 endpoints
-    status: "/api/v1/subscription/status",
-    subscribe: "/api/v1/subscription/subscribe",
-    claimBonus: "/api/v1/subscription/claim",
-  },
-
-  leaderboard: "/api/leaderboard",
-
-  tokenSale: {
-    // Canonical token sale start endpoint under /api/v1
-    start: "/api/v1/token-sale/start",
-  },
-
-  wallet: {
-    bind: "/api/auth/wallet/session",
-  },
-
 };
 
 export function withSignal(ms = 15000) {
@@ -190,7 +124,6 @@ function combinePaths(basePath, targetPath) {
   return `${normalizedBase}${normalizedTarget}`;
 }
 
-
 function resolvePath(path = "") {
   const raw = typeof path === "string" ? path : "";
   if (!raw) {
@@ -212,18 +145,6 @@ function resolvePath(path = "") {
   if (API_BASE) {
     return combinePaths(API_BASE, raw.startsWith("/") ? raw : `/${raw}`);
   }
-
-async function req(method, path, body, options = {}) {
-  const url = joinPath(API_BASE, path);
-  const opts = {
-    method,
-    credentials: "include",
-    signal: options.signal,
-    ...(method !== "GET"
-      ? { headers: defaultHeaders, body: JSON.stringify(body || {}) }
-      : {}),
-  };
-
 
   const normalized = raw.startsWith("/") ? raw : `/${raw}`;
   if (
@@ -257,7 +178,6 @@ async function readErrorBody(res) {
     }
   }
 }
-
 
 async function buildHttpError(res) {
   const status = res?.status ?? 0;
@@ -314,21 +234,6 @@ function safeStringify(value) {
       return JSON.stringify(value);
     } catch (err) {
       return String(value);
-
-/**
- * Try a list of candidate paths until one returns 200–299.
- * Only use this where we *really* need to probe multiple legacy paths.
- */
-async function fetchFirst(method, candidates, body, options = {}) {
-  let lastErr;
-  for (const p of candidates) {
-    try {
-      const r = await req(method, p, body, options);
-      if (r.ok) return r.json();
-      lastErr = new Error(`${method} ${p} ${r.status}`);
-    } catch (e) {
-      lastErr = e;
-
     }
   }
   return String(value);
@@ -458,7 +363,6 @@ async function requestJSON(path, opts = {}) {
     throw new ApiError({ message: "Request failed" });
   };
 
-
   let pending = execute();
   if (key) {
     pending = pending.finally(() => {
@@ -494,11 +398,6 @@ function cacheGet(key) {
 
 function cacheSet(key, value) {
   _cache.set(key, { t: Date.now(), v: value });
-
-  const candidates = [API_URLS.me, "/api/me", "/me"];
-  _meCache = await fetchFirst("GET", candidates);
-  return _meCache;
-
 }
 
 export function clearUserCache() {
@@ -595,25 +494,13 @@ export async function getMe({ signal, force } = {}) {
   const key = userKey("me");
   if (!force) {
     const cached = cacheGet(key);
-    if (cached) return cached;
+    if (cached) return Promise.resolve(cached);
   }
-
-  const fetchProfile = async () => {
-    try {
-      return await getJSON("/api/users/me", { signal });
-    } catch (err) {
-      // Older deployments exposed the profile at /api/me; fall back if the new route is missing
-      if (err instanceof ApiError && err.status === 404) {
-        return getJSON("/api/me", { signal });
-      }
-      throw err;
-    }
-  };
-
-  const data = await fetchProfile();
-  const user = data && typeof data === "object" && "user" in data ? data.user : data;
-  if (user) cacheSet(key, user);
-  return user;
+  return getJSON("/api/me", { signal }).then((data) => {
+    const user = data && typeof data === "object" && "user" in data ? data.user : data;
+    if (user) cacheSet(key, user);
+    return user;
+  });
 }
 
 export function claimQuest(id, opts = {}) {
@@ -674,7 +561,6 @@ export function submitProof(id, { url }, opts = {}) {
   });
 }
 
-
 export function disconnectSession(opts = {}) {
   return postJSON("/api/session/disconnect", {}, opts).then((res) => {
     clearUserCache();
@@ -683,37 +569,6 @@ export function disconnectSession(opts = {}) {
     }
     return normalizeResponse(res);
   });
-
-export async function verifyTwitterFollow({ questId, handle, url }) {
-  const payload = { questId, handle, url };
-  const candidates = [
-    API_URLS.quests.verify.twitterFollow,
-    "/quests/verify/twitter/follow",
-  ];
-  return fetchFirst("POST", candidates, payload);
-}
-
-export async function verifyTwitterRetweet({ questId, url }) {
-  const payload = { questId, url };
-  const candidates = [
-    API_URLS.quests.verify.twitterRetweet,
-    "/quests/verify/twitter/retweet",
-  ];
-  return fetchFirst("POST", candidates, payload);
-}
-
-export async function verifyTwitterQuote({ questId, url, text }) {
-  const payload = { questId, url, text };
-  const candidates = [
-    API_URLS.quests.verify.twitterQuote,
-    "/quests/verify/twitter/quote",
-  ];
-  return fetchFirst("POST", candidates, payload);
-}
-
-export async function submitProof(key, proof) {
-  return postJSON(API_URLS.quests.submitProof, { key, proof });
-
 }
 
 // UI-only helper for showing projected XP; backend still awards the truth.
@@ -739,7 +594,6 @@ export function startTokenSalePurchase({ wallet, amount }, opts = {}) {
   );
 }
 
-
 export function getSubscriptionStatus(opts = {}) {
   return getJSON("/api/v1/subscription/status", opts);
 }
@@ -754,23 +608,6 @@ export function subscribeToTier({ wallet, tier }, opts = {}) {
 
 export function startTelegram(opts = {}) {
   return postJSON("/api/auth/telegram/start", {}, opts);
-
-export async function getSubscriptionStatus({ signal } = {}) {
-  // Canonical GET /api/v1/subscription/status
-  const candidates = [API_URLS.subscriptions.status, "/subscriptions/status"];
-  return fetchFirst("GET", candidates, undefined, { signal });
-}
-
-export async function subscribeToTier({ tier, txHash, tonPaid, usdPaid, wallet }) {
-  const payload = { tier, txHash, tonPaid, usdPaid, wallet };
-  const candidates = [API_URLS.subscriptions.subscribe, "/subscriptions/subscribe"];
-  return fetchFirst("POST", candidates, payload);
-}
-
-export async function claimSubscriptionBonus() {
-  const candidates = [API_URLS.subscriptions.claimBonus, "/subscriptions/claim-bonus"];
-  return fetchFirst("POST", candidates, {});
-
 }
 
 export function startDiscord(opts = {}) {
@@ -789,21 +626,8 @@ export function createReferral(opts = {}) {
   return postJSON("/api/referral/create", {}, opts);
 }
 
-
 export function applyReferral(code, opts = {}) {
   return postJSON("/api/referral/apply", { code }, opts);
-
-/**
- * Start a token sale contribution flow.
- *
- * We deliberately call a *single* canonical endpoint so that any problems
- * show up as a simple "POST /api/token-sale/start 4xx/5xx" instead of
- * "No working endpoint among ...".
- */
-export async function startTokenSalePurchase(payload) {
-  const candidates = [API_URLS.tokenSale.start, "/api/token-sale/start"];
-  return fetchFirst("POST", candidates, payload);
-
 }
 
 export function getReferralsList(opts = {}) {
