@@ -9,6 +9,11 @@ export const API_BASE = PUBLIC_BASE;
 // Central list of canonical endpoints. Prefer these everywhere.
 // Only add fallbacks when we *know* they exist.
 export const API_URLS = {
+  // Social OAuth starts
+  twitterStart: "/api/auth/twitter/start",
+  discordStart: "/api/auth/discord/start",
+  telegramEmbedAuth: "/api/auth/telegram/callback",
+
   health: "/api/health",
   me: "/api/auth/me",
 

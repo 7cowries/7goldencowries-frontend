@@ -68,6 +68,38 @@ export default function TokenSalePage() {
     }
   }, [amountUsd, wallet, isWalletConnected, setNotice]);
 
+  const downloadIcs = useCallback(() => {
+    const dtStart = "20251004T120000Z";
+    const dtEnd = "20251004T130000Z";
+    const description =
+      "First wave of the $GCT — Golden Cowrie Token sale. Join via 7goldencowries.com/token-sale";
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//7GoldenCowries//TokenSale//EN",
+      "BEGIN:VEVENT",
+      "UID:tokensale-2025-10-04@7goldencowries.com",
+      "DTSTAMP:" + dtStart,
+      "DTSTART:" + dtStart,
+      "DTEND:" + dtEnd,
+      "SUMMARY:$GCT Token Sale — Wave 1",
+      "DESCRIPTION:" + description,
+      "URL:https://7goldencowries.com/token-sale",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gct-token-sale.ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
   return (
     <Page>
       <div className="section token-sale-wrapper fade-in">
@@ -96,16 +128,7 @@ export default function TokenSalePage() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => {
-                  try {
-                    if ("Notification" in window) {
-                      // just a graceful placeholder
-                      new Notification("Reminder set for the first $GCT wave.");
-                    }
-                  } catch {
-                    // ignore
-                  }
-                }}
+                onClick={downloadIcs}
               >
                 Set Reminder
               </button>
