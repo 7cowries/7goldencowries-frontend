@@ -1,32 +1,22 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { API_URLS } from "../utils/api";
-
-function b64(s) {
-  try { return btoa(s); } catch { return ""; }
-}
 
 export default function ConnectButtons({ address = "", className = "" }) {
   const hasWallet = !!address;
-  const startUrls = useMemo(
-    () => ({
-      twitter: API_URLS.twitterStart || "/api/auth/twitter/start",
-      telegram: API_URLS.telegramStart || "/api/auth/telegram/start",
-      discord: API_URLS.discordStart || "/api/auth/discord/start",
-    }),
-    []
-  );
-
-  const go = (path) => {
+  const connectTwitter = () => {
     if (!hasWallet) return alert("Connect your wallet first");
-    const state = b64(address);
-    const sep = path.includes("?") ? "&" : "?";
-    const targetPath = `${path}${sep}state=${encodeURIComponent(state)}`;
-    window.location.href = targetPath;
+    window.location.href = API_URLS.twitterStart;
   };
 
-  const connectTwitter = () => go(startUrls.twitter);
-  const connectTelegram = () => go(startUrls.telegram);
-  const connectDiscord = () => go(startUrls.discord);
+  const connectTelegram = () => {
+    if (!hasWallet) return alert("Connect your wallet first");
+    window.location.href = API_URLS.telegramStart;
+  };
+
+  const connectDiscord = () => {
+    if (!hasWallet) return alert("Connect your wallet first");
+    window.location.href = API_URLS.discordStart;
+  };
 
   const disabled = !hasWallet;
 
