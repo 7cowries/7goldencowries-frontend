@@ -10,6 +10,7 @@ export default function QuestCard({
   onClaim,
   claiming,
   me,
+  twitterAction,
   setToast,
   canClaim = true,
   blockedReason,
@@ -35,6 +36,45 @@ export default function QuestCard({
     : blockedReason || '';
   const proofNoteId = `proof-note-${q.id}`;
   const buttonDisabled = claiming || !claimable || !canClaim || isBlocked;
+
+  const questHandle =
+    q?.handle || q?.twitter || q?.twitterHandle || q?.targetHandle || '';
+  const questUrl = q?.url || q?.link || q?.target || '';
+
+  const tweetIdMatch = questUrl.match(/status\/(\d+)/);
+  const tweetId = tweetIdMatch ? tweetIdMatch[1] : '';
+
+  const twitterIntent = (() => {
+    if (!twitterAction) return null;
+    const handleParam = questHandle ? `screen_name=${encodeURIComponent(questHandle)}` : '';
+    switch (twitterAction) {
+      case 'follow':
+        if (!questHandle) return null;
+        return `https://x.com/intent/follow?${handleParam}`;
+      case 'retweet':
+        if (tweetId) return `https://x.com/intent/retweet?tweet_id=${tweetId}`;
+        if (questUrl) return questUrl;
+        return null;
+      case 'quote': {
+        if (!questUrl) return null;
+        const base = 'https://x.com/intent/post';
+        const params = new URLSearchParams({ url: questUrl });
+        if (questHandle) params.set('related', questHandle);
+        return `${base}?${params.toString()}`;
+      }
+      default:
+        return null;
+    }
+  })();
+
+  const twitterLabel =
+    twitterAction === 'follow'
+      ? 'Follow on X'
+      : twitterAction === 'retweet'
+      ? 'Retweet on X'
+      : twitterAction === 'quote'
+      ? 'Quote on X'
+      : '';
 
   return (
     <div ref={cardRef} className="glass quest-card fade-in">
@@ -77,6 +117,20 @@ export default function QuestCard({
       {q.url ? (
         <div className="muted mono" style={{ color: 'var(--ink-soft)' }}>
           {q.url}
+        </div>
+      ) : null}
+
+      {twitterIntent ? (
+        <div className="social-actions" style={{ marginTop: 10 }}>
+          <a
+            href={twitterIntent}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="btn ghost"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {twitterLabel || 'Open on X'}
+          </a>
         </div>
       ) : null}
 
