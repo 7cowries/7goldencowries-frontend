@@ -1,12 +1,10 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import LoadTonShim from "@/components/LoadTonShim";
-
+import { ThemeProvider } from '@/theme/ThemeContext';
 import '@/styles/globals.css';
 import SessionSync from '@/components/SessionSync';
 
-// Load the TON shim only on the client (prevents SSR touching window)
 const TonShim = dynamic(() => import('@/components/LoadTonShim'), { ssr: false });
 
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -14,12 +12,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Hybrid Ocean Web3</title>
       </Head>
-      <LoadTonShim />
-
-      <SessionSync />
-      <TonShim />
-      <Component {...pageProps} />
+      <ThemeProvider>
+        <SessionSync />
+        <TonShim />
+        <Component {...pageProps} />
+      </ThemeProvider>
     </>
   );
 }
