@@ -448,7 +448,7 @@ export default function Profile() {
   const connectTwitter = () => {
     if (!address) return alert("Connect wallet first");
     setConnecting((c) => ({ ...c, twitter: true }));
-    window.location.href = `${API_URLS.twitterStart}?state=${state}`;
+    window.location.href = `${API_BASE}/api/auth/twitter?state=${state}`;
   };
 
   // Change "Connect Telegram" to scroll to the embedded widget
@@ -469,7 +469,7 @@ export default function Profile() {
   const connectDiscord = () => {
     if (!address) return alert("Connect wallet first");
     setConnecting((c) => ({ ...c, discord: true }));
-    window.location.href = `${API_URLS.discordStart}?state=${state}`;
+    window.location.href = `${API_BASE}/api/auth/discord?state=${state}`;
   };
 
   const handleDisconnectWallet = useCallback(async () => {
