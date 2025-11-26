@@ -56,10 +56,19 @@ export default function Leaderboard() {
       const data = await getLeaderboard({ signal });
       if (!mountedRef.current) return;
       const list = Array.isArray(data?.entries) ? data.entries : [];
-      const rows = list.map((u) => ({
-        ...u,
-        progress: clampProgress(u.progress ?? u.levelProgress ?? 0),
-      }));
+      const rows = list
+        .map((u) => ({
+          ...u,
+          progress: clampProgress(u.progress ?? u.levelProgress ?? 0),
+        }))
+        .sort((a, b) => {
+          const xpA = Number(a.xp ?? 0);
+          const xpB = Number(b.xp ?? 0);
+          if (xpA !== xpB) return xpB - xpA;
+          const walletA = a.wallet || '';
+          const walletB = b.wallet || '';
+          return walletA.localeCompare(walletB);
+        });
       setLeaders(rows);
       setError(null);
     } catch (e) {
