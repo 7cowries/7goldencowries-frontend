@@ -353,6 +353,7 @@ export default function Quests() {
                 <QuestCard
                   key={q.id}
                   quest={q}
+                  twitterAction={detectTwitterAction(q)}
                   me={me}
                   onClaim={handleClaim}
                   claiming={!!claiming[q.id]}
