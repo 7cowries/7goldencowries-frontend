@@ -12,6 +12,7 @@ import { API_URLS, clearUserCache, disconnectSession, getMe } from "../utils/api
 import { ensureWalletBound } from "../utils/walletBind";
 import { burstConfetti } from "../utils/confetti";
 import ConnectButtons from "../components/ConnectButtons";
+import ConnectWalletPrompt from "../components/ConnectWalletPrompt";
 import { useWallet } from "../hooks/useWallet";
 import { levelBadgeSrc } from "../config/progression";
 import { unlinkSocial } from "../utils/socialLinks";
@@ -258,6 +259,12 @@ export default function Profile() {
   const loadMe = useCallback(
     async ({ force = false } = {}) => {
       setError("");
+      if (!tonWallet) {
+        setLoading(false);
+        setMe(DEFAULT_ME);
+        setHasProfile(false);
+        return;
+      }
       setLoading(true);
       try {
         const apiMe = await getMe({ force });
@@ -271,7 +278,7 @@ export default function Profile() {
         setLoading(false);
       }
     },
-    [applyProfile]
+    [applyProfile, tonWallet]
   );
 
   const loadMeRef = useRef(loadMe);
@@ -284,6 +291,14 @@ export default function Profile() {
   // Initial load + passive refreshes and wallet changes
   useEffect(() => {
     const state = refreshStateRef.current;
+
+    if (!tonWallet) {
+      setAddress("");
+      setHasProfile(false);
+      setMe(DEFAULT_ME);
+      setLoading(false);
+      return () => {};
+    }
 
     const triggerRefresh = ({ passive = false, force = false } = {}) => {
       const now = Date.now();
@@ -321,9 +336,7 @@ export default function Profile() {
       const nextWallet =
         typeof detailWallet === "string"
           ? detailWallet
-          : (typeof window !== "undefined" && window.localStorage
-              ? window.localStorage.getItem("wallet")
-              : "") || "";
+          : tonWallet;
       setAddress((a) => (a !== nextWallet ? nextWallet : a));
       if (nextWallet) {
         ensureWalletBound(nextWallet)
@@ -355,19 +368,11 @@ export default function Profile() {
     window.addEventListener("profile-updated", handleProfileUpdated);
     window.addEventListener("storage", handleStorage);
 
-    const initialWallet =
-      (typeof window !== "undefined" && window.localStorage
-        ? window.localStorage.getItem("wallet")
-        : "") || "";
-    if (initialWallet) {
-      ensureWalletBound(initialWallet)
-        .catch(() => {})
-        .finally(() => {
-          triggerRefresh({ force: true });
-        });
-    } else {
-      loadMeRef.current?.();
-    }
+    ensureWalletBound(tonWallet)
+      .catch(() => {})
+      .finally(() => {
+        triggerRefresh({ force: true });
+      });
 
     return () => {
       if (state.timer) {
@@ -380,8 +385,7 @@ export default function Profile() {
       window.removeEventListener("profile-updated", handleProfileUpdated);
       window.removeEventListener("storage", handleStorage);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tonWallet]);
 
   // Bind TonConnect wallet to backend session when it changes
   useEffect(() => {
@@ -533,6 +537,14 @@ export default function Profile() {
       setUnlinking((prev) => ({ ...prev, [provider]: false }));
     }
   }, []);
+
+  if (!tonWallet) {
+    return (
+      <Page>
+        <ConnectWalletPrompt message="Connect your TON wallet to view your profile." />
+      </Page>
+    );
+  }
 
   return (
     <Page>

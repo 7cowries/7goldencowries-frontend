@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Page from "../components/Page";
 import { getJSON, getMe } from "../utils/api";
 import useWallet from "../hooks/useWallet";
+import ConnectWalletPrompt from "../components/ConnectWalletPrompt";
 import { LEVELS as PROGRESSION_LEVELS } from "../config/progression";
 
 /* ======================= Levels / Isles ======================= */
@@ -293,6 +294,11 @@ function useProfile(address) {
     let cancelled = false;
 
     async function fetchProfile() {
+      if (!address) {
+        setLoading(false);
+        setProfile((prev) => ({ ...prev, wallet: null }));
+        return;
+      }
       if (cancelled) return;
       setLoading(true);
       try {
@@ -386,6 +392,14 @@ export default function Isles() {
     const t = setTimeout(() => setToastOn(false), 5000);
     return () => clearTimeout(t);
   }, [toastOn]);
+
+  if (!address) {
+    return (
+      <Page>
+        <ConnectWalletPrompt message="Connect your TON wallet to view the Seven Isles." />
+      </Page>
+    );
+  }
 
   return (
     <Page>
