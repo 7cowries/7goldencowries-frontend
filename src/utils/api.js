@@ -513,6 +513,56 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
+function normalizeQuestPayload({ questId, handle, url } = {}) {
+  const payload = {};
+  if (questId != null) payload.questId = questId;
+  if (handle) payload.handle = handle;
+  if (url) payload.url = url;
+  return payload;
+}
+
+export function verifyTwitterFollow({ questId, handle, url } = {}, opts = {}) {
+  return postJSON(
+    "/api/quests/twitter/follow/verify",
+    normalizeQuestPayload({ questId, handle, url }),
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
+export function verifyTwitterRetweet({ questId, url } = {}, opts = {}) {
+  return postJSON(
+    "/api/quests/twitter/retweet/verify",
+    normalizeQuestPayload({ questId, url }),
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
+export function verifyTwitterQuote({ questId, url } = {}, opts = {}) {
+  return postJSON(
+    "/api/quests/twitter/quote/verify",
+    normalizeQuestPayload({ questId, url }),
+    opts
+  ).then((res) => {
+    clearUserCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("profile-updated"));
+    }
+    return normalizeResponse(res);
+  });
+}
+
 export function claimSubscriptionReward({ questId } = {}, opts = {}) {
   return postJSON(
     "/api/v1/subscription/claim",
@@ -652,6 +702,9 @@ export const api = {
   startTelegram,
   startDiscord,
   startTwitter,
+  verifyTwitterFollow,
+  verifyTwitterQuote,
+  verifyTwitterRetweet,
   claimQuest,
   claimSubscriptionReward,
   claimReferralReward,
