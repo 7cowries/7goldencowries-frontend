@@ -56,12 +56,14 @@ export class ApiError extends Error {
   }
 }
 
+const DEFAULT_API_BASE = "https://sevengoldencowries-backend.onrender.com";
+
 const RAW_API_BASE =
   (typeof window !== "undefined" && window.__API_BASE) ||
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.REACT_APP_API_URL ||
   process.env.BACKEND_ORIGIN ||
-  "";
+  DEFAULT_API_BASE;
 
 export const API_BASE = normalizeBase(RAW_API_BASE);
 
