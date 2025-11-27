@@ -113,6 +113,7 @@ export default function Profile() {
   const { wallet: tonWallet, disconnect: disconnectWallet } = useWallet();
 
   const lsCandidates = useMemo(() => {
+    if (typeof window === "undefined") return [];
     const items = [
       readStorage("wallet"),
       readStorage("ton_wallet"),
