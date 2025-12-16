@@ -58,9 +58,11 @@ export default function WalletConnect({ compact = false }) {
         await window.tonConnectUI.openModal();
         return;
       }
-    } catch (_) {}
-    // Fallback: open manifest (wallets that support TonConnect can pick this up)
-    window.open(MANIFEST_URL, "_blank");
+   } catch (e) {
+    console.error(e);
+  
+ alert("Ton Connect is not available. You will be redirected to the wallet manifest to connect manually.");
+  window.location.href = MANIFEST_URL;
   };
 
   const disconnect = async () => {
