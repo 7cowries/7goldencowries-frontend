@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <Page>
       <div className="landing" aria-label="7 Golden Cowries landing">
-      {/* Immersive background layers */}
+      {/* Immersive background layers Unlimited
       <div className="bg-waves" />
       <div className="aurora" aria-hidden="true" />
       <div className="bg-particles" aria-hidden="true">
