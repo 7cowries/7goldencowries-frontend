@@ -11,6 +11,11 @@ import Subscription from "./pages/Subscription";
 import TokenSale from "./pages/TokenSale";
 import Staking from "./pages/Staking";
 import ThemeSettings from "./pages/ThemeSettings";
+import Arenas from "./pages/Arenas";
+import ArenaDetail from "./pages/ArenaDetail";
+import ArenaPaymentStatus from "./pages/ArenaPaymentStatus";
+import Partners from "./pages/Partners";
+import AdminArenaConsole from "./pages/AdminArenaConsole";
 
 export default function App() {
   return (
@@ -26,6 +31,11 @@ export default function App() {
         <Route path="/isles" element={<Isles />} />
         <Route path="/staking" element={<Staking />} />
         <Route path="/theme" element={<ThemeSettings />} />
+        <Route path="/arenas" element={<Arenas />} />
+        <Route path="/arenas/:arenaId" element={<ArenaDetail />} />
+        <Route path="/arena-payment-status" element={<ArenaPaymentStatus />} />
+        <Route path="/partners" element={<Partners />} />
+        <Route path="/admin/arena-console" element={<AdminArenaConsole />} />
       </Routes>
     </Layout>
   );
