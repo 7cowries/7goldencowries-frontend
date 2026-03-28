@@ -49,6 +49,7 @@ export default function App() {
         <Route path="/staking" element={<Staking />} />
         <Route path="/theme" element={<ThemeSettings />} />
         <Route path="/arenas" element={<Arenas />} />
+        <Route path="/arena" element={<Arenas />} />
         <Route path="/arenas/:arenaId" element={<ArenaDetail />} />
         <Route path="/arena-payment-status" element={<ArenaPaymentStatus />} />
         <Route path="/payment-return" element={<ArenaPaymentStatus />} />

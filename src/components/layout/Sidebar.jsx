@@ -7,21 +7,17 @@ const PRIMARY_ITEMS = [
   { to: "/", label: "Home", emoji: "🏠" },
   { to: "/quests", label: "Quests", emoji: "⚡" },
   { to: "/leaderboard", label: "Leaderboard", emoji: "🏆" },
-  { to: "/arenas", label: "Crowns Arena", emoji: "👑" },
-];
-
-const GROWTH_ITEMS = [
-  { to: "/referral", label: "Referrals", emoji: "🧬" },
-  { to: "/subscription", label: "Subscription", emoji: "💎" },
-  { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
-  { to: "/staking", label: "Staking", emoji: "⚓" },
-];
-
-const ECOSYSTEM_ITEMS = [
+  { to: "/arena", label: "Arena", emoji: "👑" },
   { to: "/profile", label: "Profile", emoji: "🧾" },
-  { to: "/isles", label: "Isles", emoji: "🌊" },
+  { to: "/subscription", label: "Subscription", emoji: "💎" },
+  { to: "/referral", label: "Referrals", emoji: "🧬" },
+  { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
   { to: "/partners", label: "Partners", emoji: "🤝" },
-  { to: "/theme", label: "Display", emoji: "🎨" },
+];
+
+const SECONDARY_ITEMS = [
+  { to: "/isles", label: "Isles", emoji: "🌊" },
+  { to: "/theme", label: "Theme Settings", emoji: "🎨" },
 ];
 
 function NavSection({ title, items }) {
@@ -48,7 +44,10 @@ export default function Sidebar() {
   const { isAdmin } = useAccess();
 
   const adminItems = useMemo(
-    () => (isAdmin ? [{ to: "/admin/arena-console", label: "Admin Arena", emoji: "🛡️" }] : []),
+    () =>
+      isAdmin
+        ? [{ to: "/admin/arena-console", label: "Admin Console", emoji: "🛡️" }]
+        : [],
     [isAdmin]
   );
 
@@ -78,12 +77,11 @@ export default function Sidebar() {
         </Link>
 
         <nav className="nav">
-          <NavSection title="Play" items={PRIMARY_ITEMS} />
-          <NavSection title="Earn" items={GROWTH_ITEMS} />
-          <NavSection title="Account" items={ECOSYSTEM_ITEMS} />
+          <NavSection title="Core" items={PRIMARY_ITEMS} />
+          <NavSection title="Secondary" items={SECONDARY_ITEMS} />
           {adminItems.length > 0 && <NavSection title="Operator" items={adminItems} />}
 
-          <div style={{ margin: "16px 10px 0" }}>
+          <div className="nav-wallet">
             <WalletConnect compact />
           </div>
         </nav>
