@@ -5,6 +5,7 @@ import Page from "../components/Page";
 import { getJSON, getMe } from "../utils/api";
 import useWallet from "../hooks/useWallet";
 import { LEVELS as PROGRESSION_LEVELS } from "../config/progression";
+import { deriveProgressionFromProfile, ISLES } from "../lib/progression";
 
 /* ======================= Levels / Isles ======================= */
 const TAGLINES = {
@@ -32,8 +33,11 @@ const LEVELS = PROGRESSION_LEVELS.map((level, index) => ({
   key: level.key || level.name,
   name: level.name,
   emoji: level.emoji,
+  isleName: ISLES[index]?.name || level.name,
   tagline: TAGLINES[level.key] ?? TAGLINES.default,
+  lore: ISLES[index]?.lore || "",
   perks: PERKS[level.key] ?? PERKS.default,
+  minXP: level.min || 0,
 }));
 
 /* ======================= Helpers ======================= */
@@ -340,14 +344,13 @@ function useProfile(address) {
     };
   }, [address]);
 
-  const progressPct = Math.round(clamp01(profile.levelProgress) * 100);
-  return { profile, progressPct, loading };
+  return { profile, loading };
 }
 
 /* ======================= Page ======================= */
 export default function Isles() {
   const { wallet: address } = useWallet();
-  const { profile, progressPct, loading } = useProfile(address);
+  const { profile, loading } = useProfile(address);
 
   const xpDisplay = useMemo(() => {
     const value = Number(profile.xp);
@@ -360,14 +363,9 @@ export default function Isles() {
     return Number.isFinite(value) ? value.toLocaleString() : "∞";
   }, [profile.nextXP]);
 
-  const currentIndex = useMemo(() => {
-    const idx = LEVELS.findIndex(
-      (l) =>
-        (profile.levelName || "").toLowerCase() ===
-        (l.key || "").toLowerCase()
-    );
-    return idx === -1 ? 0 : idx;
-  }, [profile.levelName]);
+  const progression = useMemo(() => deriveProgressionFromProfile(profile), [profile]);
+
+  const currentIndex = progression.index;
 
   const [confettiOn, setConfettiOn] = useState(false);
   const [toastOn, setToastOn] = useState(false);
@@ -410,10 +408,10 @@ export default function Isles() {
             <div className="chip-left">
               <span className="chip-title">{profile.levelName}</span>
               <span className="chip-sub">
-                XP {xpDisplay} / {nextXPDisplay}
+                XP {xpDisplay} / {nextXPDisplay} • {progression.isle.name}
               </span>
             </div>
-            <Ring percent={progressPct} label="Level progress" />
+            <Ring percent={progression.progressPercent} label="Level progress" />
           </div>
         </header>
 
@@ -483,16 +481,18 @@ export default function Isles() {
                         {isle.emoji}
                       </span>
                       <h3 className="isle-name">{isle.name}</h3>
+                      <small className="muted">{isle.isleName}</small>
                     </div>
 
                     <p className="isle-tagline">{isle.tagline}</p>
+                    <p className="muted" style={{ margin: "0 0 8px" }}>{isle.lore}</p>
 
                     {isCurrent ? (
                       <div className="isle-progress">
-                        <Ring size={72} stroke={7} percent={progressPct} />
+                        <Ring size={72} stroke={7} percent={progression.progressPercent} />
                         <div className="progress-copy">
-                          <strong>Current Isle</strong>
-                          <span>Keep questing to advance</span>
+                          <strong>Current Isle: {isle.isleName}</strong>
+                          <span>{progression.xpToNext > 0 ? `${progression.xpToNext.toLocaleString()} XP to unlock next Isle` : "Final Isle unlocked"}</span>
                         </div>
                       </div>
                     ) : unlocked ? (
@@ -503,8 +503,7 @@ export default function Isles() {
                       <div className="isle-state">
                         <span className="pill">Locked</span>
                         <small className="unlock-hint">
-                          Reach{" "}
-                          <b>{LEVELS[i - 1]?.name || "previous level"}</b>
+                          Unlocks at <b>{isle.minXP.toLocaleString()} total XP</b>
                         </small>
                       </div>
                     )}
