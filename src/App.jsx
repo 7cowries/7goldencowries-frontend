@@ -17,6 +17,8 @@ import ArenaPaymentStatus from "./pages/ArenaPaymentStatus";
 import Partners from "./pages/Partners";
 import AdminArenaConsole from "./pages/AdminArenaConsole";
 import useAccess from "./hooks/useAccess";
+import RefRedirect from "./pages/RefRedirect";
+import NotFound from "./pages/NotFound";
 
 function AdminRoute({ children }) {
   const { isAdmin, loading } = useAccess();
@@ -51,6 +53,8 @@ export default function App() {
         <Route path="/arena-payment-status" element={<ArenaPaymentStatus />} />
         <Route path="/payment-return" element={<ArenaPaymentStatus />} />
         <Route path="/partners" element={<Partners />} />
+        <Route path="/ref/:code" element={<RefRedirect />} />
+        <Route path="/referrals" element={<Navigate to="/referral" replace />} />
         <Route
           path="/admin/arena-console"
           element={
@@ -59,6 +63,7 @@ export default function App() {
             </AdminRoute>
           }
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
   );

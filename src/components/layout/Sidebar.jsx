@@ -11,7 +11,7 @@ const PRIMARY_ITEMS = [
 ];
 
 const GROWTH_ITEMS = [
-  { to: "/referral", label: "Referral", emoji: "🧬" },
+  { to: "/referral", label: "Referrals", emoji: "🧬" },
   { to: "/subscription", label: "Subscription", emoji: "💎" },
   { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
   { to: "/staking", label: "Staking", emoji: "⚓" },
@@ -21,7 +21,7 @@ const ECOSYSTEM_ITEMS = [
   { to: "/profile", label: "Profile", emoji: "🧾" },
   { to: "/isles", label: "Isles", emoji: "🌊" },
   { to: "/partners", label: "Partners", emoji: "🤝" },
-  { to: "/theme", label: "Theme", emoji: "🎨" },
+  { to: "/theme", label: "Display", emoji: "🎨" },
 ];
 
 function NavSection({ title, items }) {

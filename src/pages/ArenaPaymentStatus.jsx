@@ -55,10 +55,21 @@ export default function ArenaPaymentStatus() {
   return (
     <Page>
       <div className="glass-strong" style={{ padding: 20 }}>
-        <h1>Verifying payment…</h1>
-        <p className="muted">Payment status: {status}</p>
+        <h1>Arena payment status</h1>
+        <p className="muted">
+          {status === 'pending'
+            ? 'We are waiting for your payment provider confirmation.'
+            : `Current status: ${status}`}
+        </p>
         {!!error && <p style={{ color: '#ff9b9b' }}>{error}</p>}
-        <Link className="btn ghost" to={arenaId ? `/arenas/${arenaId}` : '/arenas'}>Back</Link>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Link className="btn ghost" to={arenaId ? `/arenas/${arenaId}` : '/arenas'}>
+            Back to arena
+          </Link>
+          <Link className="btn ghost" to="/arenas">
+            Arena lobby
+          </Link>
+        </div>
       </div>
     </Page>
   );
