@@ -8,18 +8,12 @@ import React, {
   useState,
 } from "react";
 import Page from "../components/Page";
-import { API_URLS, clearUserCache, disconnectSession, getMe } from "../utils/api";
+import { clearUserCache, disconnectSession, getMe } from "../utils/api";
 import { ensureWalletBound } from "../utils/walletBind";
 import { burstConfetti } from "../utils/confetti";
-import ConnectButtons from "../components/ConnectButtons";
 import { useWallet } from "../hooks/useWallet";
 import { levelBadgeSrc } from "../config/progression";
 import { unlinkSocial } from "../utils/socialLinks";
-
-// Telegram embed constants
-const TG_BOT_NAME =
-  process.env.REACT_APP_TELEGRAM_BOT_NAME || "GOLDENCOWRIEBOT";
-const TG_VERIFY_URL = API_URLS.telegramEmbedAuth;
 
 const perksMap = {
   Shellborn: "Welcome badge + access to basic quests",
@@ -60,53 +54,6 @@ function readStorage(key) {
     console.warn("[profile] localStorage unavailable", err);
     return null;
   }
-}
-
-function b64(s) {
-  try {
-    const bytes = new TextEncoder().encode(s || "");
-    let binary = "";
-    bytes.forEach((b) => (binary += String.fromCharCode(b)));
-    return window.btoa(binary);
-  } catch {
-    return "";
-  }
-}
-
-// Embedded Telegram login widget
-function TelegramLoginWidget({ wallet }) {
-  useEffect(() => {
-    const el = document.getElementById("tg-login-container");
-    if (!el) return;
-    el.innerHTML = ""; // clear any old widget
-
-    if (!wallet || !TG_BOT_NAME) return;
-
-    const state = b64(wallet);
-    const s = document.createElement("script");
-    s.async = true;
-    s.src = "https://telegram.org/js/telegram-widget.js?22";
-    s.setAttribute("data-telegram-login", TG_BOT_NAME); // no @
-    s.setAttribute("data-size", "large");
-    s.setAttribute("data-request-access", "write");
-    s.setAttribute(
-      "data-auth-url",
-      `${TG_VERIFY_URL}?state=${encodeURIComponent(state)}`
-    );
-    el.appendChild(s);
-
-    return () => {
-      el.innerHTML = "";
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet]);
-
-  return (
-    <div
-      id="tg-login-container"
-      style={{ marginTop: 10, display: "flex", justifyContent: "flex-start" }}
-    />
-  );
 }
 
 export default function Profile() {
@@ -857,48 +804,17 @@ export default function Profile() {
               )}
             </section>
 
-            {/* Link New Accounts (only if not all 3 connected) */}
-            {!(twitterConnected && telegramConnected && discordConnected) && (
-              <section className="card glass" style={{ marginTop: 16 }}>
-                <h3>Link New Accounts</h3>
-                <p className="muted">
-                  Link your socials to unlock quests and show badges.
-                </p>
-
-                <ConnectButtons
-                  address={address}
-                  onLinked={() => loadMe({ force: true })}
-                />
-
-                <p className="muted" style={{ marginTop: 8 }}>
-                  Having trouble with the popup? Use the embedded Telegram
-                  button below:
-                </p>
-                <TelegramLoginWidget wallet={address} />
-
-                <p className="muted" style={{ marginTop: 8 }}>
-                  If the button doesn’t render,{" "}
-                  <a
-                    href={withState(oauthStartUrls.telegram)}
-                  >
-                    open Telegram login
-                  </a>
-                  .
-                </p>
-              </section>
-            )}
-
             {/* Referral Code */}
             <section className="card glass" style={{ marginTop: 16 }}>
               <h3>Referral</h3>
               {referralCode ? (
                 <p>
                   Share this link:{" "}
-                  <code>{`${window.location.origin}/?ref=${referralCode}`}</code>{" "}
+                  <code>{`${window.location.origin}/ref/${encodeURIComponent(referralCode)}`}</code>{" "}
                   <button
                     className="mini"
                     onClick={() => {
-                      const link = `${window.location.origin}/?ref=${referralCode}`;
+                      const link = `${window.location.origin}/ref/${encodeURIComponent(referralCode)}`;
                       navigator.clipboard?.writeText(link);
                       setToast("Referral link copied ✅");
                       burstConfetti({ count: 80, duration: 1800 });

@@ -9,6 +9,7 @@ export default function ProfileWidget() {
   const [error, setError] = useState('');
 
   async function load() {
+    setLoading(true);
     try {
       const data = await getMe();
       setMe(data);

@@ -9,6 +9,7 @@ export default function ArenaPaymentStatus() {
   const arenaId = params.get('arenaId');
   const [status, setStatus] = useState('pending');
   const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (!paymentId || !arenaId) {
@@ -20,6 +21,7 @@ export default function ArenaPaymentStatus() {
     let timer = null;
 
     const poll = async () => {
+      setChecking(true);
       try {
         const res = await getPaymentStatus(paymentId);
         const next = String(res?.status || res?.payment?.status || 'pending').toLowerCase();
@@ -41,6 +43,8 @@ export default function ArenaPaymentStatus() {
       } catch (err) {
         if (!active) return;
         setError(err?.message || 'Unable to verify payment right now.');
+      } finally {
+        if (active) setChecking(false);
       }
     };
 
@@ -63,6 +67,9 @@ export default function ArenaPaymentStatus() {
         </p>
         {!!error && <p style={{ color: '#ff9b9b' }}>{error}</p>}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn" onClick={() => window.location.reload()} disabled={checking}>
+            {checking ? 'Checking…' : 'Recheck status'}
+          </button>
           <Link className="btn ghost" to={arenaId ? `/arenas/${arenaId}` : '/arenas'}>
             Back to arena
           </Link>
