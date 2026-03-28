@@ -9,6 +9,7 @@ const PRIMARY_ITEMS = [
   { to: "/profile", label: "Profile", emoji: "🧾" },
   { to: "/isles", label: "Seven Isles", emoji: "🌊" },
   { to: "/leaderboard", label: "Leaderboard", emoji: "🏆" },
+ codex/restore-product-architecture-and-design
   { to: "/arenas", label: "Crowns Arena", emoji: "👑" },
 ];
 
@@ -22,6 +23,19 @@ const ECOSYSTEM_ITEMS = [
   { to: "/partners", label: "Partners", emoji: "🤝" },
   { to: "/staking", label: "Staking", emoji: "⚓" },
   { to: "/theme", label: "Display", emoji: "🎨" },
+
+  { to: "/arena", label: "Arena", emoji: "👑" },
+  { to: "/profile", label: "Profile", emoji: "🧾" },
+  { to: "/subscription", label: "Subscription", emoji: "💎" },
+  { to: "/referral", label: "Referrals", emoji: "🧬" },
+  { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
+  { to: "/partners", label: "Partners", emoji: "🤝" },
+];
+
+const SECONDARY_ITEMS = [
+  { to: "/isles", label: "Isles", emoji: "🌊" },
+  { to: "/theme", label: "Theme Settings", emoji: "🎨" },
+ main
 ];
 
 function NavSection({ title, items }) {
@@ -48,7 +62,10 @@ export default function Sidebar() {
   const { isAdmin } = useAccess();
 
   const adminItems = useMemo(
-    () => (isAdmin ? [{ to: "/admin/arena-console", label: "Admin Arena", emoji: "🛡️" }] : []),
+    () =>
+      isAdmin
+        ? [{ to: "/admin/arena-console", label: "Admin Console", emoji: "🛡️" }]
+        : [],
     [isAdmin]
   );
 
@@ -78,12 +95,17 @@ export default function Sidebar() {
         </Link>
 
         <nav className="nav">
+ codex/restore-product-architecture-and-design
           <NavSection title="Journey" items={PRIMARY_ITEMS} />
           <NavSection title="Boosts & Growth" items={GROWTH_ITEMS} />
           <NavSection title="Ecosystem" items={ECOSYSTEM_ITEMS} />
+
+          <NavSection title="Core" items={PRIMARY_ITEMS} />
+          <NavSection title="Secondary" items={SECONDARY_ITEMS} />
+ main
           {adminItems.length > 0 && <NavSection title="Operator" items={adminItems} />}
 
-          <div style={{ margin: "16px 10px 0" }}>
+          <div className="nav-wallet">
             <WalletConnect compact />
           </div>
         </nav>

@@ -17,7 +17,7 @@ export default function TokenSalePage() {
 
   const handlePurchase = useCallback(async () => {
     if (!isWalletConnected) {
-      setNotice({ text: "Connect your wallet before starting payment.", tone: "warn" });
+      setNotice({ text: "Connect your wallet before starting checkout.", tone: "warn" });
       return;
     }
 
@@ -39,11 +39,14 @@ export default function TokenSalePage() {
       setNotice({
         text:
           res?.message ||
-          "Purchase intent created, but no checkout URL was returned. Contact support if this persists.",
+          "Checkout is not available right now. Please try again later or contact support.",
         tone: "warn",
       });
     } catch (err) {
-      setNotice({ text: err?.message || "Unable to start payment.", tone: "error" });
+      setNotice({
+        text: err?.message || "Unable to start token sale checkout.",
+        tone: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -54,10 +57,11 @@ export default function TokenSalePage() {
       <section className="section ts-hero">
         <div className="ts-hero-head">
           <h1>$GCT Token Sale</h1>
-          <span className="ts-badge">Payment-enabled flow</span>
+          <span className="ts-badge">Wave access</span>
         </div>
         <p className="subtitle ts-hero-sub">
-          Review sale status, enter your desired allocation, and continue through secure checkout.
+          Review the current wave, choose your intended allocation, and continue to secure checkout
+          when payment infrastructure is available.
         </p>
         <div className="wallet-section" style={{ marginTop: 16 }}>
           <WalletStatus />
@@ -65,8 +69,11 @@ export default function TokenSalePage() {
       </section>
 
       <section className="section ts-purchase">
-        <h2>Start purchase</h2>
-        <p className="muted">This route uses /api/v1/token-sale/purchase and expects a checkoutUrl response.</p>
+        <h2>Start token purchase</h2>
+        <p className="muted">
+          This action creates a purchase intent through <code>/api/v1/token-sale/purchase</code>. If
+          no checkout URL is returned, the page will surface that state clearly.
+        </p>
 
         <div className="ts-form">
           <label>
@@ -83,20 +90,24 @@ export default function TokenSalePage() {
 
           <PaymentGuard loadingFallback={<p>Checking payment access…</p>}>
             <button className="btn" onClick={handlePurchase} disabled={submitting || !isWalletConnected}>
-              {submitting ? "Starting checkout…" : "Proceed to payment"}
+              {submitting ? "Starting checkout…" : "Proceed to checkout"}
             </button>
           </PaymentGuard>
         </div>
 
-        {notice.text && <p className={`subscription-alert ${notice.tone}`} style={{ marginTop: 14 }}>{notice.text}</p>}
+        {notice.text && (
+          <p className={`subscription-alert ${notice.tone}`} style={{ marginTop: 14 }}>
+            {notice.text}
+          </p>
+        )}
       </section>
 
       <section className="section ts-faq">
-        <h2>Before you pay</h2>
+        <h2>What to expect</h2>
         <ul className="ts-bullets">
-          <li>Use a wallet you control and keep it connected until checkout opens.</li>
-          <li>After payment, return here through the payment status route to confirm settlement.</li>
-          <li>If checkout does not open, backend may be missing provider configuration.</li>
+          <li>Connect a wallet you control before creating a purchase intent.</li>
+          <li>Complete payment in checkout and return to verify final status.</li>
+          <li>If checkout is unavailable, integration is incomplete and no purchase is finalized.</li>
         </ul>
       </section>
     </Page>
