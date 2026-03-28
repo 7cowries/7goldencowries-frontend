@@ -12,6 +12,7 @@ export default function Referral() {
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [copyState, setCopyState] = useState('');
 
   useEffect(() => {
     getMe()
@@ -32,7 +33,7 @@ export default function Referral() {
   const referralLink = useMemo(
     () =>
       referralCode
-        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${referralCode}`
+        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/ref/${encodeURIComponent(referralCode)}`
         : '',
     [referralCode]
   );
@@ -41,7 +42,12 @@ export default function Referral() {
     if (!referralLink) return;
     try {
       await navigator.clipboard.writeText(referralLink);
-    } catch {}
+      setCopyState('Copied');
+      setTimeout(() => setCopyState(''), 1800);
+    } catch {
+      setCopyState('Copy failed');
+      setTimeout(() => setCopyState(''), 2200);
+    }
   };
 
   return (
@@ -60,7 +66,9 @@ export default function Referral() {
           <div className="card glass">
             <p className="mono">{referralLink}</p>
             <div className="cta-row">
-              <button className="btn" onClick={copyLink}>Copy Link</button>
+              <button className="btn" onClick={copyLink}>
+                {copyState || 'Copy Link'}
+              </button>
               <a
                 className="btn ghost"
                 target="_blank"
