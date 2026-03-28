@@ -504,8 +504,9 @@ export async function getMe({ signal, force } = {}) {
   });
 }
 
-export function claimQuest(id, opts = {}) {
-  return postJSON(`/api/quests/${id}/claim`, {}, opts).then((res) => {
+export function claimQuest(id, { arenaId, ...opts } = {}) {
+  const payload = arenaId ? { arenaId } : {};
+  return postJSON(`/api/quests/${id}/claim`, payload, opts).then((res) => {
     clearUserCache();
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("profile-updated"));
@@ -514,11 +515,12 @@ export function claimQuest(id, opts = {}) {
   });
 }
 
-function normalizeQuestPayload({ questId, handle, url } = {}) {
+function normalizeQuestPayload({ questId, handle, url, arenaId } = {}) {
   const payload = {};
   if (questId != null) payload.questId = questId;
   if (handle) payload.handle = handle;
   if (url) payload.url = url;
+  if (arenaId != null && arenaId !== "") payload.arenaId = arenaId;
   return payload;
 }
 
@@ -677,6 +679,54 @@ export function getReferralStatus(opts = {}) {
   return getJSON("/api/referral/status", opts);
 }
 
+export function getArenas(opts = {}) {
+  return getJSON("/api/arenas", opts).then((res) => normalizeResponse(res));
+}
+
+export function getArenaById(arenaId, opts = {}) {
+  return getJSON(`/api/arenas/${arenaId}`, opts).then((res) => normalizeResponse(res));
+}
+
+export function getArenaLeaderboard(arenaId, opts = {}) {
+  return getJSON(`/api/arenas/${arenaId}/leaderboard`, opts).then((res) => normalizeResponse(res));
+}
+
+export function getMyArenaState(arenaId, opts = {}) {
+  return getJSON(`/api/arenas/${arenaId}/me`, opts).then((res) => normalizeResponse(res));
+}
+
+export function joinArena(arenaId, payload = {}, opts = {}) {
+  return postJSON(`/api/arenas/${arenaId}/join`, payload, opts).then((res) => normalizeResponse(res));
+}
+
+export function initArenaEntryTon(arenaId, payload = {}, opts = {}) {
+  return postJSON(
+    "/api/payments/arena-entry/ton/init",
+    { arenaId, ...payload },
+    opts
+  ).then((res) => normalizeResponse(res));
+}
+
+export function initArenaEntryNomba(arenaId, payload = {}, opts = {}) {
+  return postJSON(
+    "/api/payments/arena-entry/nomba/init",
+    { arenaId, ...payload },
+    opts
+  ).then((res) => normalizeResponse(res));
+}
+
+export function getPaymentStatus(paymentId, opts = {}) {
+  return getJSON(`/api/payments/${paymentId}/status`, opts).then((res) => normalizeResponse(res));
+}
+
+export function submitPartnerApplication(payload, opts = {}) {
+  return postJSON("/api/partners/apply", payload, opts).then((res) => normalizeResponse(res));
+}
+
+export function getPartnerSlots(opts = {}) {
+  return getJSON("/api/partners/slots", opts).then((res) => normalizeResponse(res));
+}
+
 export const api = {
   base: API_BASE,
   getQuests,
@@ -701,6 +751,16 @@ export const api = {
   applyReferral,
   getReferralsList,
   getReferralStatus,
+  getArenas,
+  getArenaById,
+  getArenaLeaderboard,
+  getMyArenaState,
+  joinArena,
+  initArenaEntryTon,
+  initArenaEntryNomba,
+  getPaymentStatus,
+  submitPartnerApplication,
+  getPartnerSlots,
   postJSON,
   get: getJSON,
   getJSON,

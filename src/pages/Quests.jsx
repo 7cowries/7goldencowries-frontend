@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   getQuests,
   claimQuest,
@@ -79,6 +80,8 @@ function responseRequiresProof(res) {
 }
 
 export default function Quests() {
+  const [searchParams] = useSearchParams();
+  const arenaId = searchParams.get('arenaId') || undefined;
   const [quests, setQuests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -198,17 +201,19 @@ export default function Quests() {
         let res;
 
         if (twitterAction === 'follow') {
-          res = await verifyTwitterFollow({ questId: id, handle: questHandle, url: questUrl });
+          res = await verifyTwitterFollow(
+            { questId: id, handle: questHandle, url: questUrl, arenaId }
+          );
         } else if (twitterAction === 'retweet') {
-          res = await verifyTwitterRetweet({ questId: id, url: questUrl });
+          res = await verifyTwitterRetweet({ questId: id, url: questUrl, arenaId });
         } else if (twitterAction === 'quote') {
-          res = await verifyTwitterQuote({ questId: id, url: questUrl });
+          res = await verifyTwitterQuote({ questId: id, url: questUrl, arenaId });
         } else if (special === 'subscription') {
           res = await claimSubscriptionReward({ questId: id });
         } else if (special === 'referral') {
           res = await claimReferralReward({ questId: id });
         } else {
-          res = await claimQuest(id);
+          res = await claimQuest(id, { arenaId });
         }
 
         if (process.env.NODE_ENV !== 'production') {
@@ -245,7 +250,7 @@ export default function Quests() {
         setTimeout(() => setToast(''), TOAST_DISMISS_MS);
       }
     },
-    [claiming, isConnected, quests, loadMe, loadQuests]
+    [arenaId, claiming, isConnected, quests, loadMe, loadQuests]
   );
 
   const tabs = useMemo(
@@ -317,6 +322,12 @@ export default function Quests() {
         <div className="q-container">
           <div className="glass profile-strip">
             <ProfileWidget />
+            {arenaId && (
+              <div style={{ marginTop: 8 }}>
+                <span className="badge">Arena Mode</span>{' '}
+                <span className="muted">Claims are recorded against arena {arenaId}.</span>
+              </div>
+            )}
           </div>
 
           <div className="glass-strong q-header">
