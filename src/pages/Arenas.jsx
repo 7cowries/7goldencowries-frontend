@@ -13,14 +13,15 @@ export default function Arenas() {
   const [error, setError] = useState('');
   const [arenas, setArenas] = useState([]);
 
-  useEffect(() => {
+  const loadArenas = () => {
     let cancelled = false;
+    setLoading(true);
+    setError('');
     getArenas()
       .then((res) => {
         if (cancelled) return;
         const items = res?.arenas || res?.items || (Array.isArray(res) ? res : []);
         setArenas(items);
-        setError('');
       })
       .catch((err) => {
         if (cancelled) return;
@@ -32,6 +33,11 @@ export default function Arenas() {
     return () => {
       cancelled = true;
     };
+  };
+
+  useEffect(() => {
+    const cleanup = loadArenas();
+    return cleanup;
   }, []);
 
   const grouped = useMemo(() => {
@@ -52,7 +58,12 @@ export default function Arenas() {
         <p className="muted">Compete for arena XP, ranks, and rewards across timed events.</p>
 
         {loading && <p>Loading arenas…</p>}
-        {!!error && <p style={{ color: '#ff9b9b' }}>{error}</p>}
+        {!!error && (
+          <div style={{ color: '#ff9b9b' }}>
+            <p>{error}</p>
+            <button className="btn ghost" onClick={loadArenas}>Retry</button>
+          </div>
+        )}
 
         {!loading && !error && (
           <>

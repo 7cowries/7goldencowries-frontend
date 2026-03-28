@@ -59,7 +59,10 @@ export class ApiError extends Error {
 const RAW_API_BASE =
   (typeof window !== "undefined" && window.__API_BASE) ||
   process.env.REACT_APP_API_URL ||
-  "";
+  process.env.REACT_APP_API_BASE ||
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.API_BASE ||
+  "https://sevengoldencowries-backend-vw37.onrender.com";
 
 export const API_BASE = normalizeBase(RAW_API_BASE);
 

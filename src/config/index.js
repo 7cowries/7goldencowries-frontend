@@ -7,9 +7,12 @@ function normalizeBase(raw) {
   return noTrailing.startsWith("/") ? noTrailing : `/${noTrailing}`;
 }
 
+const LIVE_BACKEND_URL = "https://sevengoldencowries-backend-vw37.onrender.com";
+
 export const API_BASE = normalizeBase(
   process.env.REACT_APP_API_URL ||
     process.env.REACT_APP_API_BASE ||
     process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.API_BASE
+    process.env.API_BASE ||
+    LIVE_BACKEND_URL
 );

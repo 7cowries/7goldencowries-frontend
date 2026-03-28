@@ -34,6 +34,7 @@ export default function App() {
         <Route path="/arenas" element={<Arenas />} />
         <Route path="/arenas/:arenaId" element={<ArenaDetail />} />
         <Route path="/arena-payment-status" element={<ArenaPaymentStatus />} />
+        <Route path="/payment-return" element={<ArenaPaymentStatus />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/admin/arena-console" element={<AdminArenaConsole />} />
       </Routes>
