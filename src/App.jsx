@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Quests from "./pages/Quests";
@@ -16,6 +16,21 @@ import ArenaDetail from "./pages/ArenaDetail";
 import ArenaPaymentStatus from "./pages/ArenaPaymentStatus";
 import Partners from "./pages/Partners";
 import AdminArenaConsole from "./pages/AdminArenaConsole";
+import useAccess from "./hooks/useAccess";
+
+function AdminRoute({ children }) {
+  const { isAdmin, loading } = useAccess();
+
+  if (loading) {
+    return <div className="glass-strong" style={{ padding: 20 }}>Checking permissions…</div>;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 export default function App() {
   return (
@@ -36,7 +51,14 @@ export default function App() {
         <Route path="/arena-payment-status" element={<ArenaPaymentStatus />} />
         <Route path="/payment-return" element={<ArenaPaymentStatus />} />
         <Route path="/partners" element={<Partners />} />
-        <Route path="/admin/arena-console" element={<AdminArenaConsole />} />
+        <Route
+          path="/admin/arena-console"
+          element={
+            <AdminRoute>
+              <AdminArenaConsole />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </Layout>
   );
