@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Page from "../components/Page";
 import PaymentGuard from "../components/PaymentGuard";
 import WalletStatus from "@/components/WalletStatus";
@@ -6,220 +6,99 @@ import useWallet from "../hooks/useWallet";
 import { startTokenSalePurchase } from "../utils/api";
 
 export default function TokenSalePage() {
-  const { wallet, isConnected } = useWallet();
+  const { wallet } = useWallet();
   const isWalletConnected = !!wallet;
 
   const [amountUsd, setAmountUsd] = useState("250");
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState("info");
+  const [notice, setNotice] = useState({ text: "", tone: "info" });
 
-  const setNotice = useCallback((text, tone = "info") => {
-    setMessage(text || "");
-    setMessageTone(tone);
-  }, []);
-
-  const handleChangeAmount = (e) => {
-    setAmountUsd(e.target.value);
-  };
+  const numericAmount = useMemo(() => Number(amountUsd), [amountUsd]);
 
   const handlePurchase = useCallback(async () => {
-    const value = Number(amountUsd);
-
     if (!isWalletConnected) {
-      setNotice("Connect your wallet before proceeding to payment.", "warn");
+      setNotice({ text: "Connect your wallet before starting payment.", tone: "warn" });
       return;
     }
-    if (!value || Number.isNaN(value) || value <= 0) {
-      setNotice("Enter a valid USD amount greater than 0.", "warn");
+
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setNotice({ text: "Enter a valid amount in USD.", tone: "warn" });
       return;
     }
 
     setSubmitting(true);
-    setNotice("");
+    setNotice({ text: "", tone: "info" });
 
     try {
-      // Payload is generic; backend can read amount + wallet
-      const res = await startTokenSalePurchase({
-        amountUsd: value,
-        wallet,
-      });
-
-      // If backend returns a checkout / redirect URL, follow it
-      if (res && res.checkoutUrl) {
+      const res = await startTokenSalePurchase({ amountUsd: numericAmount, wallet });
+      if (res?.checkoutUrl) {
         window.location.href = res.checkoutUrl;
         return;
       }
 
-      // Otherwise just show a friendly notice
-      setNotice(
-        res && res.message
-          ? res.message
-          : "Token sale request received. If nothing happened, the first wave might not be live yet.",
-        "info"
-      );
+      setNotice({
+        text:
+          res?.message ||
+          "Purchase intent created, but no checkout URL was returned. Contact support if this persists.",
+        tone: "warn",
+      });
     } catch (err) {
-      setNotice(
-        err?.message || "Failed to start token sale payment. Please try again.",
-        "error"
-      );
+      setNotice({ text: err?.message || "Unable to start payment.", tone: "error" });
     } finally {
       setSubmitting(false);
     }
-  }, [amountUsd, wallet, isWalletConnected, setNotice]);
-
-  const downloadIcs = useCallback(() => {
-    const dtStart = "20251004T120000Z";
-    const dtEnd = "20251004T130000Z";
-    const description =
-      "First wave of the $GCT — Golden Cowrie Token sale. Join via 7goldencowries.com/token-sale";
-    const ics = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//7GoldenCowries//TokenSale//EN",
-      "BEGIN:VEVENT",
-      "UID:tokensale-2025-10-04@7goldencowries.com",
-      "DTSTAMP:" + dtStart,
-      "DTSTART:" + dtStart,
-      "DTEND:" + dtEnd,
-      "SUMMARY:$GCT Token Sale — Wave 1",
-      "DESCRIPTION:" + description,
-      "URL:https://7goldencowries.com/token-sale",
-      "END:VEVENT",
-      "END:VCALENDAR",
-    ].join("\r\n");
-
-    const blob = new Blob([ics], { type: "text/calendar" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "gct-token-sale.ics";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, []);
+  }, [isWalletConnected, numericAmount, wallet]);
 
   return (
     <Page>
-      <div className="section token-sale-wrapper fade-in">
-        <h1 className="token-sale-title text-glow">$GCT — Golden Cowrie Token</h1>
-
-        {/* Wallet pill at the top */}
-        <div className="wallet-section">
-          <span className="wallet-status">
-            <WalletStatus />
-          </span>
+      <section className="section ts-hero">
+        <div className="ts-hero-head">
+          <h1>$GCT Token Sale</h1>
+          <span className="ts-badge">Payment-enabled flow</span>
         </div>
-
-        <div className="token-sale-hero gradient-border hover">
-          <div className="token-sale-hero-content">
-            <p className="token-wave-pill">First Wave • Oct 4, 2025 (UTC)</p>
-            <p className="token-sale-blurb">
-              Forged from the Seven Isles, $GCT powers quests, boosts XP, unlocks premium paths,
-              and grants a voice in shaping new tides. No purchase here—just the story, the vision,
-              and the countdown.
-            </p>
-            <h2 className="token-sale-subtitle">🌊 The First Wave Has Begun</h2>
-            <p className="token-sale-copy">
-              Follow updates in-app and on socials—waves are moving.
-            </p>
-            <div className="token-sale-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={downloadIcs}
-              >
-                Set Reminder
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  const shareText =
-                    "Reserve your wave in the $GCT — Golden Cowrie Token sale at 7goldencowries.com/token-sale 🌊";
-                  const shareUrl = "https://7goldencowries.com/token-sale";
-                  if (navigator.share) {
-                    navigator
-                      .share({ title: "$GCT — Golden Cowrie Token", text: shareText, url: shareUrl })
-                      .catch(() => {});
-                  } else {
-                    navigator.clipboard
-                      ?.writeText(`${shareText} ${shareUrl}`)
-                      .catch(() => {});
-                    alert("Invite link copied to clipboard.");
-                  }
-                }}
-              >
-                Invite a Friend
-              </button>
-            </div>
-          </div>
+        <p className="subtitle ts-hero-sub">
+          Review sale status, enter your desired allocation, and continue through secure checkout.
+        </p>
+        <div className="wallet-section" style={{ marginTop: 16 }}>
+          <WalletStatus />
         </div>
+      </section>
 
-        {message && (
-          <div className={`subscription-alert ${messageTone}`} style={{ marginTop: 16 }}>
-            {message}
-          </div>
-        )}
+      <section className="section ts-purchase">
+        <h2>Start purchase</h2>
+        <p className="muted">This route uses /api/v1/token-sale/purchase and expects a checkoutUrl response.</p>
 
-        <div className="token-sale-card gradient-border hover">
-          <h2 className="token-sale-card-title">Reserve Wave 1 Allocation</h2>
-          <p className="token-sale-card-text">
-            Enter the USD amount you wish to allocate. You&apos;ll be redirected to our payment
-            partner to complete checkout.
-          </p>
-
-          <label className="token-sale-label">
+        <div className="ts-form">
+          <label>
             Amount (USD)
             <input
               type="number"
               min="1"
               step="1"
               value={amountUsd}
-              onChange={handleChangeAmount}
-              className="token-sale-input"
+              onChange={(e) => setAmountUsd(e.target.value)}
               placeholder="250"
             />
           </label>
 
-          <PaymentGuard
-            loadingFallback={
-              <p style={{ marginTop: 16 }}>
-                Checking wallet and payment status…
-              </p>
-            }
-          >
-            <button
-              type="button"
-              className="btn btn-primary token-sale-submit"
-              disabled={submitting || !isWalletConnected}
-              onClick={isWalletConnected ? handlePurchase : undefined}
-            >
-              {submitting
-                ? "Processing…"
-                : isWalletConnected
-                ? "Proceed to Payment"
-                : "Connect wallet to continue"}
+          <PaymentGuard loadingFallback={<p>Checking payment access…</p>}>
+            <button className="btn" onClick={handlePurchase} disabled={submitting || !isWalletConnected}>
+              {submitting ? "Starting checkout…" : "Proceed to payment"}
             </button>
           </PaymentGuard>
         </div>
 
-        <div className="token-sale-why gradient-border">
-          <h2 className="token-sale-card-title">Why $GCT?</h2>
-          <ul className="token-sale-list">
-            <li>
-              ⚡ <strong>Quest Power</strong>: Boost XP multipliers and unlock insider quests.
-            </li>
-            <li>
-              👑 <strong>Prestige</strong>: Access premium tiers & story arcs across the Seven Isles.
-            </li>
-            <li>
-              🌐 <strong>Voice</strong>: Help steer the tides of 7GoldenCowries governance.
-            </li>
-          </ul>
-        </div>
-      </div>
+        {notice.text && <p className={`subscription-alert ${notice.tone}`} style={{ marginTop: 14 }}>{notice.text}</p>}
+      </section>
+
+      <section className="section ts-faq">
+        <h2>Before you pay</h2>
+        <ul className="ts-bullets">
+          <li>Use a wallet you control and keep it connected until checkout opens.</li>
+          <li>After payment, return here through the payment status route to confirm settlement.</li>
+          <li>If checkout does not open, backend may be missing provider configuration.</li>
+        </ul>
+      </section>
     </Page>
   );
 }

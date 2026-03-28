@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   getQuests,
   claimQuest,
@@ -18,6 +18,7 @@ import { burstConfetti } from '../utils/confetti';
 import useWallet from '../hooks/useWallet';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { detectSpecialClaimType } from '../lib/claimType';
+import useAccess from '../hooks/useAccess';
 
 const PROOF_REQUIRED = 'proof-required';
 const TOAST_DISMISS_MS = process.env.NODE_ENV === 'test' ? 0 : 3000;
@@ -92,6 +93,7 @@ export default function Quests() {
   const [me, setMe] = useState(null);
   const mountedRef = useRef(true);
   const { wallet, isConnected } = useWallet();
+  const { isAdmin } = useAccess();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -283,6 +285,7 @@ export default function Quests() {
     }
   }, []);
 
+
   const shownQuests = useMemo(
     () =>
       activeTab === 'all'
@@ -293,6 +296,13 @@ export default function Quests() {
           ),
     [activeTab, quests]
   );
+
+  const questStats = useMemo(() => {
+    const total = shownQuests.length;
+    const completed = shownQuests.filter((q) => q.completed || q.claimed || q.alreadyClaimed).length;
+    const pending = Math.max(total - completed, 0);
+    return { total, completed, pending };
+  }, [shownQuests]);
   if (loading)
     return (
       <Page>
@@ -335,7 +345,24 @@ export default function Quests() {
               <span className="emoji">📜</span>
               <h1><span className="yolo-gradient">Quests</span></h1>
             </div>
-            <p className="subtitle">Complete tasks. Earn XP. Level up.</p>
+            <p className="subtitle">Complete tasks, submit proof when required, and claim XP rewards.</p>
+
+            <div className="card glass" style={{ marginBottom: 12 }}>
+              <p className="muted" style={{ margin: 0 }}>
+                {isConnected
+                  ? `Wallet connected. ${questStats.pending} quests ready to work on.`
+                  : 'Connect your wallet to start claiming quest rewards.'}
+              </p>
+              <p className="muted" style={{ margin: '6px 0 0' }}>
+                Total: {questStats.total} • Completed: {questStats.completed} • Remaining: {questStats.pending}
+              </p>
+              {isAdmin && (
+                <p style={{ margin: '8px 0 0' }}>
+                  <Link className="link-underline" to="/admin/arena-console">Open admin quest operations</Link>
+                </p>
+              )}
+            </div>
+
             <div className="tabs">
               {tabs.map((type) => (
                 <button
