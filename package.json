@@ -68,7 +68,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://sevengoldencowries-backend.onrender.com",
+  "proxy": "https://sevengoldencowries-backend-vw37.onrender.com",
   "engines": {
     "node": ">=18.17"
   }

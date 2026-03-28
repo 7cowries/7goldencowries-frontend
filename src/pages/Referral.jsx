@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Page from '../components/Page';
 import WalletStatus from '@/components/WalletStatus';
 import useWallet from '../hooks/useWallet';
-import { getJSON, getMe } from '../utils/api';
+import { getMe, getReferralsList } from '../utils/api';
 import { burstConfetti } from '../utils/confetti';
 
 const Referral = () => {
@@ -12,9 +12,11 @@ const Referral = () => {
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [referrals, setReferrals] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const referralLink = referralCode
-    ? `${window.location.origin}/?ref=${referralCode}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${referralCode}`
     : '';
 
   // Retrieve referral code on mount
@@ -35,27 +37,38 @@ const Referral = () => {
   // Fetch referrals list for this code
   useEffect(() => {
     if (!referralCode) return;
+    let cancelled = false;
+    setLoading(true);
+    setError('');
 
-    getJSON('/api/referrals/')
+    getReferralsList()
       .then((data) => {
-        setReferrals(data.entries || data.referrals || []);
+        if (cancelled) return;
+        setReferrals(data?.entries || data?.referrals || []);
       })
-      .catch((err) =>
-        console.error(
-          'Referral fetch error:',
-          err?.response?.data || err.message || err
-        )
-      );
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err?.message || 'Failed to load referrals');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [referralCode]);
 
   useEffect(() => {
     const rerun = () => {
       if (referralCode) {
-        getJSON('/api/referrals/')
+        getReferralsList()
           .then((data) => {
-            setReferrals(data.entries || data.referrals || []);
+            setReferrals(data?.entries || data?.referrals || []);
           })
-          .catch(() => {});
+          .catch((err) => {
+            setError(err?.message || 'Failed to refresh referrals');
+          });
       }
     };
     window.addEventListener('profile-updated', rerun);
@@ -120,7 +133,11 @@ const Referral = () => {
 
             <div className="referral-list">
               <h2>🌊 Your Explorers</h2>
-              {referrals.length === 0 ? (
+              {loading ? (
+                <p>Loading referrals…</p>
+              ) : error ? (
+                <p>{error}</p>
+              ) : referrals.length === 0 ? (
                 <p>No referrals yet. Share your link to get started!</p>
               ) : (
                 <ul>

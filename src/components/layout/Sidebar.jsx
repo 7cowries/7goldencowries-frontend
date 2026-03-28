@@ -1,5 +1,5 @@
 import WalletConnect from "../../components/WalletConnect";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 
 const items = [
@@ -20,7 +20,7 @@ const items = [
 
 // Responsive sidebar with mobile drawer behaviour
 export default function Sidebar() {
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
   // Close drawer on route change (ensures drawer hides after navigation on mobile)

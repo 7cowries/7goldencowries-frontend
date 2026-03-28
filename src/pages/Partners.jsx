@@ -21,11 +21,23 @@ export default function Partners() {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
 
-  useEffect(() => {
+  const loadSlots = () => {
+    setLoadingSlots(true);
+    setSlotsError('');
     getPartnerSlots()
       .then((res) => setSlots(res?.slots || res?.items || []))
-      .catch(() => setSlots([]));
+      .catch((err) => {
+        setSlots([]);
+        setSlotsError(err?.message || 'Failed to load partner slots');
+      })
+      .finally(() => setLoadingSlots(false));
+  };
+
+  useEffect(() => {
+    loadSlots();
   }, []);
 
   const canSubmit = useMemo(() => {
@@ -61,6 +73,15 @@ export default function Partners() {
 
         <div className="glass" style={{ padding: 12, marginBottom: 12 }}>
           <h3>Available slot model</h3>
+          {loadingSlots && <p className="muted">Loading slot availability…</p>}
+          {!!slotsError && (
+            <div>
+              <p className="muted">{slotsError}</p>
+              <button className="btn ghost" type="button" onClick={loadSlots}>
+                Retry
+              </button>
+            </div>
+          )}
           {slots.length === 0 && <p className="muted">Current slots are shared during review.</p>}
           {slots.map((slot, i) => (
             <p key={`${slot?.id || i}`}>{slot?.title || slot?.name || `Slot ${i + 1}`} — {slot?.description || 'Sponsored placement'}</p>

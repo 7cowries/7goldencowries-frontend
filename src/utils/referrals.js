@@ -6,8 +6,8 @@ import { api } from "./api";
  * Get or create my referral code.
  */
 export async function getReferralCode() {
-  const { data } = await api.get("/api/referrals/code");
-  return data.code;
+  const data = await api.get("/api/referral/me");
+  return data?.code || data?.referralCode || data?.referral_code || "";
 }
 
 /**
@@ -15,14 +15,16 @@ export async function getReferralCode() {
  * @param {string} code referral code to accept
  */
 export async function acceptReferral(code) {
-  const { data } = await api.post("/api/referrals/accept", { code });
-  return data; // { status: 'linked'|'already_linked'|error }
+  return api.post("/api/referral/apply", { code }); // { status: 'linked'|'already_linked'|error }
 }
 
 /**
  * Fetch my referral stats & referees.
  */
 export async function getReferralStats() {
-  const { data } = await api.get("/api/referrals/stats");
-  return data; // { code, referees: [...] }
+  const data = await api.get("/api/referral/list");
+  return {
+    code: data?.code || data?.referralCode || "",
+    referees: data?.entries || data?.referrals || [],
+  };
 }
