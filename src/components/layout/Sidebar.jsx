@@ -6,21 +6,21 @@ import useAccess from "../../hooks/useAccess";
 const PRIMARY_ITEMS = [
   { to: "/", label: "Home", emoji: "🏠" },
   { to: "/quests", label: "Quests", emoji: "⚡" },
+  { to: "/profile", label: "Profile", emoji: "🧾" },
+  { to: "/isles", label: "Seven Isles", emoji: "🌊" },
   { to: "/leaderboard", label: "Leaderboard", emoji: "🏆" },
   { to: "/arenas", label: "Crowns Arena", emoji: "👑" },
 ];
 
 const GROWTH_ITEMS = [
-  { to: "/referral", label: "Referrals", emoji: "🧬" },
   { to: "/subscription", label: "Subscription", emoji: "💎" },
+  { to: "/referral", label: "Referrals", emoji: "🧬" },
   { to: "/token-sale", label: "Token Sale", emoji: "🪙" },
-  { to: "/staking", label: "Staking", emoji: "⚓" },
 ];
 
 const ECOSYSTEM_ITEMS = [
-  { to: "/profile", label: "Profile", emoji: "🧾" },
-  { to: "/isles", label: "Isles", emoji: "🌊" },
   { to: "/partners", label: "Partners", emoji: "🤝" },
+  { to: "/staking", label: "Staking", emoji: "⚓" },
   { to: "/theme", label: "Display", emoji: "🎨" },
 ];
 
@@ -78,9 +78,9 @@ export default function Sidebar() {
         </Link>
 
         <nav className="nav">
-          <NavSection title="Play" items={PRIMARY_ITEMS} />
-          <NavSection title="Earn" items={GROWTH_ITEMS} />
-          <NavSection title="Account" items={ECOSYSTEM_ITEMS} />
+          <NavSection title="Journey" items={PRIMARY_ITEMS} />
+          <NavSection title="Boosts & Growth" items={GROWTH_ITEMS} />
+          <NavSection title="Ecosystem" items={ECOSYSTEM_ITEMS} />
           {adminItems.length > 0 && <NavSection title="Operator" items={adminItems} />}
 
           <div style={{ margin: "16px 10px 0" }}>

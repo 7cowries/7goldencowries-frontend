@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getMe } from '../utils/api';
-import { clampProgress } from '../lib/format';
 import { levelBadgeSrc } from '../config/progression';
+import { deriveProgressionFromProfile } from '../lib/progression';
 
 export default function ProfileWidget() {
   const [loading, setLoading] = useState(false);
@@ -32,24 +32,17 @@ export default function ProfileWidget() {
   if (error) return <div>Error: {error}</div>;
   if (!me) return <div style={{ height: 40 }} />;
 
-  const levelName = me.levelName || 'Shellborn';
+  const progression = deriveProgressionFromProfile(me);
+  const levelName = progression.levelName || me.levelName || 'Shellborn';
   const badgeSrc = levelBadgeSrc(levelName);
-  const xpValue = Number(me.xp ?? 0);
+  const xpValue = Number(me.xp ?? me.totalXP ?? 0);
   const xpDisplay = Number.isFinite(xpValue) ? xpValue.toLocaleString() : '0';
-  const rawNext = me.nextXP;
-  const nextNumber = Number(rawNext);
-  const nextXPDisplay =
-    rawNext == null || rawNext === Infinity || !Number.isFinite(nextNumber)
-      ? '∞'
-      : nextNumber.toLocaleString();
-  const clampedProgress = clampProgress(me.levelProgress ?? 0);
-  const progress = Number.isFinite(clampedProgress)
-    ? Math.max(0, Math.min(1, clampedProgress))
-    : 0;
-  const pct = Math.round(progress * 1000) / 10;
-  const pctValue = Number.isFinite(pct) ? pct : 0;
+  const nextXPDisplay = progression.nextXP == null ? 'MAX' : Number(progression.nextXP).toLocaleString();
+  const pctValue = Number.isFinite(progression.progressPercent) ? progression.progressPercent : 0;
   const pctLabel = pctValue.toFixed(1);
-  const progressLabel = `${pctLabel}% to next level`;
+  const progressLabel = progression.nextXP == null
+    ? 'Max level reached'
+    : `${pctLabel}% to ${progression.isle.name}`;
 
   return (
     <div className="profile-widget">
@@ -65,7 +58,7 @@ export default function ProfileWidget() {
         <div className="pw-copy">
           <span className="pw-label">Level</span>
           <strong className="pw-level">{levelName}</strong>
-          <span className="pw-xp">XP {xpDisplay} / {nextXPDisplay}</span>
+          <span className="pw-xp">XP {xpDisplay} / {nextXPDisplay} • {progression.isle.name}</span>
         </div>
       </div>
       <div

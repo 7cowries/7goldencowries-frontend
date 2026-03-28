@@ -3,10 +3,10 @@ import { getLeaderboard } from '../utils/api';
 import { abbreviateWallet } from '../lib/format';
 import Page from '../components/Page';
 import { levelBadgeSrc } from '../config/progression';
+import { clampProgress } from '../lib/format';
+import { deriveProgressionFromProfile } from '../lib/progression';
 
 const REFRESH_MS = 60000;
-
-const clampProgress = (value) => Math.max(0, Math.min(1, Number(value) || 0));
 
 const prettifyTier = (tier) => {
   if (!tier) return 'Free';
@@ -30,14 +30,14 @@ const TierBadge = ({ tier }) => {
   return <span className={`tier-badge ${slug}`}>{label}</span>;
 };
 
-const ProgressMeter = ({ progress }) => {
-  const pct = Math.round(clampProgress(progress) * 1000) / 10;
+const ProgressMeter = ({ progress, isleName }) => {
+  const pct = Math.round(clampProgress(progress) * 10) / 10;
   return (
     <div className="progress-wrap compact" aria-label={`Progress ${pct}%`}>
       <div className="progress-bar">
         <div className="progress-fill" style={{ width: `${pct}%` }} />
       </div>
-      <span className="muted">{pct}% to next level</span>
+      <span className="muted">{pct}% to {isleName || 'next Isle'}</span>
     </div>
   );
 };
@@ -57,10 +57,15 @@ export default function Leaderboard() {
       if (!mountedRef.current) return;
       const list = Array.isArray(data?.entries) ? data.entries : [];
       const rows = list
-        .map((u) => ({
-          ...u,
-          progress: clampProgress(u.progress ?? u.levelProgress ?? 0),
-        }))
+        .map((u) => {
+          const progression = deriveProgressionFromProfile(u);
+          return {
+            ...u,
+            levelName: u.levelName || progression.levelName,
+            progress: clampProgress(u.progress ?? u.levelProgress ?? progression.progressPercent),
+            isleName: progression.isle.name,
+          };
+        })
         .sort((a, b) => {
           const xpA = Number(a.xp ?? 0);
           const xpB = Number(b.xp ?? 0);
@@ -129,7 +134,7 @@ export default function Leaderboard() {
           <h1>
             🏆 <span className="yolo-gradient">Cowrie Leaderboard</span>
           </h1>
-          <p className="subtitle">Track the top explorers riding every tide.</p>
+          <p className="subtitle">Rankings are ordered by total XP, then wallet tie-breaker. Isles show each explorer’s progression frontier.</p>
         </header>
 
         <div className="podium">
@@ -175,7 +180,7 @@ export default function Leaderboard() {
                     <span className="pill">{u.levelName || 'Shellborn'}</span>
                     <span className="pill">{xp} XP</span>
                   </div>
-                  <ProgressMeter progress={u.progress} />
+                  <ProgressMeter progress={u.progress} isleName={u.isleName} />
                 </div>
               );
             })
@@ -224,7 +229,7 @@ export default function Leaderboard() {
                       <span className="pill">{u.levelName || 'Shellborn'}</span>
                       <span className="pill">{xp} XP</span>
                     </div>
-                    <ProgressMeter progress={u.progress} />
+                    <ProgressMeter progress={u.progress} isleName={u.isleName} />
                   </div>
                 </div>
               );

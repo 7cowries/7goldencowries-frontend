@@ -345,7 +345,7 @@ export default function Quests() {
               <span className="emoji">📜</span>
               <h1><span className="yolo-gradient">Quests</span></h1>
             </div>
-            <p className="subtitle">Complete tasks, submit proof when required, and claim XP rewards.</p>
+            <p className="subtitle">Complete tasks, submit proof when required, and claim XP that pushes your Profile level, Isles unlocks, and leaderboard rank.</p>
 
             <div className="card glass" style={{ marginBottom: 12 }}>
               <p className="muted" style={{ margin: 0 }}>

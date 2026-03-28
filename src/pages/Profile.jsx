@@ -1,4 +1,3 @@
-import WalletStatus from '@/components/WalletStatus';
 // src/pages/Profile.jsx
 import React, {
   useCallback,
@@ -13,6 +12,7 @@ import { ensureWalletBound } from "../utils/walletBind";
 import { burstConfetti } from "../utils/confetti";
 import { useWallet } from "../hooks/useWallet";
 import { levelBadgeSrc } from "../config/progression";
+import { deriveProgressionFromProfile } from "../lib/progression";
 import { unlinkSocial } from "../utils/socialLinks";
 
 const perksMap = {
@@ -129,16 +129,9 @@ export default function Profile() {
     return 0;
   }, [me]);
 
-  const xpProgress = useMemo(() => {
-    const raw = me?.levelProgress ?? level.progress ?? 0;
-    const value = Number(raw);
-    if (!Number.isFinite(value)) return 0;
-    if (value <= 0) return 0;
-    if (value >= 1) return 1;
-    return value;
-  }, [me?.levelProgress, level.progress]);
+  const progression = useMemo(() => deriveProgressionFromProfile(me), [me]);
 
-  const xpPercent = useMemo(() => (xpProgress * 100).toFixed(1), [xpProgress]);
+  const xpPercent = useMemo(() => progression.progressPercent.toFixed(1), [progression.progressPercent]);
 
   const xpValue = useMemo(() => {
     const raw = Number(me?.xp ?? 0);
@@ -159,6 +152,7 @@ export default function Profile() {
     return null;
   }, [me?.nextXP, level.nextXP]);
 
+
   const nextXPDisplay = useMemo(
     () => (nextXPValue == null ? "∞" : nextXPValue.toLocaleString()),
     [nextXPValue]
@@ -174,7 +168,7 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tonWallet, lsCandidates, address]);
 
-  const badgeSrc = useMemo(() => levelBadgeSrc(level.name), [level.name]);
+  const badgeSrc = useMemo(() => levelBadgeSrc(progression.levelName || level.name), [progression.levelName, level.name]);
 
   const applyProfile = useCallback(
     (raw) => {
@@ -544,11 +538,11 @@ export default function Profile() {
                   <strong>Subscription:</strong> {tier ?? "Free"}
                 </p>
                 <p>
-                  <strong>Level:</strong> {level.name ?? "Shellborn"}{" "}
-                  {level.symbol ?? ""}
+                  <strong>Level:</strong> {progression.levelName ?? level.name ?? "Shellborn"}{" "}
+                  {progression.levelEmoji ?? level.symbol ?? ""}
                 </p>
                 <p>
-                  <strong>XP:</strong> {xpDisplay} / {nextXPDisplay}
+                  <strong>XP:</strong> {xpDisplay} / {nextXPDisplay} • {progression.isle.name}
                 </p>
 
                 <div className="xp-bar">
@@ -560,11 +554,15 @@ export default function Profile() {
                   />
                 </div>
                 <p className="progress-label">
-                  {xpPercent}% — XP {xpDisplay} / {nextXPDisplay}
+                  {xpPercent}% — XP {xpDisplay} / {nextXPDisplay} • {progression.xpToNext > 0 ? `${progression.xpToNext.toLocaleString()} XP to next Isle` : "Final Isle unlocked"}
                 </p>
 
                 <p>
                   <strong>Referrals:</strong> {referralCount}
+                </p>
+                <p>
+                  <strong>Progression:</strong> Currently traversing {progression.isle.name}.
+                  <a className="inline-link" style={{ marginLeft: 6 }} href="/isles">Open Isles map</a>
                 </p>
 
                 <button
