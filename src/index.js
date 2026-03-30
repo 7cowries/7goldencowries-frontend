@@ -3,7 +3,8 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { TonConnectUIProvider } from "./hooks/safeTon";
 import App from "./App";
-import PrdBadge from "./components/PrdBadge";
+import "./index.css";
+import "./App.css";
 import { ThemeProvider } from "./context/ThemeContext";
 
 const manifestUrl =
