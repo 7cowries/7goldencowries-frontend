@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import Page from "../components/Page";
 import { claimQuest, getQuests } from "../utils/api";
 
-const FILTERS = ["all", "social", "partner", "onchain", "daily"];
+const FILTERS = ["all", "social", "partner", "onchain", "daily", "special"]; 
 
 export default function Quests() {
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function Quests() {
         prev.map((item) => (item.id === quest.id ? { ...item, claimed: true, completed: true } : item))
       );
     } catch {
-      // graceful no-op
+      // no-op
     } finally {
       setClaiming((p) => ({ ...p, [quest.id]: false }));
     }
@@ -57,54 +57,65 @@ export default function Quests() {
 
   return (
     <Page>
-      <section className="glass-panel section-panel">
-        <div className="section-head-row">
-          <div>
-            <p className="section-eyebrow">Quest Command</p>
-            <h1 className="page-title">Quests</h1>
+      <section className="glass-panel section-panel quests-layout">
+        <div className="quests-main">
+          <div className="section-head-row">
+            <div>
+              <p className="section-eyebrow">Quest Command</p>
+              <h1 className="page-title">Quests</h1>
+            </div>
+            <div className="quest-progress-box">
+              <span>Voyage Progress</span>
+              <strong>{progress}%</strong>
+            </div>
           </div>
-          <div className="quest-progress-box">
-            <span>Voyage Progress</span>
-            <strong>{progress}%</strong>
+
+          <div className="tab-strip">
+            {FILTERS.map((f) => (
+              <button key={f} className={`tab-btn ${active === f ? "active" : ""}`} onClick={() => setActive(f)}>
+                {f}
+              </button>
+            ))}
+          </div>
+
+          <div className="xp-track">
+            <div className="xp-track-fill" style={{ width: `${progress}%` }} />
+          </div>
+
+          {loading ? <p className="muted">Scanning the tides for fresh missions…</p> : null}
+          {error ? <p className="muted">{error}</p> : null}
+
+          <div className="quest-stack">
+            {filtered.slice(0, 9).map((quest) => {
+              const done = quest.completed || quest.claimed || quest.alreadyClaimed;
+              const reward = quest.xp || quest.rewardXP || 150;
+              return (
+                <article key={quest.id} className="quest-row ocean-card">
+                  <div className="quest-icon">✦</div>
+                  <div className="quest-copy">
+                    <h4>{quest.title || "Untitled mission"}</h4>
+                    <p>{quest.description || "Complete this operation to advance your dominion rank."}</p>
+                  </div>
+                  <div className="quest-reward">+{reward} XP</div>
+                  <button className="card-cta" disabled={done || claiming[quest.id]} onClick={() => onClaim(quest)}>
+                    {done ? "Claimed" : claiming[quest.id] ? "Claiming…" : "Claim Reward"}
+                  </button>
+                </article>
+              );
+            })}
           </div>
         </div>
 
-        <div className="tab-strip">
-          {FILTERS.map((f) => (
-            <button key={f} className={`tab-btn ${active === f ? "active" : ""}`} onClick={() => setActive(f)}>
-              {f}
-            </button>
-          ))}
-        </div>
-
-        <div className="xp-track">
-          <div className="xp-track-fill" style={{ width: `${progress}%` }} />
-        </div>
-
-        {loading ? <p className="muted">Scanning the tides for fresh missions…</p> : null}
-        {error ? <p className="muted">{error}</p> : null}
-
-        <div className="quest-stack">
-          {filtered.slice(0, 8).map((quest) => {
-            const done = quest.completed || quest.claimed || quest.alreadyClaimed;
-            const reward = quest.xp || quest.rewardXP || 150;
-            return (
-              <article key={quest.id} className="quest-row ocean-card">
-                <div className="quest-icon">✦</div>
-                <div className="quest-copy">
-                  <h4>{quest.title || "Untitled mission"}</h4>
-                  <p>{quest.description || "Complete this operation to advance your dominion rank."}</p>
-                </div>
-                <div className="quest-reward">+{reward} XP</div>
-                <button className="card-cta" disabled={done || claiming[quest.id]} onClick={() => onClaim(quest)}>
-                  {done ? "Claimed" : claiming[quest.id] ? "Claiming…" : "Claim Reward"}
-                </button>
-              </article>
-            );
-          })}
-        </div>
-
-        <div className="scene-banner">Seven Isles of Tides • Each completed quest lights a new route.</div>
+        <aside className="quests-scene ocean-card">
+          <h3>Seven Isles of Tides</h3>
+          <p>The deeper your mission streak, the brighter your route across the abyssal map.</p>
+          <div className="scene-orb" />
+          <div className="scene-path">
+            <span />
+            <span />
+            <span />
+          </div>
+        </aside>
       </section>
     </Page>
   );

@@ -11,6 +11,8 @@ export default function Leaderboard() {
       .catch(() => setRows([]));
   }, []);
 
+  const podium = rows.slice(0, 3);
+
   return (
     <Page>
       <section className="glass-panel section-panel">
@@ -19,6 +21,16 @@ export default function Leaderboard() {
             <p className="section-eyebrow">Competitive Waters</p>
             <h1 className="page-title">Leaderboard</h1>
           </div>
+        </div>
+
+        <div className="podium-row">
+          {podium.map((u, i) => (
+            <article key={u.wallet || i} className={`ocean-card podium-card podium-${i + 1}`}>
+              <p>#{i + 1}</p>
+              <h4>{u.wallet ? `${u.wallet.slice(0, 6)}...${u.wallet.slice(-4)}` : "Unknown"}</h4>
+              <strong>{Number(u.xp || 0).toLocaleString()} XP</strong>
+            </article>
+          ))}
         </div>
 
         <div className="leaderboard-shell ocean-card">

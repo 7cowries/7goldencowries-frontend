@@ -12,6 +12,7 @@ export default function Isles() {
   }, []);
 
   const pct = Math.max(0, Math.min(100, Math.round((Number(me.levelProgress) || 0) * 100)));
+  const nodes = ["Shellborn", "Wave Seeker", "Tide Whisperer", "Current Binder", "Pearl Bearer", "Isle Champion"];
 
   return (
     <Page>
@@ -20,7 +21,7 @@ export default function Isles() {
           <div>
             <p className="section-eyebrow">Realm Progression</p>
             <h1 className="page-title">Isle of Pearls</h1>
-            <p className="muted">Navigate the luminous route and unlock deeper dominions.</p>
+            <p className="muted">Legend route unlocked by quest XP, tier status, and seasonal achievements.</p>
           </div>
           <div className="quest-progress-box">
             <span>{me.levelName || "Shellborn"}</span>
@@ -30,8 +31,10 @@ export default function Isles() {
 
         <div className="map-stage">
           <div className="path-line" />
-          {["Shellborn", "Wave Seeker", "Tide Whisperer", "Current Binder", "Pearl Bearer", "Isle Champion"].map((name, idx) => (
-            <div key={name} className={`isle-node ${pct / 20 >= idx ? "active" : ""}`} style={{ left: `${8 + idx * 17}%`, top: `${70 - idx * 10}%` }}>
+          <div className="map-glow map-glow-a" />
+          <div className="map-glow map-glow-b" />
+          {nodes.map((name, idx) => (
+            <div key={name} className={`isle-node ${pct / 20 >= idx ? "active" : ""}`} style={{ left: `${8 + idx * 17}%`, top: `${72 - idx * 10}%` }}>
               <span>{idx + 1}</span>
               <small>{name}</small>
             </div>
