@@ -1,412 +1,111 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import {
-  getQuests,
-  claimQuest,
-  getMe,
-  claimSubscriptionReward,
-  claimReferralReward,
-  verifyTwitterFollow,
-  verifyTwitterQuote,
-  verifyTwitterRetweet,
-} from '../utils/api';
-import Toast from '../components/Toast';
-import ProfileWidget from '../components/ProfileWidget';
-import QuestCard from '../components/QuestCard';
-import Page from '../components/Page';
-import { burstConfetti } from '../utils/confetti';
-import useWallet from '../hooks/useWallet';
-import ErrorBoundary from '../components/ErrorBoundary';
-import { detectSpecialClaimType } from '../lib/claimType';
-import useAccess from '../hooks/useAccess';
+import React, { useMemo, useState } from "react";
+import Page from "../components/Page";
+import { claimQuest, getQuests } from "../utils/api";
 
-const PROOF_REQUIRED = 'proof-required';
-const TOAST_DISMISS_MS = process.env.NODE_ENV === 'test' ? 0 : 3000;
-
-function detectTwitterAction(quest) {
-  const haystack = [];
-  const push = (v) => {
-    if (v == null) return;
-    if (Array.isArray(v)) {
-      v.forEach((entry) => push(entry));
-      return;
-    }
-    if (typeof v === 'object') {
-      Object.values(v).forEach((entry) => push(entry));
-      return;
-    }
-    const text = String(v).toLowerCase();
-    if (text) haystack.push(text);
-  };
-
-  push(quest?.requirement);
-  push(quest?.requirementType);
-  push(quest?.requirement_type);
-  push(quest?.type);
-  push(quest?.tags);
-  push(quest?.slug);
-  push(quest?.code);
-  push(quest?.title);
-  push(quest?.actionType);
-  push(quest?.action?.type);
-  push(quest?.action?.category);
-
-  if (haystack.some((t) => t.includes('retweet'))) return 'retweet';
-  if (haystack.some((t) => t.includes('quote'))) return 'quote';
-  if (haystack.some((t) => t.includes('follow'))) return 'follow';
-  return null;
-}
-
-function normalizeStatus(status) {
-  return String(status || '').toLowerCase();
-}
-
-function isProofRequired(value) {
-  const text = String(value || '').toLowerCase();
-  return text.includes('proof-required') || text.includes('proof_required');
-}
-
-function responseRequiresProof(res) {
-  if (!res) return false;
-  if (typeof res === 'string') return isProofRequired(res);
-  if (res instanceof Error) return isProofRequired(res.message);
-  if (typeof res === 'object') {
-    return (
-      isProofRequired(res.error) ||
-      isProofRequired(res.code) ||
-      isProofRequired(res.message)
-    );
-  }
-  return false;
-}
+const FILTERS = ["all", "social", "partner", "onchain", "daily"];
 
 export default function Quests() {
-  const [searchParams] = useSearchParams();
-  const arenaId = searchParams.get('arenaId') || undefined;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [quests, setQuests] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [active, setActive] = useState("all");
   const [claiming, setClaiming] = useState({});
-  const [blockedClaims, setBlockedClaims] = useState({});
-  const [toast, setToast] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-  const [me, setMe] = useState(null);
-  const mountedRef = useRef(true);
-  const { wallet, isConnected } = useWallet();
-  const { isAdmin } = useAccess();
 
-  useEffect(() => {
-    mountedRef.current = true;
+  React.useEffect(() => {
+    let live = true;
+    setLoading(true);
+    getQuests()
+      .then((data) => {
+        if (!live) return;
+        setQuests(Array.isArray(data?.quests) ? data.quests : []);
+        setError("");
+      })
+      .catch((err) => {
+        if (!live) return;
+        setError(err?.message || "Could not load quests.");
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
     return () => {
-      mountedRef.current = false;
+      live = false;
     };
   }, []);
 
-  const loadQuests = useCallback(async ({ signal } = {}) => {
-    const data = await getQuests({ signal });
-    if (!mountedRef.current) return;
-    const items = data?.quests ?? [];
-    setQuests(items);
-    setBlockedClaims((prev) => {
-      if (!prev || Object.keys(prev).length === 0) return prev;
-      let mutated = false;
-      const next = { ...prev };
-      items.forEach((quest) => {
-        if (!quest || !next[quest.id]) return;
-        const status = normalizeStatus(quest.proofStatus || quest.proof_status);
-        const finished = quest.completed || quest.claimed || quest.alreadyClaimed;
-        if (finished || status === 'approved') {
-          mutated = true;
-          delete next[quest.id];
-        }
-      });
-      return mutated ? next : prev;
-    });
-  }, []);
+  const filtered = useMemo(() => {
+    if (active === "all") return quests;
+    return quests.filter((q) => String(q.category || "").toLowerCase() === active);
+  }, [active, quests]);
 
-  const loadMe = useCallback(async (opts = {}) => {
-    try {
-      const data = await getMe(opts);
-      if (mountedRef.current) setMe(data);
-    } catch {}
-  }, []);
+  const completed = filtered.filter((q) => q.completed || q.claimed || q.alreadyClaimed).length;
+  const progress = filtered.length ? Math.round((completed / filtered.length) * 100) : 0;
 
-  const sync = useCallback(async ({ background } = {}) => {
-    if (!background) setLoading(true);
-    const controller = new AbortController();
+  const onClaim = async (quest) => {
+    if (!quest?.id || claiming[quest.id]) return;
+    setClaiming((p) => ({ ...p, [quest.id]: true }));
     try {
-      await loadQuests({ signal: controller.signal });
-      if (mountedRef.current) setError(null);
-    } catch (e) {
-      if (!mountedRef.current) return;
-      setError(e?.message || 'Failed to load quests. Please try again.');
-      console.error('[Quests] load error:', e);
+      await claimQuest(quest.id);
+      setQuests((prev) =>
+        prev.map((item) => (item.id === quest.id ? { ...item, claimed: true, completed: true } : item))
+      );
+    } catch {
+      // graceful no-op
     } finally {
-      if (!background && mountedRef.current) setLoading(false);
+      setClaiming((p) => ({ ...p, [quest.id]: false }));
     }
-  }, [loadQuests]);
-
-  useEffect(() => {
-    sync();
-    loadMe();
-  }, [wallet, loadMe, sync]);
-
-  useEffect(() => {
-    if (!wallet && mountedRef.current) {
-      setMe(null);
-    }
-  }, [wallet]);
-
-  useEffect(() => {
-    const reload = () => {
-      loadMe({ force: true });
-      sync({ background: true });
-    };
-    window.addEventListener('profile-updated', reload);
-    window.addEventListener('focus', reload);
-    return () => {
-      window.removeEventListener('profile-updated', reload);
-      window.removeEventListener('focus', reload);
-    };
-  }, [loadMe, sync]);
-
-  const handleClaim = useCallback(
-    async (questLike) => {
-      const quest =
-        typeof questLike === 'object' && questLike
-          ? questLike
-          : quests.find((entry) => entry.id === questLike);
-      const id = quest?.id ?? questLike;
-      if (!id) return;
-
-      if (!isConnected) {
-        setToast('Connect your wallet to claim quests');
-        setTimeout(() => setToast(''), TOAST_DISMISS_MS);
-        return;
-      }
-      if (claiming[id]) return;
-
-      setClaiming((c) => ({ ...c, [id]: true }));
-      setBlockedClaims((prev) => {
-        if (!prev || !prev[id]) return prev;
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-
-      try {
-        const special = detectSpecialClaimType(quest);
-        const twitterAction = detectTwitterAction(quest);
-        const questUrl = quest?.url || quest?.link || quest?.target;
-        const questHandle =
-          quest?.handle || quest?.twitter || quest?.twitterHandle || quest?.targetHandle;
-        let res;
-
-        if (twitterAction === 'follow') {
-          res = await verifyTwitterFollow(
-            { questId: id, handle: questHandle, url: questUrl, arenaId }
-          );
-        } else if (twitterAction === 'retweet') {
-          res = await verifyTwitterRetweet({ questId: id, url: questUrl, arenaId });
-        } else if (twitterAction === 'quote') {
-          res = await verifyTwitterQuote({ questId: id, url: questUrl, arenaId });
-        } else if (special === 'subscription') {
-          res = await claimSubscriptionReward({ questId: id });
-        } else if (special === 'referral') {
-          res = await claimReferralReward({ questId: id });
-        } else {
-          res = await claimQuest(id, { arenaId });
-        }
-
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('claim_clicked', id, res);
-        }
-
-        if (responseRequiresProof(res)) {
-          setBlockedClaims((prev) => ({ ...prev, [id]: PROOF_REQUIRED }));
-          setToast('Submit proof to claim this quest');
-          return;
-        }
-
-        burstConfetti();
-        const delta = res?.xpDelta ?? res?.xp;
-        setToast(delta != null ? `+${delta} XP` : 'Quest claimed');
-
-        await Promise.all([loadMe({ force: true }), loadQuests()]);
-        setBlockedClaims((prev) => {
-          if (!prev || !prev[id]) return prev;
-          const next = { ...prev };
-          delete next[id];
-          return next;
-        });
-      } catch (e) {
-        const msg = e?.message || '';
-        if (responseRequiresProof(e)) {
-          setBlockedClaims((prev) => ({ ...prev, [id]: PROOF_REQUIRED }));
-          setToast('Submit proof to claim this quest');
-        } else {
-          setToast(msg || 'Failed to claim quest');
-        }
-      } finally {
-        setClaiming((c) => ({ ...c, [id]: false }));
-        setTimeout(() => setToast(''), TOAST_DISMISS_MS);
-      }
-    },
-    [arenaId, claiming, isConnected, quests, loadMe, loadQuests]
-  );
-
-  const tabs = useMemo(
-    () => ['all', 'daily', 'social', 'partner', 'insider', 'onchain'],
-    []
-  );
-
-  const handleProofStatusChange = useCallback(({ questId, status }) => {
-    if (!questId) return;
-    const normalized = normalizeStatus(status);
-    setQuests((prev) => {
-      if (!Array.isArray(prev) || prev.length === 0) return prev;
-      let mutated = false;
-      const next = prev.map((quest) => {
-        if (!quest || quest.id !== questId) return quest;
-        const current = normalizeStatus(quest.proofStatus || quest.proof_status);
-        if (current === normalized) return quest;
-        mutated = true;
-        return { ...quest, proofStatus: normalized };
-      });
-      return mutated ? next : prev;
-    });
-    if (normalized === 'approved') {
-      setBlockedClaims((prev) => {
-        if (!prev || !prev[questId]) return prev;
-        const next = { ...prev };
-        delete next[questId];
-        return next;
-      });
-    }
-  }, []);
-
-
-  const shownQuests = useMemo(
-    () =>
-      activeTab === 'all'
-        ? quests.filter((q) => q.active === 1)
-        : quests.filter(
-            (q) =>
-              (q.category || 'All').toLowerCase() === activeTab && q.active === 1
-          ),
-    [activeTab, quests]
-  );
-
-  const questStats = useMemo(() => {
-    const total = shownQuests.length;
-    const completed = shownQuests.filter((q) => q.completed || q.claimed || q.alreadyClaimed).length;
-    const pending = Math.max(total - completed, 0);
-    return { total, completed, pending };
-  }, [shownQuests]);
-  if (loading)
-    return (
-      <Page>
-        <div className="glass-strong q-fallback">
-          <h2>Loading quests…</h2>
-          <p className="muted">Summoning the Seven Isles challenges.</p>
-        </div>
-      </Page>
-    );
-
-  if (!loading && error)
-    return (
-      <Page>
-        <div className="glass-strong q-fallback error">
-          <h2>We can’t load quests right now</h2>
-          <p className="muted">{error}</p>
-          <button className="btn ghost" onClick={sync}>
-            Retry
-          </button>
-        </div>
-      </Page>
-    );
+  };
 
   return (
     <Page>
-      <ErrorBoundary>
-        <div className="q-container">
-          <div className="glass profile-strip">
-            <ProfileWidget />
-            {arenaId && (
-              <div style={{ marginTop: 8 }}>
-                <span className="badge">Arena Mode</span>{' '}
-                <span className="muted">Claims are recorded against arena {arenaId}.</span>
-              </div>
-            )}
+      <section className="glass-panel section-panel">
+        <div className="section-head-row">
+          <div>
+            <p className="section-eyebrow">Quest Command</p>
+            <h1 className="page-title">Quests</h1>
           </div>
-
-          <div className="glass-strong q-header">
-            <div className="q-title">
-              <span className="emoji">📜</span>
-              <h1><span className="yolo-gradient">Quests</span></h1>
-            </div>
-            <p className="subtitle">Complete tasks, submit proof when required, and claim XP rewards.</p>
-
-            <div className="card glass" style={{ marginBottom: 12 }}>
-              <p className="muted" style={{ margin: 0 }}>
-                {isConnected
-                  ? `Wallet connected. ${questStats.pending} quests ready to work on.`
-                  : 'Connect your wallet to start claiming quest rewards.'}
-              </p>
-              <p className="muted" style={{ margin: '6px 0 0' }}>
-                Total: {questStats.total} • Completed: {questStats.completed} • Remaining: {questStats.pending}
-              </p>
-              {isAdmin && (
-                <p style={{ margin: '8px 0 0' }}>
-                  <Link className="link-underline" to="/admin/arena-console">Open admin quest operations</Link>
-                </p>
-              )}
-            </div>
-
-            <div className="tabs">
-              {tabs.map((type) => (
-                <button
-                  key={type}
-                  className={`tab ${activeTab === type ? 'active' : ''}`}
-                  onClick={() => setActiveTab(type)}
-                >
-                  {type === 'all' && 'All Quests'}
-                  {type === 'daily' && '📅 Daily'}
-                  {type === 'social' && '🌐 Social'}
-                  {type === 'partner' && '🤝 Partner'}
-                  {type === 'insider' && '🧠 Insider'}
-                  {type === 'onchain' && '🧾 Onchain'}
-                </button>
-              ))}
-            </div>
+          <div className="quest-progress-box">
+            <span>Voyage Progress</span>
+            <strong>{progress}%</strong>
           </div>
-
-          <div className="q-list">
-            {shownQuests.length === 0 ? (
-              <div className="glass quest-card">
-                <p className="quest-title">No quests yet for this category.</p>
-              </div>
-            ) : (
-              shownQuests.map((q) => (
-                <QuestCard
-                  key={q.id}
-                  quest={q}
-                  twitterAction={detectTwitterAction(q)}
-                  me={me}
-                  onClaim={handleClaim}
-                  claiming={!!claiming[q.id]}
-                  setToast={setToast}
-                  canClaim={isConnected}
-                  blockedReason={blockedClaims?.[q.id]}
-                  onProofStatusChange={handleProofStatusChange}
-                />
-              ))
-            )}
-          </div>
-
-          <Toast message={toast} />
         </div>
-      </ErrorBoundary>
+
+        <div className="tab-strip">
+          {FILTERS.map((f) => (
+            <button key={f} className={`tab-btn ${active === f ? "active" : ""}`} onClick={() => setActive(f)}>
+              {f}
+            </button>
+          ))}
+        </div>
+
+        <div className="xp-track">
+          <div className="xp-track-fill" style={{ width: `${progress}%` }} />
+        </div>
+
+        {loading ? <p className="muted">Scanning the tides for fresh missions…</p> : null}
+        {error ? <p className="muted">{error}</p> : null}
+
+        <div className="quest-stack">
+          {filtered.slice(0, 8).map((quest) => {
+            const done = quest.completed || quest.claimed || quest.alreadyClaimed;
+            const reward = quest.xp || quest.rewardXP || 150;
+            return (
+              <article key={quest.id} className="quest-row ocean-card">
+                <div className="quest-icon">✦</div>
+                <div className="quest-copy">
+                  <h4>{quest.title || "Untitled mission"}</h4>
+                  <p>{quest.description || "Complete this operation to advance your dominion rank."}</p>
+                </div>
+                <div className="quest-reward">+{reward} XP</div>
+                <button className="card-cta" disabled={done || claiming[quest.id]} onClick={() => onClaim(quest)}>
+                  {done ? "Claimed" : claiming[quest.id] ? "Claiming…" : "Claim Reward"}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="scene-banner">Seven Isles of Tides • Each completed quest lights a new route.</div>
+      </section>
     </Page>
   );
 }
